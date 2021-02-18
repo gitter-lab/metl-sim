@@ -1,0 +1,25 @@
+universe = vanilla
++WantFlocking = true
++WantGlideIn = false
+
+log = output/condor_logs/energy_$(Process)_$(Cluster).log
+error = output/condor_logs/energy_$(Process)_$(Cluster).err
+output = output/condor_logs/energy_$(Process)_$(Cluster).out
+
+requirements = ((OpSysMajorVer==6) || (OpSysMajorVer==7)) && (has_avx == true) && (TARGET.Machine != "f305.sips")
+
+executable = run.sh
+arguments = $(Process)
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = code,pdb_files,args_gb1,rosetta_working_dir,http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosetta/3_10_databaseaa,http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosetta/3_10_databaseab,http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosetta/3_10_databaseac,http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosetta/3_10_rosetta_scripts.static.linuxgccrelease,http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosetta/3_10_residue_energy_breakdown.static.linuxgccrelease
+transfer_output_files = output
+
+request_cpus = 1
+request_memory = 2GB
+request_disk = 10GB
+
+environment = "cluster=$(Cluster) process=$(Process) runningon=$$(Name)"
+
+queue 4000
