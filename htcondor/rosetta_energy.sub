@@ -6,6 +6,7 @@ log = output/condor_logs/rosetta_$(Process)_$(Cluster).log
 error = output/condor_logs/rosetta_$(Process)_$(Cluster).err
 output = output/condor_logs/rosetta_$(Process)_$(Cluster).out
 
+# todo: check what requirements I need (is OpSysMajorVer an important requirement? Is avx needed for Rosetta?
 requirements = ((OpSysMajorVer==6) || (OpSysMajorVer==7)) && (has_avx == true) && (TARGET.Machine != "f305.sips")
 
 executable = run.sh
@@ -13,6 +14,7 @@ arguments = $(Process)
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
+# todo: update input files to whatever the new system will be
 transfer_input_files = code,pdb_files,args_gb1,rosetta_working_dir
 transfer_output_files = output
 

@@ -42,7 +42,7 @@ def energies_for_single_pose_id(df_pose_id):
 
 
 def parse_multiple(input_fn, output_base):
-
+    # TODO: I think the updated rosetta code only checks 1 pose (nstruct=1?), so make sure proper support for that
     # load the energy.txt file as a pandas dataframe
     df = pd.read_csv(input_fn, delim_whitespace=True)
 
@@ -74,6 +74,7 @@ def parse_multiple(input_fn, output_base):
     print("Per-residue standard deviation between pose_ids: {}".format(total_std_dev))
     np.save("{}per_residue_energies.npy".format(output_base), avg_per_residue_energies)
 
+    # TODO: don't need pairwise energies for the new pipeline (I think)
     # for pairwise energies, check if all the different pose_ids have same pairs
     # note: I'm not sure if they should or not. Should ask Jerry.
     # this isn't a problem right now because I'm only using 1 pose id per variant

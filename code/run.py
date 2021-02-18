@@ -1,4 +1,5 @@
 """ this is the run script that executes on the server """
+# todo: rename this file to run_mutate.py or similar to differentiate from potential runs to prep PDB files
 
 import argparse
 import subprocess
@@ -30,7 +31,7 @@ def main(args):
 
     # loop through each variant, model it with rosetta, save results
     for id_variant in ids_variants:
-
+        # TODO: move this code to a separate function for better readability
         start = time.time()
 
         vid, variant = id_variant.split()
@@ -47,9 +48,9 @@ def main(args):
         process = subprocess.Popen("~/code/relax.sh", shell=True)
         process.wait()
 
+        # TODO: place outputs in an output staging directory, from where I can combine multiple files / tar
         # parse the rosetta energy.txt into npy files and place in output directory
         parse_multiple("./rosetta_working_dir/energy.txt", "./output/{}_".format(vid))
-
         # parse the score.sc and place into output dir
         parse_score("./rosetta_working_dir/score.sc", "./output/{}_".format(vid))
 
@@ -59,12 +60,15 @@ def main(args):
             shutil.copyfile("./rosetta_working_dir/score.sc", "./output/{}_score.sc".format(vid))
 
         # clean up the rosetta working dir in preparation for next variant
+        # TODO: instead of cleaning dir w/ this script, keep a copy of the original and fully delete & restore
         process = subprocess.Popen("~/code/clean_up_working_dir.sh", shell=True)
         process.wait()
 
         run_time = time.time()-start
         run_times.append(run_time)
         print("Processing variant {} took {}".format(vid, run_time))
+
+    # TODO: check if any of the variants failed to run... and if so, try to run them again here? or add to failed list?
 
     # create a final runtimes file for this run
     with open("./output/{}.runtimes".format(args.job_id), "w") as f:
@@ -74,6 +78,7 @@ def main(args):
             f.write("{:.3f}\n".format(run_time))
 
     # zip all the outputs and delete
+    # TODO: combine outputs into a single csv file (can optionally save all the small output files as well)
     subprocess.call("tar -czf {}_output.tar.gz *".format(args.job_id), cwd="./output", shell=True)
     subprocess.call("find . ! -name '{}_output.tar.gz' -type f -exec rm -f {} +".format(args.job_id, "{}"), cwd="./output", shell=True)
 
