@@ -15,11 +15,11 @@
 	<MOVERS>
 		<FastRelax name="mutate" scorefxn="REF2015" task_operations="mutation" disable_design="false" repeats="1">
 		</FastRelax>
-		<FastRelax name="relax" scorefxn="REF2015" task_operations="repack_res,no_repack" disable_design="false">
+		<FastRelax name="relax" scorefxn="REF2015" task_operations="repack_res,no_repack" disable_design="false" repeats="15">
                 </FastRelax>
 	</MOVERS>
 	<PROTOCOLS>
-   		<Add mover="mutate"/>
+                <Add mover="relax"/>
 	</PROTOCOLS>
 
 </ROSETTASCRIPTS>

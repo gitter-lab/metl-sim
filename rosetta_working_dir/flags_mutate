@@ -1,6 +1,6 @@
 -s structure.pdb
 -database ./database
+-default_max_cycles 100
 -parser:protocol mutate.xml
 -ignore_unrecognized_res  
--restore_talaris_behavior
 -nstruct 1
