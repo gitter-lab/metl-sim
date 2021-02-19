@@ -54,5 +54,5 @@ chmod +x ~/code/clean_up_working_dir.sh
 
 # launch our python run script with argument file number
 python code/run.py args_gb1/"$1".txt --job_id="$1" --pdb_fn="pdb_files/gb1_clean_0007.pdb"
-# python code/run.py args_gb1/random-10.txt --job_id=$1 --pdb_fn="pdb_files/gb1_clean_0007.pdb"
+# python code/energize.py args_gb1/random-10.txt --job_id=$1 --pdb_fn="raw_pdb_files/gb1_clean_0007.pdb"
 

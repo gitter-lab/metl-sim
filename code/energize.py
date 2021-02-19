@@ -51,8 +51,8 @@ def run_single_variant(vid, variant, pdb_fn, wt_offset, save_raw):
     working_dir = "working_dir"
     prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset)
 
-    # run rosetta via relax.sh - make sure to block until complete
-    process = subprocess.Popen("code/relax.sh", shell=True)
+    # run rosetta via energize.sh - make sure to block until complete
+    process = subprocess.Popen("code/energize.sh", shell=True)
     process.wait()
 
     # TODO: place outputs in an output staging directory, from where I can combine multiple files / tar
