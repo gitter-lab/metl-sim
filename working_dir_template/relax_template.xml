@@ -1,25 +1,25 @@
 <ROSETTASCRIPTS>
-	<RESIDUE_SELECTORS>
-		<Neighborhood name="surrounding" resnums="{}" distance="10.0"/>
-		<Not name="rest" selector="surrounding"/>
-	</RESIDUE_SELECTORS>
-	<TASKOPERATIONS>
-		<ReadResfile name="mutation" filename="mutation_template.resfile"/>
-		<OperateOnResidueSubset name="repack_res" selector="surrounding" >
-			<RestrictToRepackingRLT/>
-		</OperateOnResidueSubset>
-		<OperateOnResidueSubset name="no_repack" selector="rest" >
-			<PreventRepackingRLT/>
-		</OperateOnResidueSubset>
-	</TASKOPERATIONS>
-	<MOVERS>
-		<FastRelax name="mutate" scorefxn="REF2015" task_operations="mutation" disable_design="false" repeats="1">
-		</FastRelax>
-		<FastRelax name="relax" scorefxn="REF2015" task_operations="repack_res,no_repack" disable_design="false" repeats="15">
-                </FastRelax>
-	</MOVERS>
-	<PROTOCOLS>
-                <Add mover="relax"/>
-	</PROTOCOLS>
+    <RESIDUE_SELECTORS>
+        <Neighborhood name="surrounding" resnums="{}" distance="10.0"/>
+        <Not name="rest" selector="surrounding"/>
+    </RESIDUE_SELECTORS>
+    <TASKOPERATIONS>
+        <ReadResfile name="mutation" filename="mutation_template.resfile"/>
+        <OperateOnResidueSubset name="repack_res" selector="surrounding">
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+        <OperateOnResidueSubset name="no_repack" selector="rest">
+            <PreventRepackingRLT/>
+        </OperateOnResidueSubset>
+    </TASKOPERATIONS>
+    <MOVERS>
+        <FastRelax name="mutate" scorefxn="REF2015" task_operations="mutation" disable_design="false" repeats="1">
+        </FastRelax>
+        <FastRelax name="relax" scorefxn="REF2015" task_operations="repack_res,no_repack" disable_design="false" repeats="15">
+        </FastRelax>
+    </MOVERS>
+    <PROTOCOLS>
+        <Add mover="relax"/>
+    </PROTOCOLS>
 
 </ROSETTASCRIPTS>

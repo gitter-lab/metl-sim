@@ -5,28 +5,71 @@ import os
 from os.path import join
 
 
-def gen_rosetta_script_str(template_dir, variant, wt_offset):
+# def gen_rosetta_script_str(template_dir, variant, wt_offset):
+#
+#     # for the rosetta script xml, we just need the mutated residue numbers and chain
+#     # Note: ROSETTA USES 1-BASED INDEXING
+#     # TODO: add an argument so user can specify whether they are providing variants with 0 or 1 based indexing
+#     resnums = []
+#     for mutation in variant.split(","):
+#         resnum_0_idx_raw = int(mutation[1:-1])
+#         resnum_0_idx_offset = resnum_0_idx_raw - wt_offset
+#         resnum_1_index = resnum_0_idx_offset + 1
+#         resnums.append("{}A".format(resnum_1_index))
+#
+#     resnum_str = ",".join(resnums)
+#
+#     # load the templates
+#     template_fn = join(template_dir, "mutate_template.xml")
+#     with open(template_fn, "r") as f:
+#         template_str = f.read()
+#
+#     # fill in the templates
+#     formatted_template = template_str.format(resnum_str)
+#
+#     return formatted_template
 
-    # for the rosetta script xml, we just need the mutated residue numbers and chain
-    # Note: ROSETTA USES 1-BASED INDEXING
-    # TODO: add an argument so user can specify whether they are providing variants with 0 or 1 based indexing
+
+def gen_res_selector_str(variant, wt_offset):
+    """ generates the ResidueIndexSelector string Rosetta scripts """
     resnums = []
     for mutation in variant.split(","):
         resnum_0_idx_raw = int(mutation[1:-1])
         resnum_0_idx_offset = resnum_0_idx_raw - wt_offset
         resnum_1_index = resnum_0_idx_offset + 1
         resnums.append("{}A".format(resnum_1_index))
-
     resnum_str = ",".join(resnums)
+    return resnum_str
 
-    # load the templates
-    template_fn = join(template_dir, "mutate_template.xml")
+
+def gen_mutate_xml_str(template_dir, variant, wt_offset):
+    # TODO: the mutant.xml template from Jerry doesn't use the chain (A) in the residue selector...
+    #  verify I can use it to keep consistency with relax template (I think I can)
+    resnum_str = gen_res_selector_str(variant, wt_offset)
+
+    template_fn = "mutate_template.xml"
+
+    # load the template
+    template_fn = join(template_dir, template_fn)
     with open(template_fn, "r") as f:
         template_str = f.read()
 
-    # fill in the templates
+    # fill in the template
     formatted_template = template_str.format(resnum_str)
+    return formatted_template
 
+
+def gen_relax_xml_str(template_dir, variant, wt_offset):
+    resnum_str = gen_res_selector_str(variant, wt_offset)
+    template_fn = "relax_template.xml"
+
+    # load the template
+    template_fn = join(template_dir, template_fn)
+    with open(template_fn, "r") as f:
+        template_str = f.read()
+
+    # fill in the template
+    formatted_template = template_str.format(resnum_str)
     return formatted_template
 
 
@@ -57,11 +100,15 @@ def gen_resfile_str(template_dir, variant, wt_offset):
 
 def gen_rosetta_args(template_dir, variant, wt_offset, out_dir):
 
-    rosetta_script_str = gen_rosetta_script_str(template_dir, variant, wt_offset)
+    mutate_xml_str = gen_mutate_xml_str(template_dir, variant, wt_offset)
+    relax_xml_str = gen_relax_xml_str(template_dir, variant, wt_offset)
     resfile_str = gen_resfile_str(template_dir, variant, wt_offset)
 
     with open(join(out_dir, "mutate.xml"), "w") as f:
-        f.write(rosetta_script_str)
+        f.write(mutate_xml_str)
+
+    with open(join(out_dir, "relax.xml"), "w") as f:
+        f.write(relax_xml_str)
 
     with open(join(out_dir, "mutation.resfile"), "w") as f:
         f.write(resfile_str)
