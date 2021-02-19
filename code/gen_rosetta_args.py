@@ -2,12 +2,14 @@
 
 import argparse
 import os
+from os.path import join
 
 
-def gen_rosetta_script_str(variant, wt_offset):
+def gen_rosetta_script_str(template_dir, variant, wt_offset):
 
     # for the rosetta script xml, we just need the mutated residue numbers and chain
     # Note: ROSETTA USES 1-BASED INDEXING
+    # TODO: add an argument so user can specify whether they are providing variants with 0 or 1 based indexing
     resnums = []
     for mutation in variant.split(","):
         resnum_0_idx_raw = int(mutation[1:-1])
@@ -18,7 +20,7 @@ def gen_rosetta_script_str(variant, wt_offset):
     resnum_str = ",".join(resnums)
 
     # load the templates
-    template_fn = "./rosetta_working_dir/templates/mutate_template.xml"
+    template_fn = join(template_dir, "mutate_template.xml")
     with open(template_fn, "r") as f:
         template_str = f.read()
 
@@ -28,7 +30,7 @@ def gen_rosetta_script_str(variant, wt_offset):
     return formatted_template
 
 
-def gen_resfile_str(variant, wt_offset):
+def gen_resfile_str(template_dir, variant, wt_offset):
     """residue_number chain PIKAA replacement_AA"""
 
     mutation_strs = []
@@ -44,7 +46,7 @@ def gen_resfile_str(variant, wt_offset):
     mutation_strs = "\n".join(mutation_strs)
 
     # load the templates
-    template_fn = "./rosetta_working_dir/templates/mutation_template.resfile"
+    template_fn = join(template_dir, "mutation_template.resfile")
     with open(template_fn, "r") as f:
         template_str = f.read()
 
@@ -53,31 +55,37 @@ def gen_resfile_str(variant, wt_offset):
     return formatted_template
 
 
-def gen_rosetta_args(variant, wt_offset, out_dir):
+def gen_rosetta_args(template_dir, variant, wt_offset, out_dir):
 
-    rosetta_script_str = gen_rosetta_script_str(variant, wt_offset)
-    resfile_str = gen_resfile_str(variant, wt_offset)
+    rosetta_script_str = gen_rosetta_script_str(template_dir, variant, wt_offset)
+    resfile_str = gen_resfile_str(template_dir, variant, wt_offset)
 
-    with open(os.path.join(out_dir, "mutate.xml"), "w") as f:
+    with open(join(out_dir, "mutate.xml"), "w") as f:
         f.write(rosetta_script_str)
 
-    with open(os.path.join(out_dir, "mutation.resfile"), "w") as f:
+    with open(join(out_dir, "mutation.resfile"), "w") as f:
         f.write(resfile_str)
 
 
 def main(args):
-    gen_rosetta_args(args.variant, 0, args.out_dir)
+    gen_rosetta_args(args.template_dir, args.variant, args.wt_offset, args.out_dir)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
-
+    parser.add_argument("--template_dir",
+                        help="the directory containing the template files",
+                        type=str,
+                        default="working_dir_template")
     parser.add_argument("--variant",
                         help="the variant for which to generate rosetta args_gb1",
                         type=str)
-
+    parser.add_argument("--wt_offset",
+                        help="the offset for variant indexing",
+                        type=int,
+                        default=0)
     parser.add_argument("--out_dir",
                         help="the directory in which to save mutation.resfile and mutate.xml",
                         type=str)
