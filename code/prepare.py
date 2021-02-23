@@ -59,7 +59,6 @@ def run_relax(rosetta_source_dir, working_dir, cleaned_pdb_fn, nstruct=1):
     """ run relax to prep the cleaned pdb for further use with Rosetta (as recommended by Rosetta docs) """
     relax_bin_fn = join(rosetta_source_dir, "bin/relax.static.linuxgccrelease")
     relax_cmd = [relax_bin_fn, '-s', cleaned_pdb_fn, '-nstruct', str(nstruct), '@flags_prepare_relax']
-    # todo: save output from relax to a separate file, should be able to do this via subprocess args for stdout etc?
     subprocess.call(relax_cmd, cwd=working_dir)
 
 
@@ -79,7 +78,7 @@ def parse_scores(working_dir):
     return join(working_dir, lowest_energy_df.iloc[0]["description"] + ".pdb")
 
 
-def generate_outputs(working_dir, lowest_energy_pdb_fn, original_pdb_fn):
+def transfer_outputs(working_dir, lowest_energy_pdb_fn, original_pdb_fn):
     # generate the outputs containing the renamed lowest energy pdb and intermediate files
     # grab the first available output directory (increment integer to avoid overwriting a previous run)
     # assuming we won't have more than 100 runs... plus this is going to be different on condor anyway
@@ -101,6 +100,8 @@ def generate_outputs(working_dir, lowest_energy_pdb_fn, original_pdb_fn):
 def main(args):
 
     # todo: this could be defined as a global constant and changed depending where the script is run
+    #   actually, if this is running on condor, need to figure out specifically which folders/binaries are needed
+    #   and reference only those
     rosetta_source_dir = "/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main/source"
 
     template_dir = "prepare_wd_template"
@@ -114,15 +115,16 @@ def main(args):
     cleaned_pdb_fn = run_clean_pdb(rosetta_source_dir, working_dir)
 
     # relax with all-heavy-atom constraints
-    run_relax(rosetta_source_dir, working_dir, cleaned_pdb_fn, nstruct=5)
+    run_relax(rosetta_source_dir, working_dir, cleaned_pdb_fn, nstruct=10)
 
     # get the filename of the lowest scoring structure
     lowest_energy_pdb_fn = parse_scores(working_dir)
 
     # generate the outputs containing the renamed lowest energy pdb and intermediate files
-    generate_outputs(working_dir, lowest_energy_pdb_fn, args.pdb_fn)
+    transfer_outputs(working_dir, lowest_energy_pdb_fn, args.pdb_fn)
 
     # delete the working directory
+    shutil.rmtree(working_dir)
 
 
 if __name__ == "__main__":
