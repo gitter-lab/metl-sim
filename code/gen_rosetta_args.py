@@ -125,7 +125,7 @@ if __name__ == "__main__":
     parser.add_argument("--template_dir",
                         help="the directory containing the template files",
                         type=str,
-                        default="working_dir_template")
+                        default="energize_wd_template")
     parser.add_argument("--variant",
                         help="the variant for which to generate rosetta args_gb1",
                         type=str)

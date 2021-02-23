@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# todo: rename this script to mutate.sh to differentiate from potential script to prep pdb (which will also relax)
+# todo: call this from python instead of running via a shell script?
 
 # this script might be called from the root or code directory
 # but it does all its work in the rosetta working directory

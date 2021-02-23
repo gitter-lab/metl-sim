@@ -41,13 +41,13 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset):
         shutil.copy(join(template_dir, fn), working_dir)
 
 
-def run_single_variant(vid, variant, pdb_fn, wt_offset, save_raw):
+def run_single_variant(vid, variant, pdb_fn, wt_offset, save_raw, out_dir):
     start = time.time()
 
     print("Running variant {}: {}".format(vid, variant))
 
     # the directory in which rosetta will operate
-    template_dir = "working_dir_template"
+    template_dir = "energize_wd_template"
     working_dir = "working_dir"
     prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset)
 
@@ -56,15 +56,17 @@ def run_single_variant(vid, variant, pdb_fn, wt_offset, save_raw):
     process.wait()
 
     # TODO: place outputs in an output staging directory, from where I can combine multiple files / tar
+    # TODO: I think score.sc contains the energies for the full variant and energy.txt contains the per-residue and pairwise energies
+    # SHOULDN'T BOTH COME FROM THE SAME STEP? (THE RELAX STEP)? THE OLD CODE MADE ME THINK ONLY ENERGY.TXT CAME FROM THE RELAX STEP.
     # parse the rosetta energy.txt into npy files and place in output directory
-    parse_multiple("./working_dir_template/energy.txt", "./output/{}_".format(vid))
+    parse_multiple("./energize_wd_template/energy.txt", "./output/{}_".format(vid))
     # parse the score.sc and place into output dir
-    parse_score("./working_dir_template/score.sc", "./output/{}_".format(vid))
+    parse_score("./energize_wd_template/score.sc", "./output/{}_".format(vid))
 
     # if the flag is set, also copy over the raw score.sc and energy.txt files
     if save_raw:
-        shutil.copyfile("./working_dir_template/energy.txt", "./output/{}_energy.txt".format(vid))
-        shutil.copyfile("./working_dir_template/score.sc", "./output/{}_score.sc".format(vid))
+        shutil.copyfile("./energize_wd_template/energy.txt", "./output/{}_energy.txt".format(vid))
+        shutil.copyfile("./energize_wd_template/score.sc", "./output/{}_score.sc".format(vid))
 
     # clean up the rosetta working dir in preparation for next variant
     os.rmdir(working_dir)
