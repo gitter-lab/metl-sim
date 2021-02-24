@@ -7,6 +7,8 @@ import shutil
 import os
 from os.path import isdir, join, basename
 import uuid
+import socket
+import csv
 
 import shortuuid
 import numpy as np
@@ -145,14 +147,14 @@ def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, output_dir, save_
     return run_time
 
 
-def get_log_dir_name(args):
+def get_log_dir_name(args, job_uuid):
     """ get a log dir name for this run, whether running locally or on HTCondor """
 
     # note: it would be informative to include the PDB file in the log dir name.
     # however, i might set up the script to accept different PDB files for different variants (defined in the
     # input variants text file). in which case, there'd be multiple PDB files. so best keep PDB file out of it
     # for now, until I figure out whether I want the runs to support only one or multiple PDB files
-    format_args = [args.cluster, args.process, time.strftime("%Y-%m-%d_%H-%M-%S"), shortuuid.encode(uuid.uuid4())[:12]]
+    format_args = [args.cluster, args.process, time.strftime("%Y-%m-%d_%H-%M-%S"), job_uuid]
     log_dir_str = "energize_{}_{}_{}_{}"
     log_dir = log_dir_str.format(*format_args)
     return log_dir
@@ -174,36 +176,49 @@ def combine_outputs(staging_dir):
     return combined_df
 
 
+def save_csv_from_dict(save_fn, d):
+    with open(save_fn, "w") as f:
+        w = csv.writer(f)
+        for k, v in d.items():
+            w.writerow([k, v])
+
+
 def main(args):
 
-    # get the log directory for this job
-    log_dir = join(args.log_dir_base, get_log_dir_name(args))
+    # generate a unique identifier for this run
+    job_uuid = shortuuid.encode(uuid.uuid4())[:12]
+
+    # create the log directory for this job
+    log_dir = join(args.log_dir_base, get_log_dir_name(args, job_uuid))
     os.makedirs(log_dir)
 
-    # load the variants that will be processed on this server
+    # create an info file for this job (cluster, process, server, github commit id, etc)
+    job_info = {"uuid": job_uuid, "cluster": args.cluster, "process": args.process, "hostname": socket.gethostname(),
+                "github_commit_id": args.commit_id, "script_start_time": time.time()}
+    save_csv_from_dict(join(log_dir, "job_info.csv"), job_info)
+
+    # load the variants that will be processed with this run
     with open(args.variants_fn, "r") as f:
         ids_variants = f.readlines()
 
     # loop through each variant, model it with rosetta, save results
     # individual variant outputs will be placed in the staging directory
     for id_variant in ids_variants:
+        # todo: remove dependence on vid and instead use pdb_fn and variant
         vid, variant = id_variant.split()
         # todo: run_single_variant can throw a RosettaError if Rosetta fails to run for a particular variant
-        #   but what are the chances that one variant fails and the others don't? I feel like any problems would
-        #   be universal for the particular protein or condor job, so maybe don't need to handle the error and just
-        #   let it crash
+        # but what are the chances that one variant fails and the others don't? I feel like any problems would
+        # be universal for the particular protein or condor job, so maybe just let it crash?
         run_single_variant(args.rosetta_main_dir, vid, variant, args.pdb_fn, log_dir, args.save_wd)
 
     # todo: check if any of the variants failed to run... and if so, try to run them again here? or add to failed list?
 
     # combine outputs in the staging directory into a single csv file
     cdf = combine_outputs(join(log_dir, "staging"))
+    # add additional column for job uuid
+    cdf.insert(2, "job_uuid", job_uuid)
     # save in the main log directory
     cdf.to_csv(join(log_dir, "output.csv"), index=False)
-
-    # create an info file for this job (cluster, process, server, github tag, rosetta version, etc)
-
-    # also database should have info about the PDB file, wild-type sequence, etc
 
     # compress outputs, delete the output staging directory, etc
     shutil.rmtree(join(log_dir, "staging"))
@@ -246,5 +261,10 @@ if __name__ == "__main__":
                         help="process (when running on HTCondor)",
                         type=str,
                         default="local")
+
+    parser.add_argument("--commit_id",
+                        help="the github commit id corresponding to this version of the code",
+                        type=str,
+                        default="no_commit_id")
 
     main(parser.parse_args())
