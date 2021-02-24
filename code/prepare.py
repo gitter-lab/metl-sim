@@ -37,9 +37,9 @@ def make_executable(fn):
     os.chmod(fn, st.st_mode | stat.S_IEXEC)
 
 
-def run_clean_pdb(rosetta_source_dir, working_dir):
+def run_clean_pdb(rosetta_main_dir, working_dir):
     """ run Rosetta's clean_pdb_keep_ligand.py script. assumes there is a structure.pdb file in the working_dir """
-    clean_pdb_script_fn = join(rosetta_source_dir, "src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py")
+    clean_pdb_script_fn = join(rosetta_main_dir, "source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py")
 
     # make sure the clean pdb python script is executable
     make_executable(clean_pdb_script_fn)
@@ -55,9 +55,9 @@ def run_clean_pdb(rosetta_source_dir, working_dir):
     return cleaned_pdb_fn
 
 
-def run_relax(rosetta_source_dir, working_dir, cleaned_pdb_fn, nstruct=1):
+def run_relax(rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=1):
     """ run relax to prep the cleaned pdb for further use with Rosetta (as recommended by Rosetta docs) """
-    relax_bin_fn = join(rosetta_source_dir, "bin/relax.static.linuxgccrelease")
+    relax_bin_fn = join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease")
     relax_cmd = [relax_bin_fn, '-s', cleaned_pdb_fn, '-nstruct', str(nstruct), '@flags_prepare_relax']
     subprocess.call(relax_cmd, cwd=working_dir)
 
@@ -102,7 +102,7 @@ def main(args):
     # todo: this could be defined as a global constant and changed depending where the script is run
     #   actually, if this is running on condor, need to figure out specifically which folders/binaries are needed
     #   and reference only those
-    rosetta_source_dir = "/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main/source"
+    rosetta_main_dir = "/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main"
 
     template_dir = "prepare_wd_template"
     working_dir = "prepare_wd"
@@ -112,10 +112,10 @@ def main(args):
     prep_working_dir(template_dir, working_dir, args.pdb_fn, overwrite_wd=True)
 
     # run the clean_pdb script
-    cleaned_pdb_fn = run_clean_pdb(rosetta_source_dir, working_dir)
+    cleaned_pdb_fn = run_clean_pdb(rosetta_main_dir, working_dir)
 
     # relax with all-heavy-atom constraints
-    run_relax(rosetta_source_dir, working_dir, cleaned_pdb_fn, nstruct=10)
+    run_relax(rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=10)
 
     # get the filename of the lowest scoring structure
     lowest_energy_pdb_fn = parse_scores(working_dir)
