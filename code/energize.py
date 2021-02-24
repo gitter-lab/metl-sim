@@ -13,8 +13,6 @@ import numpy as np
 import pandas as pd
 
 from gen_rosetta_args import gen_rosetta_args
-from parse_energies_txt import parse_multiple
-from parse_score_sc import parse_score
 import time
 
 
