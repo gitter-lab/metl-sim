@@ -62,7 +62,6 @@ def run_mutate_relax_steps(rosetta_main_dir, working_dir):
     # run the mutate step
     mutate_cmd = [relax_bin_fn, '-database', database_path, '@flags_mutate']
     return_code = subprocess.call(mutate_cmd, cwd=working_dir)
-
     if return_code != 0:
         raise RosettaError("Mutate step did not execute successfully. Return code: {}".format(return_code))
 
@@ -72,12 +71,11 @@ def run_mutate_relax_steps(rosetta_main_dir, working_dir):
     # run the relax step
     relax_cmd = [relax_bin_fn, '-database', database_path, '@flags_relax']
     return_code = subprocess.call(relax_cmd, cwd=working_dir)
-
     if return_code != 0:
         raise RosettaError("Relax step did not execute successfully. Return code: {}".format(return_code))
 
 
-def parse_score_sc(vid, variant, pdb_fn, score_sc_fn, agg_method="avg"):
+def parse_score_sc(vid, variant, pdb_fn, run_time, score_sc_fn, agg_method="avg"):
     """ parse the score.sc file from the energize run, aggregating energies and appending info about variant """
     score_df = pd.read_csv(score_sc_fn, delim_whitespace=True, skiprows=1, header=0)
 
@@ -105,8 +103,9 @@ def parse_score_sc(vid, variant, pdb_fn, score_sc_fn, agg_method="avg"):
 
     # append info about this variant
     parsed_df.insert(0, "vid", [vid])
-    parsed_df.insert(1, "variant", [variant])
-    parsed_df.insert(2, "pdb_fn", [pdb_fn])
+    parsed_df.insert(1, "pdb_fn", [pdb_fn])
+    parsed_df.insert(2, "variant", [variant])
+    parsed_df.insert(3, "run_time", [run_time])
     # todo: it would be great to include the version of the code that generated this result (github tag)?
 
     return parsed_df
@@ -120,19 +119,20 @@ def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, output_dir, save_
     staging_dir = join(output_dir, "staging")
     os.makedirs(staging_dir, exist_ok=True)
 
-    start = time.time()
-    print("Running variant {}: {}".format(vid, variant))
-
     # set up the working directory (copies the pdb file, sets up the rosetta scripts, etc)
     prep_working_dir(template_dir, working_dir, pdb_fn, variant, overwrite_wd=True)
 
     # run the mutate and relax steps
+    print("Running Rosetta on variant {}: {}".format(vid, variant))
+    start = time.time()
     run_mutate_relax_steps(rosetta_main_dir, working_dir)
+    run_time = time.time() - start
+    print("Processing variant {} took {}".format(vid, run_time))
 
     # parse the output file into a single-record csv, appending info about variant
     # place in a staging directory and combine with other variants that run during this job
-    sdf = parse_score_sc(vid, variant, basename(pdb_fn), join(working_dir, "score.sc"))
-    sdf.to_csv(join(staging_dir, "{}_energies.csv".format(vid)))
+    sdf = parse_score_sc(vid, variant, basename(pdb_fn), run_time, join(working_dir, "score.sc"))
+    sdf.to_csv(join(staging_dir, "{}_energies.csv".format(vid)), index=False)
 
     # if the flag is set, save all files in the working directory for this variant
     # these go directly to the output directory instead of the staging directory
@@ -142,8 +142,6 @@ def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, output_dir, save_
     # clean up the working dir in preparation for next variant
     shutil.rmtree(working_dir)
 
-    run_time = time.time() - start
-    print("Processing variant {} took {}".format(vid, run_time))
     return run_time
 
 
@@ -160,6 +158,22 @@ def get_log_dir_name(args):
     return log_dir
 
 
+def combine_outputs(staging_dir):
+    """ combine the outputs from individual variants into a single csv """
+    # Note that these will probably NOT be in the same order as they were run (can add timestamp to record)
+    output_fns = [join(staging_dir, x) for x in os.listdir(staging_dir)]
+
+    # read individual dataframes into a list
+    dfs = []
+    for fn in output_fns:
+        df = pd.read_csv(fn, header=0)
+        dfs.append(df)
+
+    # combine into a single dataframe
+    combined_df = pd.concat(dfs, axis=0, ignore_index=True)
+    return combined_df
+
+
 def main(args):
     # todo: figure out how to work this w/ condor
     rosetta_main_dir = "/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main"
@@ -173,9 +187,6 @@ def main(args):
     with open(args.variants_fn, "r") as f:
         ids_variants = f.readlines()
 
-    # keep track of how long it takes to process variant
-    run_times = []
-
     # loop through each variant, model it with rosetta, save results
     # individual variant outputs will be placed in the staging directory
     for id_variant in ids_variants:
@@ -185,21 +196,16 @@ def main(args):
         #   be universal for the particular protein or condor job, so maybe don't need to handle the error and just
         #   let it crash
         run_time = run_single_variant(rosetta_main_dir, vid, variant, args.pdb_fn, log_dir, args.save_raw)
-        run_times.append(run_time)
-
-    # todo: combine outputs in the staging directory into a single csv file
 
     # todo: check if any of the variants failed to run... and if so, try to run them again here? or add to failed list?
-    # create a final runtimes file for this run
-    with open(join(log_dir, "runtimes.txt"), "w") as f:
-        f.write("Avg runtime per variant: {:.3f}\n".format(np.average(run_times)))
-        f.write("Std. dev.: {:.3f}\n".format(np.std(run_times)))
-        for run_time in run_times:
-            f.write("{:.3f}\n".format(run_time))
 
-    # zip all the outputs and delete
-    # subprocess.call("tar -czf {}_output.tar.gz *".format(args.job_id), cwd="./output", shell=True)
-    # subprocess.call("find . ! -name '{}_output.tar.gz' -type f -exec rm -f {} +".format(args.job_id, "{}"), cwd="./output", shell=True)
+    # combine outputs in the staging directory into a single csv file
+    cdf = combine_outputs(join(log_dir, "staging"))
+    # save in the main log directory
+    cdf.to_csv(join(log_dir, "output.csv"), index=False)
+
+    # compress outputs, delete the output staging directory, etc
+    shutil.rmtree(join(log_dir, "staging"))
 
 
 if __name__ == "__main__":
