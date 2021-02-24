@@ -6,7 +6,9 @@ import subprocess
 import shutil
 import os
 from os.path import isdir, join, basename
+import uuid
 
+import shortuuid
 import numpy as np
 import pandas as pd
 
@@ -21,9 +23,8 @@ class RosettaError(Exception):
     pass
 
 
-def prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset, overwrite_wd=False):
+def prep_working_dir(template_dir, working_dir, pdb_fn, variant, overwrite_wd=False):
     """ prep the working directory by copying over files from the template directory, modifying as needed """
-
     # delete the current working directory if one exists
     if overwrite_wd:
         try:
@@ -43,7 +44,7 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset, over
     shutil.copyfile(pdb_fn, join(working_dir, "structure.pdb"))
 
     # generate the rosetta arguments (Rosetta scripts XML files and resfile) for this variant
-    gen_rosetta_args(template_dir, variant, wt_offset, working_dir)
+    gen_rosetta_args(template_dir, variant, working_dir)
 
     # copy over files from the template dir that don't need to be changed
     files_to_copy = ["flags_mutate", "flags_relax"]
@@ -52,7 +53,6 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset, over
 
 
 def run_mutate_relax_steps(rosetta_main_dir, working_dir):
-
     # path to the relax binary which is used for both the mutate and relax steps
     relax_bin_fn = join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease")
 
@@ -112,15 +112,11 @@ def parse_score_sc(vid, variant, pdb_fn, score_sc_fn, agg_method="avg"):
     return parsed_df
 
 
-def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, wt_offset, save_wd=False):
-
+def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, output_dir, save_wd=False):
     template_dir = "energize_wd_template"
     working_dir = "energize_wd"
-    # todo: the output dir should be unique to each condor run (and probably each local run).
-    #   this will make things easier for transferring condor outputs and handling local runs
-    output_dir = "output/energize_outputs/"
+
     # staging directory for variant outputs, which will be combined after all variants have been run
-    # todo: this can probably be passed in as an argument or just keep it here
     staging_dir = join(output_dir, "staging")
     os.makedirs(staging_dir, exist_ok=True)
 
@@ -128,7 +124,7 @@ def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, wt_offset, save_w
     print("Running variant {}: {}".format(vid, variant))
 
     # set up the working directory (copies the pdb file, sets up the rosetta scripts, etc)
-    prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset, overwrite_wd=True)
+    prep_working_dir(template_dir, working_dir, pdb_fn, variant, overwrite_wd=True)
 
     # run the mutate and relax steps
     run_mutate_relax_steps(rosetta_main_dir, working_dir)
@@ -151,46 +147,59 @@ def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, wt_offset, save_w
     return run_time
 
 
-def main(args):
+def get_log_dir_name(args):
+    """ get a log dir name for this run, whether running locally or on HTCondor """
 
+    # note: it would be informative to include the PDB file in the log dir name.
+    # however, i might set up the script to accept different PDB files for different variants (defined in the
+    # input variants text file). in which case, there'd be multiple PDB files. so best keep PDB file out of it
+    # for now, until I figure out whether I want the runs to support only one or multiple PDB files
+    format_args = [args.cluster, args.process, time.strftime("%Y-%m-%d_%H-%M-%S"), shortuuid.encode(uuid.uuid4())[:12]]
+    log_dir_str = "energize_{}_{}_{}_{}"
+    log_dir = log_dir_str.format(*format_args)
+    return log_dir
+
+
+def main(args):
     # todo: figure out how to work this w/ condor
     rosetta_main_dir = "/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main"
 
+    # get the log directory for this job
+    log_dir = join(args.log_dir_base, get_log_dir_name(args))
+    os.makedirs(log_dir)
+
     # load the variants that will be processed on this server
+    # todo: copy over the variants_fn and pdb files to the log dir? might not be necessary
     with open(args.variants_fn, "r") as f:
         ids_variants = f.readlines()
-
-    # wild-type offset is needed since the pdb files are labeled from 1-num_residues, while the
-    # datasets I have might be labeled from their start in a larger protein. hard-coded, for now
-    if "pab1" in args.pdb_fn:
-        wt_offset = 126
-    else:
-        wt_offset = 0
 
     # keep track of how long it takes to process variant
     run_times = []
 
     # loop through each variant, model it with rosetta, save results
+    # individual variant outputs will be placed in the staging directory
     for id_variant in ids_variants:
         vid, variant = id_variant.split()
-        run_time = run_single_variant(rosetta_main_dir, vid, variant, args.pdb_fn, wt_offset, args.save_raw)
+        # todo: run_single_variant can throw a RosettaError if Rosetta fails to run for a particular variant
+        #   but what are the chances that one variant fails and the others don't? I feel like any problems would
+        #   be universal for the particular protein or condor job, so maybe don't need to handle the error and just
+        #   let it crash
+        run_time = run_single_variant(rosetta_main_dir, vid, variant, args.pdb_fn, log_dir, args.save_raw)
         run_times.append(run_time)
 
-    quit()
+    # todo: combine outputs in the staging directory into a single csv file
 
-    # TODO: check if any of the variants failed to run... and if so, try to run them again here? or add to failed list?
-
+    # todo: check if any of the variants failed to run... and if so, try to run them again here? or add to failed list?
     # create a final runtimes file for this run
-    with open("./output/{}.runtimes".format(args.job_id), "w") as f:
+    with open(join(log_dir, "runtimes.txt"), "w") as f:
         f.write("Avg runtime per variant: {:.3f}\n".format(np.average(run_times)))
         f.write("Std. dev.: {:.3f}\n".format(np.std(run_times)))
         for run_time in run_times:
             f.write("{:.3f}\n".format(run_time))
 
     # zip all the outputs and delete
-    # TODO: combine outputs into a single csv file (can optionally save all the small output files as well)
-    subprocess.call("tar -czf {}_output.tar.gz *".format(args.job_id), cwd="./output", shell=True)
-    subprocess.call("find . ! -name '{}_output.tar.gz' -type f -exec rm -f {} +".format(args.job_id, "{}"), cwd="./output", shell=True)
+    # subprocess.call("tar -czf {}_output.tar.gz *".format(args.job_id), cwd="./output", shell=True)
+    # subprocess.call("find . ! -name '{}_output.tar.gz' -type f -exec rm -f {} +".format(args.job_id, "{}"), cwd="./output", shell=True)
 
 
 if __name__ == "__main__":
@@ -215,5 +224,19 @@ if __name__ == "__main__":
     parser.add_argument("--save_raw",
                         help="set this to save the raw score.sc and energy.txt files in addition to the parsed ones",
                         action="store_true")
+
+    parser.add_argument("--log_dir_base",
+                        help="the base output directory where log dirs for each run will be placed",
+                        default="output/energize_outputs")
+
+    parser.add_argument("--cluster",
+                        help="cluster (when running on HTCondor)",
+                        type=str,
+                        default="local")
+
+    parser.add_argument("--process",
+                        help="process (when running on HTCondor)",
+                        type=str,
+                        default="local")
 
     main(parser.parse_args())

@@ -5,22 +5,21 @@ import os
 from os.path import join
 
 
-def gen_res_selector_str(variant, wt_offset):
+def gen_res_selector_str(variant):
     """ generates the ResidueIndexSelector string Rosetta scripts """
     resnums = []
     for mutation in variant.split(","):
-        resnum_0_idx_raw = int(mutation[1:-1])
-        resnum_0_idx_offset = resnum_0_idx_raw - wt_offset
-        resnum_1_index = resnum_0_idx_offset + 1
+        resnum_0_idx = int(mutation[1:-1])
+        resnum_1_index = resnum_0_idx + 1
         resnums.append("{}A".format(resnum_1_index))
     resnum_str = ",".join(resnums)
     return resnum_str
 
 
-def gen_mutate_xml_str(template_dir, variant, wt_offset):
+def gen_mutate_xml_str(template_dir, variant):
     # TODO: the mutant.xml template from Jerry doesn't use the chain (A) in the residue selector...
     #  verify I can use it to keep consistency with relax template (I think I can)
-    resnum_str = gen_res_selector_str(variant, wt_offset)
+    resnum_str = gen_res_selector_str(variant)
 
     template_fn = "mutate_template.xml"
 
@@ -34,8 +33,8 @@ def gen_mutate_xml_str(template_dir, variant, wt_offset):
     return formatted_template
 
 
-def gen_relax_xml_str(template_dir, variant, wt_offset):
-    resnum_str = gen_res_selector_str(variant, wt_offset)
+def gen_relax_xml_str(template_dir, variant):
+    resnum_str = gen_res_selector_str(variant)
     template_fn = "relax_template.xml"
 
     # load the template
@@ -48,14 +47,13 @@ def gen_relax_xml_str(template_dir, variant, wt_offset):
     return formatted_template
 
 
-def gen_resfile_str(template_dir, variant, wt_offset):
+def gen_resfile_str(template_dir, variant):
     """residue_number chain PIKAA replacement_AA"""
 
     mutation_strs = []
     for mutation in variant.split(","):
-        resnum_0_idx_raw = int(mutation[1:-1])
-        resnum_0_idx_offset = resnum_0_idx_raw - wt_offset
-        resnum_1_index = resnum_0_idx_offset + 1
+        resnum_0_idx = int(mutation[1:-1])
+        resnum_1_index = resnum_0_idx + 1
         new_aa = mutation[-1]
 
         mutation_strs.append("{} A PIKAA {}".format(resnum_1_index, new_aa))
@@ -73,11 +71,11 @@ def gen_resfile_str(template_dir, variant, wt_offset):
     return formatted_template
 
 
-def gen_rosetta_args(template_dir, variant, wt_offset, out_dir):
+def gen_rosetta_args(template_dir, variant, out_dir):
 
-    mutate_xml_str = gen_mutate_xml_str(template_dir, variant, wt_offset)
-    relax_xml_str = gen_relax_xml_str(template_dir, variant, wt_offset)
-    resfile_str = gen_resfile_str(template_dir, variant, wt_offset)
+    mutate_xml_str = gen_mutate_xml_str(template_dir, variant)
+    relax_xml_str = gen_relax_xml_str(template_dir, variant)
+    resfile_str = gen_resfile_str(template_dir, variant)
 
     with open(join(out_dir, "mutate.xml"), "w") as f:
         f.write(mutate_xml_str)
@@ -90,7 +88,7 @@ def gen_rosetta_args(template_dir, variant, wt_offset, out_dir):
 
 
 def main(args):
-    gen_rosetta_args(args.template_dir, args.variant, args.wt_offset, args.out_dir)
+    gen_rosetta_args(args.template_dir, args.variant, args.out_dir)
 
 
 if __name__ == "__main__":
@@ -104,10 +102,6 @@ if __name__ == "__main__":
     parser.add_argument("--variant",
                         help="the variant for which to generate rosetta args_gb1",
                         type=str)
-    parser.add_argument("--wt_offset",
-                        help="the offset for variant indexing",
-                        type=int,
-                        default=0)
     parser.add_argument("--out_dir",
                         help="the directory in which to save mutation.resfile and mutate.xml",
                         type=str)
