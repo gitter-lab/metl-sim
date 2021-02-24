@@ -4,7 +4,7 @@
         <Not name="rest" selector="surrounding"/>
     </RESIDUE_SELECTORS>
     <TASKOPERATIONS>
-        <ReadResfile name="mutation" filename="mutation_template.resfile"/>
+        <ReadResfile name="mutation" filename="mutation.resfile"/>
         <OperateOnResidueSubset name="repack_res" selector="surrounding">
             <RestrictToRepackingRLT/>
         </OperateOnResidueSubset>

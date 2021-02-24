@@ -5,9 +5,10 @@ import argparse
 import subprocess
 import shutil
 import os
-from os.path import isdir, join
+from os.path import isdir, join, basename
 
 import numpy as np
+import pandas as pd
 
 from gen_rosetta_args import gen_rosetta_args
 from parse_energies_txt import parse_multiple
@@ -15,19 +16,28 @@ from parse_score_sc import parse_score
 import time
 
 
-def prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset):
+class RosettaError(Exception):
+    # a simple custom error for when Rosetta gives a bad return code
+    pass
+
+
+def prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset, overwrite_wd=False):
     """ prep the working directory by copying over files from the template directory, modifying as needed """
 
-    # don't overwrite an existing working directory because not sure if there is currently a script using it
-    # or if it is leftover from a failed run (it would be ok to delete in that case, but still)
-    # get around this by specifying a different working directory for every variant, that way can avoid directory
-    # collisions in the event of a crash and move on to the next variant
-    if isdir(working_dir):
-        raise IsADirectoryError("The working directory {} already exists. Please delete this directory or specify "
-                                "a different working directory for this variant.")
+    # delete the current working directory if one exists
+    if overwrite_wd:
+        try:
+            shutil.rmtree(working_dir)
+        except FileNotFoundError:
+            pass
 
     # create the directory
-    os.mkdir(working_dir)
+    try:
+        os.mkdir(working_dir)
+    except FileExistsError:
+        print("Working directory '{}' already exists. "
+              "Delete it before continuing or set overwrite_wd=True.".format(working_dir))
+        raise
 
     # copy over PDB file into rosetta working dir and rename it to structure.pdb
     shutil.copyfile(pdb_fn, join(working_dir, "structure.pdb"))
@@ -41,35 +51,100 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset):
         shutil.copy(join(template_dir, fn), working_dir)
 
 
-def run_single_variant(vid, variant, pdb_fn, wt_offset, save_raw, out_dir):
-    start = time.time()
+def run_mutate_relax_steps(rosetta_main_dir, working_dir):
 
+    # path to the relax binary which is used for both the mutate and relax steps
+    relax_bin_fn = join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease")
+
+    # path to the rosetta database
+    database_path = join(rosetta_main_dir, "database")
+
+    # run the mutate step
+    mutate_cmd = [relax_bin_fn, '-database', database_path, '@flags_mutate']
+    return_code = subprocess.call(mutate_cmd, cwd=working_dir)
+
+    if return_code != 0:
+        raise RosettaError("Mutate step did not execute successfully. Return code: {}".format(return_code))
+
+    # rename the resulting score.sc to keep the score files from the mutate and relax steps separate
+    os.rename(join(working_dir, "score.sc"), join(working_dir, "mutate.sc"))
+
+    # run the relax step
+    relax_cmd = [relax_bin_fn, '-database', database_path, '@flags_relax']
+    return_code = subprocess.call(relax_cmd, cwd=working_dir)
+
+    if return_code != 0:
+        raise RosettaError("Relax step did not execute successfully. Return code: {}".format(return_code))
+
+
+def parse_score_sc(vid, variant, pdb_fn, score_sc_fn, agg_method="avg"):
+    """ parse the score.sc file from the energize run, aggregating energies and appending info about variant """
+    score_df = pd.read_csv(score_sc_fn, delim_whitespace=True, skiprows=1, header=0)
+
+    # drop the "SCORE:" and "description" columns, these won't be needed for final output
+    score_df = score_df.drop(["SCORE:", "description"], axis=1)
+
+    # special case: only 1 structure was generated, no need to aggerate
+    if len(score_df) == 1:
+        parsed_df = score_df.iloc[[0]]
+    else:
+        if agg_method == "min_energy_avg":
+            # select the structure(s) with the minimum total_score and average the energies if multiple structures
+            # we average just in case there are some structures with the same min total_score but different energies
+            min_score_df = score_df[score_df.total_score == score_df.total_score.min()]
+            parsed_df = min_score_df.mean(axis=0).to_frame().T
+        elif agg_method == "min_energy_first":
+            # select structures with min total_score and use the first one
+            min_score_df = score_df[score_df.total_score == score_df.total_score.min()]
+            parsed_df = min_score_df.iloc[[0]]
+        elif agg_method == "avg":
+            # take the average of all structures, not just the ones with lowest score
+            parsed_df = score_df.mean(axis=0).to_frame().T
+        else:
+            raise ValueError("invalid aggregation method: {}".format(agg_method))
+
+    # append info about this variant
+    parsed_df.insert(0, "vid", [vid])
+    parsed_df.insert(1, "variant", [variant])
+    parsed_df.insert(2, "pdb_fn", [pdb_fn])
+    # todo: it would be great to include the version of the code that generated this result (github tag)?
+
+    return parsed_df
+
+
+def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, wt_offset, save_wd=False):
+
+    template_dir = "energize_wd_template"
+    working_dir = "energize_wd"
+    # todo: the output dir should be unique to each condor run (and probably each local run).
+    #   this will make things easier for transferring condor outputs and handling local runs
+    output_dir = "output/energize_outputs/"
+    # staging directory for variant outputs, which will be combined after all variants have been run
+    # todo: this can probably be passed in as an argument or just keep it here
+    staging_dir = join(output_dir, "staging")
+    os.makedirs(staging_dir, exist_ok=True)
+
+    start = time.time()
     print("Running variant {}: {}".format(vid, variant))
 
-    # the directory in which rosetta will operate
-    template_dir = "energize_wd_template"
-    working_dir = "working_dir"
-    prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset)
+    # set up the working directory (copies the pdb file, sets up the rosetta scripts, etc)
+    prep_working_dir(template_dir, working_dir, pdb_fn, variant, wt_offset, overwrite_wd=True)
 
-    # run rosetta via energize.sh - make sure to block until complete
-    process = subprocess.Popen("code/energize.sh", shell=True)
-    process.wait()
+    # run the mutate and relax steps
+    run_mutate_relax_steps(rosetta_main_dir, working_dir)
 
-    # TODO: place outputs in an output staging directory, from where I can combine multiple files / tar
-    # TODO: I think score.sc contains the energies for the full variant and energy.txt contains the per-residue and pairwise energies
-    # SHOULDN'T BOTH COME FROM THE SAME STEP? (THE RELAX STEP)? THE OLD CODE MADE ME THINK ONLY ENERGY.TXT CAME FROM THE RELAX STEP.
-    # parse the rosetta energy.txt into npy files and place in output directory
-    parse_multiple("./energize_wd_template/energy.txt", "./output/{}_".format(vid))
-    # parse the score.sc and place into output dir
-    parse_score("./energize_wd_template/score.sc", "./output/{}_".format(vid))
+    # parse the output file into a single-record csv, appending info about variant
+    # place in a staging directory and combine with other variants that run during this job
+    sdf = parse_score_sc(vid, variant, basename(pdb_fn), join(working_dir, "score.sc"))
+    sdf.to_csv(join(staging_dir, "{}_energies.csv".format(vid)))
 
-    # if the flag is set, also copy over the raw score.sc and energy.txt files
-    if save_raw:
-        shutil.copyfile("./energize_wd_template/energy.txt", "./output/{}_energy.txt".format(vid))
-        shutil.copyfile("./energize_wd_template/score.sc", "./output/{}_score.sc".format(vid))
+    # if the flag is set, save all files in the working directory for this variant
+    # these go directly to the output directory instead of the staging directory
+    if save_wd:
+        shutil.copytree(working_dir, join(output_dir, "wd"))
 
-    # clean up the rosetta working dir in preparation for next variant
-    os.rmdir(working_dir)
+    # clean up the working dir in preparation for next variant
+    shutil.rmtree(working_dir)
 
     run_time = time.time() - start
     print("Processing variant {} took {}".format(vid, run_time))
@@ -77,6 +152,9 @@ def run_single_variant(vid, variant, pdb_fn, wt_offset, save_raw, out_dir):
 
 
 def main(args):
+
+    # todo: figure out how to work this w/ condor
+    rosetta_main_dir = "/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main"
 
     # load the variants that will be processed on this server
     with open(args.variants_fn, "r") as f:
@@ -95,8 +173,10 @@ def main(args):
     # loop through each variant, model it with rosetta, save results
     for id_variant in ids_variants:
         vid, variant = id_variant.split()
-        run_time = run_single_variant(vid, variant, args.pdb_fn, wt_offset, args.save_raw)
+        run_time = run_single_variant(rosetta_main_dir, vid, variant, args.pdb_fn, wt_offset, args.save_raw)
         run_times.append(run_time)
+
+    quit()
 
     # TODO: check if any of the variants failed to run... and if so, try to run them again here? or add to failed list?
 

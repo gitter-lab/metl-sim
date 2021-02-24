@@ -1,5 +1,4 @@
 -s structure.pdb
--database ./database
 -default_max_cycles 100
 -parser:protocol mutate.xml
 -ignore_unrecognized_res  

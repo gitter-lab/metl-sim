@@ -1,5 +1,4 @@
 -s structure_0001.pdb
--database ./database
--parser:protocol relax_template.xml
+-parser:protocol relax.xml
 -ignore_unrecognized_res
 -nstruct 3

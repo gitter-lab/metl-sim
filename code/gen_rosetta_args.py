@@ -5,31 +5,6 @@ import os
 from os.path import join
 
 
-# def gen_rosetta_script_str(template_dir, variant, wt_offset):
-#
-#     # for the rosetta script xml, we just need the mutated residue numbers and chain
-#     # Note: ROSETTA USES 1-BASED INDEXING
-#     # TODO: add an argument so user can specify whether they are providing variants with 0 or 1 based indexing
-#     resnums = []
-#     for mutation in variant.split(","):
-#         resnum_0_idx_raw = int(mutation[1:-1])
-#         resnum_0_idx_offset = resnum_0_idx_raw - wt_offset
-#         resnum_1_index = resnum_0_idx_offset + 1
-#         resnums.append("{}A".format(resnum_1_index))
-#
-#     resnum_str = ",".join(resnums)
-#
-#     # load the templates
-#     template_fn = join(template_dir, "mutate_template.xml")
-#     with open(template_fn, "r") as f:
-#         template_str = f.read()
-#
-#     # fill in the templates
-#     formatted_template = template_str.format(resnum_str)
-#
-#     return formatted_template
-
-
 def gen_res_selector_str(variant, wt_offset):
     """ generates the ResidueIndexSelector string Rosetta scripts """
     resnums = []
