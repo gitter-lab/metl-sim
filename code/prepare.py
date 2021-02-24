@@ -90,7 +90,7 @@ def transfer_outputs(working_dir, lowest_energy_pdb_fn, original_pdb_fn):
     os.makedirs(output_dir)
 
     # copy over the lowest energy PDB and rename it to match input filename
-    shutil.copyfile(lowest_energy_pdb_fn, join(output_dir, "{}_prepared.pdb".format(basename(original_pdb_fn)[:-4])))
+    shutil.copyfile(lowest_energy_pdb_fn, join(output_dir, "{}_p.pdb".format(basename(original_pdb_fn)[:-4])))
 
     # copy over other intermediate files (found it's just easier to copy over the whole working directory)
     # these can be compressed or deleted if filesize is a concern
@@ -98,11 +98,6 @@ def transfer_outputs(working_dir, lowest_energy_pdb_fn, original_pdb_fn):
 
 
 def main(args):
-
-    # todo: this could be defined as a global constant and changed depending where the script is run
-    #   actually, if this is running on condor, need to figure out specifically which folders/binaries are needed
-    #   and reference only those
-    rosetta_main_dir = "/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main"
 
     template_dir = "prepare_wd_template"
     working_dir = "prepare_wd"
@@ -112,10 +107,10 @@ def main(args):
     prep_working_dir(template_dir, working_dir, args.pdb_fn, overwrite_wd=True)
 
     # run the clean_pdb script
-    cleaned_pdb_fn = run_clean_pdb(rosetta_main_dir, working_dir)
+    cleaned_pdb_fn = run_clean_pdb(args.rosetta_main_dir, working_dir)
 
     # relax with all-heavy-atom constraints
-    run_relax(rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=10)
+    run_relax(args.rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=10)
 
     # get the filename of the lowest scoring structure
     lowest_energy_pdb_fn = parse_scores(working_dir)
@@ -133,7 +128,13 @@ if __name__ == "__main__":
             description=__doc__,
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
-        parser.add_argument("pdb_fn",
+        parser.add_argument("--rosetta_main_dir",
+                            help="The main directory of the rosetta distribution containing the binaries and "
+                                 "other files that are needed for this script (does not have to be full distribution)",
+                            type=str,
+                            default="/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main")
+
+        parser.add_argument("--pdb_fn",
                             help="the PDB file to prepare",
                             type=str)
 

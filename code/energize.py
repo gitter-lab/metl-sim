@@ -105,6 +105,8 @@ def parse_score_sc(vid, variant, pdb_fn, run_time, score_sc_fn, agg_method="avg"
     parsed_df.insert(2, "variant", [variant])
     parsed_df.insert(3, "run_time", [run_time])
     # todo: it would be great to include the version of the code that generated this result (github tag)?
+    # todo: add start time
+    # todo: add job uuid
 
     return parsed_df
 
@@ -135,7 +137,7 @@ def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, output_dir, save_
     # if the flag is set, save all files in the working directory for this variant
     # these go directly to the output directory instead of the staging directory
     if save_wd:
-        shutil.copytree(working_dir, join(output_dir, "wd"))
+        shutil.copytree(working_dir, join(output_dir, "wd_{}".format(vid)))
 
     # clean up the working dir in preparation for next variant
     shutil.rmtree(working_dir)
@@ -173,15 +175,12 @@ def combine_outputs(staging_dir):
 
 
 def main(args):
-    # todo: figure out how to work this w/ condor
-    rosetta_main_dir = "/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main"
 
     # get the log directory for this job
     log_dir = join(args.log_dir_base, get_log_dir_name(args))
     os.makedirs(log_dir)
 
     # load the variants that will be processed on this server
-    # todo: copy over the variants_fn and pdb files to the log dir? might not be necessary
     with open(args.variants_fn, "r") as f:
         ids_variants = f.readlines()
 
@@ -193,7 +192,7 @@ def main(args):
         #   but what are the chances that one variant fails and the others don't? I feel like any problems would
         #   be universal for the particular protein or condor job, so maybe don't need to handle the error and just
         #   let it crash
-        run_time = run_single_variant(rosetta_main_dir, vid, variant, args.pdb_fn, log_dir, args.save_raw)
+        run_single_variant(args.rosetta_main_dir, vid, variant, args.pdb_fn, log_dir, args.save_wd)
 
     # todo: check if any of the variants failed to run... and if so, try to run them again here? or add to failed list?
 
@@ -201,6 +200,10 @@ def main(args):
     cdf = combine_outputs(join(log_dir, "staging"))
     # save in the main log directory
     cdf.to_csv(join(log_dir, "output.csv"), index=False)
+
+    # create an info file for this job (cluster, process, server, github tag, rosetta version, etc)
+
+    # also database should have info about the PDB file, wild-type sequence, etc
 
     # compress outputs, delete the output staging directory, etc
     shutil.rmtree(join(log_dir, "staging"))
@@ -211,22 +214,23 @@ if __name__ == "__main__":
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    parser.add_argument("variants_fn",
+    parser.add_argument("--rosetta_main_dir",
+                        help="The main directory of the rosetta distribution containing the binaries and "
+                             "other files that are needed for this script (does not have to be full distribution)",
+                        type=str,
+                        default="/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main")
+
+    parser.add_argument("--variants_fn",
                         help="the file containing the variants",
                         type=str)
-
-    parser.add_argument("--job_id",
-                        help="job id is used to save a diagnostic file",
-                        type=str,
-                        default="no_job_id")
 
     parser.add_argument("--pdb_fn",
                         help="path to pdb file",
                         type=str,
                         default="raw_pdb_files/ube4b_clean_0002.pdb")
 
-    parser.add_argument("--save_raw",
-                        help="set this to save the raw score.sc and energy.txt files in addition to the parsed ones",
+    parser.add_argument("--save_wd",
+                        help="set this to save the full working directory for each variant",
                         action="store_true")
 
     parser.add_argument("--log_dir_base",
