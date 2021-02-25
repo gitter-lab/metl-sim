@@ -105,7 +105,7 @@ def parse_score_sc(score_sc_fn, agg_method="avg"):
     return parsed_df
 
 
-def run_single_variant(rosetta_main_dir, vid, pdb_fn, variant, rosetta_hparams, output_dir, save_wd=False):
+def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, output_dir, save_wd=False):
     template_dir = "energize_wd_template"
     working_dir = "energize_wd"
 
@@ -118,27 +118,29 @@ def run_single_variant(rosetta_main_dir, vid, pdb_fn, variant, rosetta_hparams, 
                      rosetta_hparams["relax_distance"], rosetta_hparams["relax_repeats"], overwrite_wd=True)
 
     # run the mutate and relax steps
-    print("Running Rosetta on variant {}: {}".format(vid, variant))
+    print("Running Rosetta on variant {} {}".format(basename(pdb_fn), variant))
     start = time.time()
     run_mutate_relax_steps(rosetta_main_dir, working_dir,
                            rosetta_hparams["mutate_default_max_cycles"], rosetta_hparams["relax_nstruct"])
     run_time = time.time() - start
-    print("Processing variant {} took {}".format(vid, run_time))
+    print("Processing variant {} {} took {}".format(basename(pdb_fn), variant, run_time))
 
     # parse the output file into a single-record csv, appending info about variant
     # place in a staging directory and combine with other variants that run during this job
     sdf = parse_score_sc(join(working_dir, "score.sc"))
     # append info about this variant
-    sdf.insert(0, "vid", [vid])
-    sdf.insert(1, "pdb_fn", [pdb_fn])
-    sdf.insert(2, "variant", [variant])
+    sdf.insert(0, "pdb_fn", [basename(pdb_fn)])
+    sdf.insert(1, "variant", [variant])
+    sdf.insert(2, "start_time", [start])
     sdf.insert(3, "run_time", [run_time])
-    sdf.to_csv(join(staging_dir, "{}_energies.csv".format(vid)), index=False)
+    # note: it's not the best practice to have filenames with periods and commas
+    #   could pass in the loop ID for this single variant and use that to save the file
+    sdf.to_csv(join(staging_dir, "{}_{}_energies.csv".format(basename(pdb_fn), variant)), index=False)
 
     # if the flag is set, save all files in the working directory for this variant
     # these go directly to the output directory instead of the staging directory
     if save_wd:
-        shutil.copytree(working_dir, join(output_dir, "wd_{}".format(vid)))
+        shutil.copytree(working_dir, join(output_dir, "wd_{}_{}".format(basename(pdb_fn), variant)))
 
     # clean up the working dir in preparation for next variant
     shutil.rmtree(working_dir)
@@ -182,6 +184,18 @@ def save_csv_from_dict(save_fn, d):
             w.writerow([k, v])
 
 
+def save_argparse_args(args_dict, out_fn):
+    """ save argparse arguments out to a file """
+    with open(out_fn, "w") as f:
+        for k, v in args_dict.items():
+            # if a flag is set to false, dont include it in the argument file
+            if (not isinstance(v, bool)) or (isinstance(v, bool) and v):
+                f.write("--{}\n".format(k))
+                # if a flag is true, no need to specify the "true" value
+                if not isinstance(v, bool):
+                    f.write("{}\n".format(v))
+
+
 def main(args):
 
     # generate a unique identifier for this run
@@ -191,14 +205,13 @@ def main(args):
     log_dir = join(args.log_dir_base, get_log_dir_name(args, job_uuid))
     os.makedirs(log_dir)
 
+    # save the argparse arguments back out to a file
+    save_argparse_args(vars(args), join(log_dir, "args.txt"))
+
     # create an info file for this job (cluster, process, server, github commit id, etc)
     job_info = {"uuid": job_uuid, "cluster": args.cluster, "process": args.process, "hostname": socket.gethostname(),
                 "github_commit_id": args.commit_id, "script_start_time": time.time()}
     save_csv_from_dict(join(log_dir, "job.csv"), job_info)
-
-    # load the variants that will be processed with this run
-    with open(args.variants_fn, "r") as f:
-        ids_variants = f.readlines()
 
     # create a dictionary of just rosetta hyperparameters that can be passed around throughout functions and saved
     rosetta_hparams = {"mutate_default_max_cycles": args.mutate_default_max_cycles,
@@ -207,16 +220,22 @@ def main(args):
                        "relax_nstruct": args.relax_nstruct}
     save_csv_from_dict(join(log_dir, "hparams.csv"), rosetta_hparams)
 
+    # load the variants that will be processed with this run
+    # this file contains a line for each variant
+    # and each line contains the pdb file and the comma-delimited substitutions (e.g. "2qmt_p.pdb A23P,R67L")
+    with open(args.variants_fn, "r") as f:
+        pdbs_variants = f.readlines()
+
     # loop through each variant, model it with rosetta, save results
     # individual variant outputs will be placed in the staging directory
-    for id_variant in ids_variants:
-        # todo: remove dependence on vid and instead use pdb_fn and variant
-        vid, variant = id_variant.split()
+    for pdb_variant in pdbs_variants:
+        pdb_basename, variant = pdb_variant.split()
+        pdb_fn = join(args.pdb_dir, pdb_basename)
+
         # todo: run_single_variant can throw a RosettaError if Rosetta fails to run for a particular variant
         # but what are the chances that one variant fails and the others don't? I feel like any problems would
         # be universal for the particular protein or condor job, so maybe just let it crash?
-        # todo: pass in full args dict instead of taking out relax_distance, repeats, etc? or create rosetta_args_dict
-        run_single_variant(args.rosetta_main_dir, vid, args.pdb_fn, variant, rosetta_hparams, log_dir, args.save_wd)
+        run_single_variant(args.rosetta_main_dir, pdb_fn, variant, rosetta_hparams, log_dir, args.save_wd)
 
     # todo: check if any of the variants failed to run... and if so, try to run them again here? or add to failed list?
 
@@ -247,26 +266,26 @@ if __name__ == "__main__":
                         help="the file containing the variants",
                         type=str)
 
-    parser.add_argument("--pdb_fn",
-                        help="path to pdb file",
+    parser.add_argument("--pdb_dir",
+                        help="directory containing pdb files referenced in variants_fn",
                         type=str,
-                        default="raw_pdb_files/ube4b_clean_0002.pdb")
+                        default="prepared_pdb_files")
 
     # energize hyperparameters
     parser.add_argument("--mutate_default_max_cycles",
-                        help="Determines the number of optimization cycles in the mutate step",
+                        help="number of optimization cycles in the mutate step",
                         type=int,
                         default=100)
     parser.add_argument("--relax_repeats",
-                        help="The number of FastRelax repeats in the relax step",
+                        help="number of FastRelax repeats in the relax step",
                         type=int,
                         default=15)
     parser.add_argument("--relax_nstruct",
-                        help="The number of structures (restarts) in the relax step",
+                        help="number of structures (restarts) in the relax step",
                         type=int,
                         default=1)
     parser.add_argument("--relax_distance",
-                        help="The distance threshold in Angstroms for the residue selector in the relax step",
+                        help="distance threshold in angstroms for the residue selector in the relax step",
                         type=float,
                         default=10.0)
 
@@ -276,7 +295,7 @@ if __name__ == "__main__":
                         action="store_true")
 
     parser.add_argument("--log_dir_base",
-                        help="the base output directory where log dirs for each run will be placed",
+                        help="base output directory where log dirs for each run will be placed",
                         default="output/energize_outputs")
 
     # HTCondor job information and program run information
