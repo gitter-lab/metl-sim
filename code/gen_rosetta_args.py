@@ -3,6 +3,7 @@
 import argparse
 import os
 from os.path import join
+import shutil
 
 
 def gen_res_selector_str(variant):
@@ -16,21 +17,21 @@ def gen_res_selector_str(variant):
     return resnum_str
 
 
-def gen_mutate_xml_str(template_dir, variant):
-    # TODO: the mutant.xml template from Jerry doesn't use the chain (A) in the residue selector...
-    #  verify I can use it to keep consistency with relax template (I think I can)
-    resnum_str = gen_res_selector_str(variant)
-
-    template_fn = "mutate_template.xml"
-
-    # load the template
-    template_fn = join(template_dir, template_fn)
-    with open(template_fn, "r") as f:
-        template_str = f.read()
-
-    # fill in the template
-    formatted_template = template_str.format(resnum_str)
-    return formatted_template
+# def gen_mutate_xml_str(template_dir, variant):
+#     # TODO: the mutant.xml template from Jerry doesn't use the chain (A) in the residue selector...
+#     #  verify I can use it to keep consistency with relax template (I think I can)
+#     resnum_str = gen_res_selector_str(variant)
+#
+#     template_fn = "mutate_template.xml"
+#
+#     # load the template
+#     template_fn = join(template_dir, template_fn)
+#     with open(template_fn, "r") as f:
+#         template_str = f.read()
+#
+#     # fill in the template
+#     formatted_template = template_str.format(resnum_str)
+#     return formatted_template
 
 
 def gen_relax_xml_str(template_dir, variant):
@@ -73,16 +74,20 @@ def gen_resfile_str(template_dir, variant):
 
 def gen_rosetta_args(template_dir, variant, out_dir):
 
-    mutate_xml_str = gen_mutate_xml_str(template_dir, variant)
+    # mutate_xml_str = gen_mutate_xml_str(template_dir, variant)
+    # with open(join(out_dir, "mutate.xml"), "w") as f:
+    #     f.write(mutate_xml_str)
+
+    # the mutate xml no longer has any argument that need to be filled in, so just copy the template
+    # todo: this could be done in prep_working_dir in energize.py instead, that's where other files
+    #   that are unchanged are copied from the template dir to the working dir
+    shutil.copy(join(template_dir, "mutate_template.xml"), join(out_dir, "mutate.xml"))
+
     relax_xml_str = gen_relax_xml_str(template_dir, variant)
-    resfile_str = gen_resfile_str(template_dir, variant)
-
-    with open(join(out_dir, "mutate.xml"), "w") as f:
-        f.write(mutate_xml_str)
-
     with open(join(out_dir, "relax.xml"), "w") as f:
         f.write(relax_xml_str)
 
+    resfile_str = gen_resfile_str(template_dir, variant)
     with open(join(out_dir, "mutation.resfile"), "w") as f:
         f.write(resfile_str)
 
