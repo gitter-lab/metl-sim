@@ -23,7 +23,7 @@ class RosettaError(Exception):
     pass
 
 
-def prep_working_dir(template_dir, working_dir, pdb_fn, variant, overwrite_wd=False):
+def prep_working_dir(template_dir, working_dir, pdb_fn, variant, relax_distance, relax_repeats, overwrite_wd=False):
     """ prep the working directory by copying over files from the template directory, modifying as needed """
     # delete the current working directory if one exists
     if overwrite_wd:
@@ -44,7 +44,7 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, overwrite_wd=Fa
     shutil.copyfile(pdb_fn, join(working_dir, "structure.pdb"))
 
     # generate the rosetta arguments (Rosetta scripts XML files and resfile) for this variant
-    gen_rosetta_args(template_dir, variant, working_dir)
+    gen_rosetta_args(template_dir, variant, relax_distance, relax_repeats, working_dir)
 
     # copy over files from the template dir that don't need to be changed
     files_to_copy = ["flags_mutate", "flags_relax"]
@@ -52,7 +52,7 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, overwrite_wd=Fa
         shutil.copy(join(template_dir, fn), working_dir)
 
 
-def run_mutate_relax_steps(rosetta_main_dir, working_dir):
+def run_mutate_relax_steps(rosetta_main_dir, working_dir, mutate_default_max_cycles, relax_nstruct):
     # path to the relax binary which is used for both the mutate and relax steps
     relax_bin_fn = join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease")
 
@@ -60,7 +60,8 @@ def run_mutate_relax_steps(rosetta_main_dir, working_dir):
     database_path = join(rosetta_main_dir, "database")
 
     # run the mutate step
-    mutate_cmd = [relax_bin_fn, '-database', database_path, '@flags_mutate']
+    mutate_cmd = [relax_bin_fn, '-database', database_path,
+                  '-default_max_cycles', str(mutate_default_max_cycles), '@flags_mutate']
     return_code = subprocess.call(mutate_cmd, cwd=working_dir)
     if return_code != 0:
         raise RosettaError("Mutate step did not execute successfully. Return code: {}".format(return_code))
@@ -69,7 +70,7 @@ def run_mutate_relax_steps(rosetta_main_dir, working_dir):
     os.rename(join(working_dir, "score.sc"), join(working_dir, "mutate.sc"))
 
     # run the relax step
-    relax_cmd = [relax_bin_fn, '-database', database_path, '@flags_relax']
+    relax_cmd = [relax_bin_fn, '-database', database_path, '-nstruct', str(relax_nstruct), '@flags_relax']
     return_code = subprocess.call(relax_cmd, cwd=working_dir)
     if return_code != 0:
         raise RosettaError("Relax step did not execute successfully. Return code: {}".format(return_code))
@@ -113,7 +114,7 @@ def parse_score_sc(vid, variant, pdb_fn, run_time, score_sc_fn, agg_method="avg"
     return parsed_df
 
 
-def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, output_dir, save_wd=False):
+def run_single_variant(rosetta_main_dir, vid, pdb_fn, variant, rosetta_hparams, output_dir, save_wd=False):
     template_dir = "energize_wd_template"
     working_dir = "energize_wd"
 
@@ -122,12 +123,14 @@ def run_single_variant(rosetta_main_dir, vid, variant, pdb_fn, output_dir, save_
     os.makedirs(staging_dir, exist_ok=True)
 
     # set up the working directory (copies the pdb file, sets up the rosetta scripts, etc)
-    prep_working_dir(template_dir, working_dir, pdb_fn, variant, overwrite_wd=True)
+    prep_working_dir(template_dir, working_dir, pdb_fn, variant,
+                     rosetta_hparams["relax_distance"], rosetta_hparams["relax_repeats"], overwrite_wd=True)
 
     # run the mutate and relax steps
     print("Running Rosetta on variant {}: {}".format(vid, variant))
     start = time.time()
-    run_mutate_relax_steps(rosetta_main_dir, working_dir)
+    run_mutate_relax_steps(rosetta_main_dir, working_dir,
+                           rosetta_hparams["mutate_default_max_cycles"], rosetta_hparams["relax_nstruct"])
     run_time = time.time() - start
     print("Processing variant {} took {}".format(vid, run_time))
 
@@ -201,6 +204,13 @@ def main(args):
     with open(args.variants_fn, "r") as f:
         ids_variants = f.readlines()
 
+    # create a dictionary of just rosetta hyperparameters that can be passed around throughout functions
+    # could also just pass around the full args dict, but I want to do it this way
+    rosetta_hparams = {"mutate_default_max_cycles": args.mutate_default_max_cycles,
+                       "relax_distance": args.relax_distance,
+                       "relax_repeats": args.relax_repeats,
+                       "relax_nstruct": args.relax_nstruct}
+
     # loop through each variant, model it with rosetta, save results
     # individual variant outputs will be placed in the staging directory
     for id_variant in ids_variants:
@@ -209,7 +219,8 @@ def main(args):
         # todo: run_single_variant can throw a RosettaError if Rosetta fails to run for a particular variant
         # but what are the chances that one variant fails and the others don't? I feel like any problems would
         # be universal for the particular protein or condor job, so maybe just let it crash?
-        run_single_variant(args.rosetta_main_dir, vid, variant, args.pdb_fn, log_dir, args.save_wd)
+        # todo: pass in full args dict instead of taking out relax_distance, repeats, etc? or create rosetta_args_dict
+        run_single_variant(args.rosetta_main_dir, vid, args.pdb_fn, variant, rosetta_hparams, log_dir, args.save_wd)
 
     # todo: check if any of the variants failed to run... and if so, try to run them again here? or add to failed list?
 
@@ -229,6 +240,7 @@ if __name__ == "__main__":
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
+    # main input files
     parser.add_argument("--rosetta_main_dir",
                         help="The main directory of the rosetta distribution containing the binaries and "
                              "other files that are needed for this script (does not have to be full distribution)",
@@ -244,6 +256,25 @@ if __name__ == "__main__":
                         type=str,
                         default="raw_pdb_files/ube4b_clean_0002.pdb")
 
+    # energize hyperparameters
+    parser.add_argument("--mutate_default_max_cycles",
+                        help="Determines the number of optimization cycles in the mutate step",
+                        type=int,
+                        default=100)
+    parser.add_argument("--relax_repeats",
+                        help="The number of FastRelax repeats in the relax step",
+                        type=int,
+                        default=15)
+    parser.add_argument("--relax_nstruct",
+                        help="The number of structures (restarts) in the relax step",
+                        type=int,
+                        default=1)
+    parser.add_argument("--relax_distance",
+                        help="The distance threshold in Angstroms for the residue selector in the relax step",
+                        type=float,
+                        default=10.0)
+
+    # logging and output options
     parser.add_argument("--save_wd",
                         help="set this to save the full working directory for each variant",
                         action="store_true")
@@ -252,6 +283,7 @@ if __name__ == "__main__":
                         help="the base output directory where log dirs for each run will be placed",
                         default="output/energize_outputs")
 
+    # HTCondor job information and program run information
     parser.add_argument("--cluster",
                         help="cluster (when running on HTCondor)",
                         type=str,

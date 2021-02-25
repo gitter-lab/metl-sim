@@ -1,6 +1,4 @@
 """ Generates arguments for Rosetta run """
-
-import argparse
 import os
 from os.path import join
 import shutil
@@ -17,24 +15,7 @@ def gen_res_selector_str(variant):
     return resnum_str
 
 
-# def gen_mutate_xml_str(template_dir, variant):
-#     # TODO: the mutant.xml template from Jerry doesn't use the chain (A) in the residue selector...
-#     #  verify I can use it to keep consistency with relax template (I think I can)
-#     resnum_str = gen_res_selector_str(variant)
-#
-#     template_fn = "mutate_template.xml"
-#
-#     # load the template
-#     template_fn = join(template_dir, template_fn)
-#     with open(template_fn, "r") as f:
-#         template_str = f.read()
-#
-#     # fill in the template
-#     formatted_template = template_str.format(resnum_str)
-#     return formatted_template
-
-
-def gen_relax_xml_str(template_dir, variant):
+def gen_relax_xml_str(template_dir, variant, relax_distance, relax_repeats):
     resnum_str = gen_res_selector_str(variant)
     template_fn = "relax_template.xml"
 
@@ -44,8 +25,8 @@ def gen_relax_xml_str(template_dir, variant):
         template_str = f.read()
 
     # fill in the template
-    formatted_template = template_str.format(resnum_str)
-    return formatted_template
+    formatted = template_str.format(resnums=resnum_str, relax_distance=relax_distance, relax_repeats=relax_repeats)
+    return formatted
 
 
 def gen_resfile_str(template_dir, variant):
@@ -72,18 +53,14 @@ def gen_resfile_str(template_dir, variant):
     return formatted_template
 
 
-def gen_rosetta_args(template_dir, variant, out_dir):
-
-    # mutate_xml_str = gen_mutate_xml_str(template_dir, variant)
-    # with open(join(out_dir, "mutate.xml"), "w") as f:
-    #     f.write(mutate_xml_str)
+def gen_rosetta_args(template_dir, variant, relax_distance, relax_repeats, out_dir):
 
     # the mutate xml no longer has any argument that need to be filled in, so just copy the template
     # todo: this could be done in prep_working_dir in energize.py instead, that's where other files
     #   that are unchanged are copied from the template dir to the working dir
     shutil.copy(join(template_dir, "mutate_template.xml"), join(out_dir, "mutate.xml"))
 
-    relax_xml_str = gen_relax_xml_str(template_dir, variant)
+    relax_xml_str = gen_relax_xml_str(template_dir, variant, relax_distance, relax_repeats)
     with open(join(out_dir, "relax.xml"), "w") as f:
         f.write(relax_xml_str)
 
@@ -91,24 +68,3 @@ def gen_rosetta_args(template_dir, variant, out_dir):
     with open(join(out_dir, "mutation.resfile"), "w") as f:
         f.write(resfile_str)
 
-
-def main(args):
-    gen_rosetta_args(args.template_dir, args.variant, args.out_dir)
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--template_dir",
-                        help="the directory containing the template files",
-                        type=str,
-                        default="energize_wd_template")
-    parser.add_argument("--variant",
-                        help="the variant for which to generate rosetta args_gb1",
-                        type=str)
-    parser.add_argument("--out_dir",
-                        help="the directory in which to save mutation.resfile and mutate.xml",
-                        type=str)
-
-    main(parser.parse_args())
