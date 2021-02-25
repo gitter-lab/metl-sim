@@ -76,7 +76,7 @@ def run_mutate_relax_steps(rosetta_main_dir, working_dir, mutate_default_max_cyc
         raise RosettaError("Relax step did not execute successfully. Return code: {}".format(return_code))
 
 
-def parse_score_sc(vid, variant, pdb_fn, run_time, score_sc_fn, agg_method="avg"):
+def parse_score_sc(score_sc_fn, agg_method="avg"):
     """ parse the score.sc file from the energize run, aggregating energies and appending info about variant """
     score_df = pd.read_csv(score_sc_fn, delim_whitespace=True, skiprows=1, header=0)
 
@@ -101,15 +101,6 @@ def parse_score_sc(vid, variant, pdb_fn, run_time, score_sc_fn, agg_method="avg"
             parsed_df = score_df.mean(axis=0).to_frame().T
         else:
             raise ValueError("invalid aggregation method: {}".format(agg_method))
-
-    # append info about this variant
-    parsed_df.insert(0, "vid", [vid])
-    parsed_df.insert(1, "pdb_fn", [pdb_fn])
-    parsed_df.insert(2, "variant", [variant])
-    parsed_df.insert(3, "run_time", [run_time])
-    # todo: it would be great to include the version of the code that generated this result (github tag)?
-    # todo: add start time
-    # todo: add job uuid
 
     return parsed_df
 
@@ -136,7 +127,12 @@ def run_single_variant(rosetta_main_dir, vid, pdb_fn, variant, rosetta_hparams, 
 
     # parse the output file into a single-record csv, appending info about variant
     # place in a staging directory and combine with other variants that run during this job
-    sdf = parse_score_sc(vid, variant, basename(pdb_fn), run_time, join(working_dir, "score.sc"))
+    sdf = parse_score_sc(join(working_dir, "score.sc"))
+    # append info about this variant
+    sdf.insert(0, "vid", [vid])
+    sdf.insert(1, "pdb_fn", [pdb_fn])
+    sdf.insert(2, "variant", [variant])
+    sdf.insert(3, "run_time", [run_time])
     sdf.to_csv(join(staging_dir, "{}_energies.csv".format(vid)), index=False)
 
     # if the flag is set, save all files in the working directory for this variant
@@ -198,18 +194,18 @@ def main(args):
     # create an info file for this job (cluster, process, server, github commit id, etc)
     job_info = {"uuid": job_uuid, "cluster": args.cluster, "process": args.process, "hostname": socket.gethostname(),
                 "github_commit_id": args.commit_id, "script_start_time": time.time()}
-    save_csv_from_dict(join(log_dir, "job_info.csv"), job_info)
+    save_csv_from_dict(join(log_dir, "job.csv"), job_info)
 
     # load the variants that will be processed with this run
     with open(args.variants_fn, "r") as f:
         ids_variants = f.readlines()
 
-    # create a dictionary of just rosetta hyperparameters that can be passed around throughout functions
-    # could also just pass around the full args dict, but I want to do it this way
+    # create a dictionary of just rosetta hyperparameters that can be passed around throughout functions and saved
     rosetta_hparams = {"mutate_default_max_cycles": args.mutate_default_max_cycles,
                        "relax_distance": args.relax_distance,
                        "relax_repeats": args.relax_repeats,
                        "relax_nstruct": args.relax_nstruct}
+    save_csv_from_dict(join(log_dir, "hparams.csv"), rosetta_hparams)
 
     # loop through each variant, model it with rosetta, save results
     # individual variant outputs will be placed in the staging directory
@@ -229,7 +225,7 @@ def main(args):
     # add additional column for job uuid
     cdf.insert(2, "job_uuid", job_uuid)
     # save in the main log directory
-    cdf.to_csv(join(log_dir, "output.csv"), index=False)
+    cdf.to_csv(join(log_dir, "energies.csv"), index=False)
 
     # compress outputs, delete the output staging directory, etc
     shutil.rmtree(join(log_dir, "staging"))
