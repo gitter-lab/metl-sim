@@ -54,6 +54,7 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, relax_distance,
 
 def run_mutate_relax_steps(rosetta_main_dir, working_dir, mutate_default_max_cycles, relax_nstruct):
     # path to the relax binary which is used for both the mutate and relax steps
+    # TODO: IS THIS SUPPOSED TO BE THE RELAX BINARY OR THE ROSETTASCRIPTS BINARY?
     relax_bin_fn = join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease")
 
     # path to the rosetta database
