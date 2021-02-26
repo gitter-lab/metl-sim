@@ -10,11 +10,13 @@ It is based on the [recommendation in the Rosetta documentation](https://www.ros
 1. Run Rosetta's `clean_pdb_keep_ligand.py`
 2. Relax with all-heavy-atom constraints
 
+<!--
 Note: There may need to be an additional step at the beginning to handle inconsistencies when downloading from RCSB PDB.
 Also, I think at some point we need to make sure there is only a single chain in the PDB file.
+-->
 
 ## Energize
-This pipeline computes Rosetta energies for specified variants.
+This pipeline computes Rosetta energies for specified variants and consists of two steps: mutate and relax.
 
-1. Mutate
-2. Relax
+1. Mutate performs the amino acid substitutions and optimizes rotamers at the mutated residues
+2. Relax optimizes the structure at and around the mutated residues and computes the energies for the final structure
