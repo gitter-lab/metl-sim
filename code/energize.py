@@ -5,7 +5,7 @@ import argparse
 import subprocess
 import shutil
 import os
-from os.path import isdir, join, basename
+from os.path import isdir, join, basename, abspath
 import uuid
 import socket
 import csv
@@ -54,11 +54,12 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, relax_distance,
 
 def run_mutate_relax_steps(rosetta_main_dir, working_dir, mutate_default_max_cycles, relax_nstruct):
     # path to the relax binary which is used for both the mutate and relax steps
+    # subprocess wants a full path... or "./", so let's just add abspath
     # TODO: IS THIS SUPPOSED TO BE THE RELAX BINARY OR THE ROSETTASCRIPTS BINARY?
-    relax_bin_fn = join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease")
+    relax_bin_fn = abspath(join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease"))
 
     # path to the rosetta database
-    database_path = join(rosetta_main_dir, "database")
+    database_path = abspath(join(rosetta_main_dir, "database"))
 
     # run the mutate step
     mutate_cmd = [relax_bin_fn, '-database', database_path,
@@ -261,7 +262,7 @@ if __name__ == "__main__":
                         help="The main directory of the rosetta distribution containing the binaries and "
                              "other files that are needed for this script (does not have to be full distribution)",
                         type=str,
-                        default="/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main")
+                        default="rosetta_distribution")
 
     parser.add_argument("--variants_fn",
                         help="the file containing the variants",

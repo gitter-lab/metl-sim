@@ -3,7 +3,7 @@
 import argparse
 import os
 import stat
-from os.path import join, isdir, basename
+from os.path import join, isdir, basename, abspath
 import shutil
 import subprocess
 
@@ -57,7 +57,7 @@ def run_clean_pdb(rosetta_main_dir, working_dir):
 
 def run_relax(rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=1):
     """ run relax to prep the cleaned pdb for further use with Rosetta (as recommended by Rosetta docs) """
-    relax_bin_fn = join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease")
+    relax_bin_fn = abspath(join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease"))
     relax_cmd = [relax_bin_fn, '-s', cleaned_pdb_fn, '-nstruct', str(nstruct), '@flags_prepare_relax']
     subprocess.call(relax_cmd, cwd=working_dir)
 
