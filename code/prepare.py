@@ -32,9 +32,9 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, overwrite_wd=False):
     shutil.copyfile(pdb_fn, join(working_dir, "structure.pdb"))
 
 
-def make_executable(fn):
-    st = os.stat(fn)
-    os.chmod(fn, st.st_mode | stat.S_IEXEC)
+# def make_executable(fn):
+#     st = os.stat(fn)
+#     os.chmod(fn, st.st_mode | stat.S_IEXEC)
 
 
 def run_clean_pdb(rosetta_main_dir, working_dir):
@@ -42,7 +42,8 @@ def run_clean_pdb(rosetta_main_dir, working_dir):
     clean_pdb_script_fn = join(rosetta_main_dir, "source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py")
 
     # make sure the clean pdb python script is executable
-    make_executable(clean_pdb_script_fn)
+    # this should be done manually or by running rosetta_distr.py
+    # make_executable(clean_pdb_script_fn)
 
     # run the clean pdb script
     clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', '-ignorechain']

@@ -5,16 +5,24 @@ import os
 from os.path import join, isfile, isdir, basename, dirname, exists
 import errno
 import shutil
+import stat
+
+
+def make_executable(fn):
+    st = os.stat(fn)
+    os.chmod(fn, st.st_mode | stat.S_IEXEC)
 
 
 def main(args):
 
     # rosettafy was designed to work with Rosetta 2020.50.61505
-    to_copy = ["source/bin/relax.static.linuxgccrelease",
-               "source/bin/rosetta_scripts.static.linuxgccrelease",
-               "database",
-               "source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py",
-               "source/src/apps/public/relax_w_allatom_cst/amino_acids.py"]
+    # note the relax/scripts binary paths are symlinks, which is okay, because shutil.copyfile follows them
+    # (path, executable) -- note the "executable" is ignored for directories (can't make a dir executable)
+    to_copy = [("source/bin/relax.static.linuxgccrelease", True),
+               ("source/bin/rosetta_scripts.static.linuxgccrelease", True),
+               ("database", None),
+               ("source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py", True),
+               ("source/src/apps/public/relax_w_allatom_cst/amino_acids.py", True)]
 
     # create the output directory if it doesn't already exist
     # throw an error if it does exist (want a clean start -- user should delete the dir)
@@ -25,7 +33,7 @@ def main(args):
         raise
 
     # copy the scripts to the output directory but maintain the full paths
-    for fn in to_copy:
+    for (fn, executable) in to_copy:
         print("Copying {}".format(fn))
 
         # recreate the directory structure from the source dir inside the our output dir
@@ -51,10 +59,10 @@ def main(args):
             shutil.copytree(full_source_fn, full_out_dir_with_dest_folder, dirs_exist_ok=True)
         elif isfile(full_source_fn):
             shutil.copy(full_source_fn, full_out_dir)
+            if executable:
+                make_executable(join(full_out_dir, basename(fn)))
         else:
             raise RuntimeError("Somehow, the path exists but is not a file nor a directory: {}".format(full_source_fn))
-
-        # todo: make file executable
 
 
 if __name__ == "__main__":
