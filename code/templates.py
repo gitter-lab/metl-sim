@@ -1,4 +1,4 @@
-""" Generates arguments for Rosetta run """
+""" Fills the template files for energize pipeline """
 import os
 from os.path import join
 import shutil
@@ -53,7 +53,7 @@ def gen_resfile_str(template_dir, variant):
     return formatted_template
 
 
-def gen_rosetta_args(template_dir, variant, relax_distance, relax_repeats, out_dir):
+def fill_templates(template_dir, variant, relax_distance, relax_repeats, out_dir):
 
     # the mutate xml no longer has any argument that need to be filled in, so just copy the template
     # todo: this could be done in prep_working_dir in energize.py instead, that's where other files

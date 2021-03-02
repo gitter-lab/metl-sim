@@ -14,7 +14,7 @@ import shortuuid
 import numpy as np
 import pandas as pd
 
-from gen_rosetta_args import gen_rosetta_args
+from templates import fill_templates
 import time
 
 
@@ -43,8 +43,8 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, relax_distance,
     # copy over PDB file into rosetta working dir and rename it to structure.pdb
     shutil.copyfile(pdb_fn, join(working_dir, "structure.pdb"))
 
-    # generate the rosetta arguments (Rosetta scripts XML files and resfile) for this variant
-    gen_rosetta_args(template_dir, variant, relax_distance, relax_repeats, working_dir)
+    # fill the template rosetta arguments (Rosetta scripts XML files and resfile) for this variant
+    fill_templates(template_dir, variant, relax_distance, relax_repeats, working_dir)
 
     # copy over files from the template dir that don't need to be changed
     files_to_copy = ["flags_mutate", "flags_relax"]
