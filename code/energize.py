@@ -262,7 +262,7 @@ if __name__ == "__main__":
                         help="The main directory of the rosetta distribution containing the binaries and "
                              "other files that are needed for this script (does not have to be full distribution)",
                         type=str,
-                        default="rosetta_distribution")
+                        default="rosetta_minimal")
 
     parser.add_argument("--variants_fn",
                         help="the file containing the variants",

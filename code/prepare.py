@@ -39,7 +39,8 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, overwrite_wd=False):
 
 def run_clean_pdb(rosetta_main_dir, working_dir):
     """ run Rosetta's clean_pdb_keep_ligand.py script. assumes there is a structure.pdb file in the working_dir """
-    clean_pdb_script_fn = join(rosetta_main_dir, "source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py")
+    clean_pdb_script_fn = abspath(join(rosetta_main_dir,
+                                       "source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py"))
 
     # make sure the clean pdb python script is executable
     # this should be done manually or by running rosetta_distr.py
@@ -133,7 +134,7 @@ if __name__ == "__main__":
                             help="The main directory of the rosetta distribution containing the binaries and "
                                  "other files that are needed for this script (does not have to be full distribution)",
                             type=str,
-                            default="/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main")
+                            default="rosetta_minimal")
 
         parser.add_argument("--pdb_fn",
                             help="the PDB file to prepare",
