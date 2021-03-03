@@ -1,4 +1,4 @@
-name: rosettafy_condor
+name: rosettafy
 dependencies:
   - python=3.9.1
   - numpy=1.19.2

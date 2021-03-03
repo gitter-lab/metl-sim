@@ -1,0 +1,3 @@
+name: clean_pdb
+dependencies:
+  - python=2.7.18
