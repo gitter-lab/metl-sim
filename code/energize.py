@@ -226,7 +226,7 @@ def main(args):
     # this file contains a line for each variant
     # and each line contains the pdb file and the comma-delimited substitutions (e.g. "2qmt_p.pdb A23P,R67L")
     with open(args.variants_fn, "r") as f:
-        pdbs_variants = f.readlines()
+        pdbs_variants = f.read().splitlines()
 
     # loop through each variant, model it with rosetta, save results
     # individual variant outputs will be placed in the staging directory
@@ -255,7 +255,8 @@ def main(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        fromfile_prefix_chars="@")
 
     # main input files
     parser.add_argument("--rosetta_main_dir",
