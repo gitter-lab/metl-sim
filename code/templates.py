@@ -4,12 +4,17 @@ from os.path import join
 import shutil
 
 
-def gen_res_selector_str(variant):
+def gen_res_selector_str(variant, index_type="1-based"):
     """ generates the ResidueIndexSelector string Rosetta scripts """
     resnums = []
     for mutation in variant.split(","):
-        resnum_0_idx = int(mutation[1:-1])
-        resnum_1_index = resnum_0_idx + 1
+        if index_type == "1-based":
+            resnum_1_index = int(mutation[1:-1])
+        elif index_type == "0-based":
+            resnum_0_idx = int(mutation[1:-1])
+            resnum_1_index = resnum_0_idx + 1
+        else:
+            raise ValueError("unrecognized index_type {}".format(index_type))
         resnums.append("{}A".format(resnum_1_index))
     resnum_str = ",".join(resnums)
     return resnum_str
@@ -29,13 +34,18 @@ def gen_relax_xml_str(template_dir, variant, relax_distance, relax_repeats):
     return formatted
 
 
-def gen_resfile_str(template_dir, variant):
+def gen_resfile_str(template_dir, variant, index_type="1-based"):
     """residue_number chain PIKAA replacement_AA"""
 
     mutation_strs = []
     for mutation in variant.split(","):
-        resnum_0_idx = int(mutation[1:-1])
-        resnum_1_index = resnum_0_idx + 1
+        if index_type == "1-based":
+            resnum_1_index = int(mutation[1:-1])
+        elif index_type == "0-based":
+            resnum_0_idx = int(mutation[1:-1])
+            resnum_1_index = resnum_0_idx + 1
+        else:
+            raise ValueError("unrecognized index_type {}".format(index_type))
         new_aa = mutation[-1]
 
         mutation_strs.append("{} A PIKAA {}".format(resnum_1_index, new_aa))
