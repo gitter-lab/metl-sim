@@ -73,8 +73,8 @@ def main(args):
 
     # create an env_vars.txt file to define environment variables for run.sh and energize.sub
     with open(join(out_dir, "env_vars.txt"), "w") as f:
-        f.write("GITHUB_TAG={}\n".format(args.github_tag))
-        f.write("NUM_JOBS={}\n".format(num_jobs))
+        f.write("export GITHUB_TAG={}\n".format(args.github_tag))
+        f.write("export NUM_JOBS={}\n".format(num_jobs))
 
     # copy over energize.sub and run.sh
     shutil.copy("htcondor/templates/energize.sub", out_dir)

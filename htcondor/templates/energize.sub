@@ -28,6 +28,6 @@ request_disk = 10GB
 # and pass it forward to each job server. to avoid storing the token on the submit node, can try to pass it in
 # on each call to condor_submit by setting the environment variable just for that call
 # https://stackoverflow.com/questions/10856129/setting-an-environment-variable-before-a-command-in-bash-is-not-working-for-the
-environment = "CLUSTER=$(Cluster) PROCESS=$(Process) runningon=$$(Name) GITHUB_TAG=$ENV(GITHUB_TAG) TOKEN=$ENV(TOKEN)"
+environment = "CLUSTER=$(Cluster) PROCESS=$(Process) RUNNINGON=$$(Name) GITHUB_TAG=$ENV(GITHUB_TAG) TOKEN=$ENV(TOKEN)"
 
 queue $ENV(NUM_JOBS)
