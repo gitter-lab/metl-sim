@@ -7,4 +7,4 @@ input_variants/test_run_variants.txt
 --variants_per_job
 5
 --github_tag
-v0.1-alpha
+v0.1-beta
