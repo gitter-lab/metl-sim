@@ -45,18 +45,17 @@ def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False)
     return len(split_variant_lists)
 
 
-def fill_templates(github_tag, num_jobs, out_dir):
 
-    # run.sh
-    run_sh_template_fn = "htcondor/templates/run.sh"
-    with open(run_sh_template_fn, "r") as f:
-        run_sh_template_str = f.read()
-        formatted_run_sh = run_sh_template_str.format(github_tag=github_tag)
-
-    with open(join(out_dir, "run.sh", "w")) as f:
-        f.write(formatted_run_sh)
-
-    # energize.sub
+def save_argparse_args(args_dict, out_fn):
+    """ save argparse arguments out to a file """
+    with open(out_fn, "w") as f:
+        for k, v in args_dict.items():
+            # if a flag is set to false, dont include it in the argument file
+            if (not isinstance(v, bool)) or (isinstance(v, bool) and v):
+                f.write("--{}\n".format(k))
+                # if a flag is true, no need to specify the "true" value
+                if not isinstance(v, bool):
+                    f.write("{}\n".format(v))
 
 
 def main(args):
@@ -65,7 +64,7 @@ def main(args):
     os.makedirs(out_dir)
 
     # save the arguments for this condor run as run_def.txt in the log directory
-    pass
+    save_argparse_args(vars(args), join(out_dir, "run_def.txt"))
 
     # generate arguments files from the master variant list. returns the number of jobs
     # could also use a different system based on the master list, and computing variants per job dynamically
