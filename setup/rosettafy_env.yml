@@ -4,3 +4,4 @@ dependencies:
   - numpy=1.19.2
   - pandas=1.2.1
   - conda-forge::shortuuid=1.0.1
+  - conda-forge::biopython=1.78
