@@ -21,9 +21,10 @@ export HOME=$PWD
 # todo: when the repo is public, switch to this public github link
 # wget https://github.com/samgelman/rosettafy/archive/{github_tag}.zip
 # for private repo, use OAuth token that is passed in as an environment variable from the submit node each time
-wget --header="Authorization: token $TOKEN"  https://github.com/samgelman/rosettafy/archive/{github_tag}.tar.gz
+wget --header="Authorization: token ${TOKEN}" "https://github.com/samgelman/rosettafy/archive/${GITHUB_TAG}.tar.gz"
 
-# git clone --depth 1 --branch <tag_name> <repo_url>
+# untar the repo, removing the enclosing folder with strip-components
+tar -xf "${GITHUB_TAG}.tar.gz" --strip-components=1
 
 # download the rosetta distribution from SQUID
 # wget --recursive --no-parent http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/
@@ -37,6 +38,7 @@ cat rosetta_minimal.tar.gz.* > rosetta_minimal.tar.gz
 tar -xf rosetta_minimal.tar.gz
 
 # set up miniconda and add it to path
+# todo: download miniconda from squid instead of anaconda repo? less chance for http error?
 wget -q https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh
 bash Miniconda3-py38_4.9.2-Linux-x86_64.sh -b -p ~/miniconda3
 export PATH=$HOME/miniconda3/bin:$PATH
@@ -52,6 +54,5 @@ conda activate rosettafy
 conda list
 
 # launch our python run script with argument file number
-python code/energize.py args_gb1/"$1".txt --job_id="$1" --cluster="$CLUSTER" --process="$PROCESS"
-# python code/energize.py args_gb1/random-10.txt --job_id=$1 --pdb_fn="raw_pdb_files/gb1_clean_0007.pdb"
+python code/energize.py @energize_args.txt --variants_fn="args/${PROCESS}.txt" --cluster="$CLUSTER" --process="$PROCESS" --commit_id="$GITHUB_TAG"
 

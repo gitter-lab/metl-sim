@@ -2,9 +2,9 @@ universe = vanilla
 +WantFlocking = true
 +WantGlideIn = false
 
-log = output/condor_logs/rosetta_$(Process)_$(Cluster).log
-error = output/condor_logs/rosetta_$(Process)_$(Cluster).err
-output = output/condor_logs/rosetta_$(Process)_$(Cluster).out
+log = output/condor_logs/rosetta_$(Cluster)_$(Process).log
+error = output/condor_logs/rosetta_$(Cluster)_$(Process).err
+output = output/condor_logs/rosetta_$(Cluster)_$(Process).out
 
 # rosetta provides the precompiled 64bit binaries for linux
 # has_avx is included because I think I ran into avx-related errors in the past
@@ -12,23 +12,22 @@ output = output/condor_logs/rosetta_$(Process)_$(Cluster).out
 requirements = (Arch == "X86_64") && (has_avx == true) && (OpSys=="LINUX")
 
 executable = run.sh
-arguments = $(Process)
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 
 # todo: update input files to whatever the new system will be
-transfer_input_files = args
+transfer_input_files = run.sh, args.tar.gz, energize_args.txt
 transfer_output_files = output
 
 request_cpus = 1
 request_memory = 2GB
-request_disk = 20GB
+request_disk = 10GB
 
 # for github authentication, token=$ENV(token) will take the environment variable $token from the submit node
 # and pass it forward to each job server. to avoid storing the token on the submit node, can try to pass it in
 # on each call to condor_submit by setting the environment variable just for that call
 # https://stackoverflow.com/questions/10856129/setting-an-environment-variable-before-a-command-in-bash-is-not-working-for-the
-environment = "cluster=$(Cluster) process=$(Process) runningon=$$(Name) token=$ENV(TOKEN)"
+environment = "CLUSTER=$(Cluster) PROCESS=$(Process) runningon=$$(Name) GITHUB_TAG=$ENV(GITHUB_TAG) TOKEN=$ENV(TOKEN)"
 
-queue {num_jobs}
+queue $ENV(NUM_JOBS)
