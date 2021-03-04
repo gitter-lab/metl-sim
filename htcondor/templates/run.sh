@@ -26,6 +26,9 @@ wget --header="Authorization: token ${TOKEN}" "https://github.com/samgelman/rose
 # untar the repo, removing the enclosing folder with strip-components
 tar -xf "${GITHUB_TAG}.tar.gz" --strip-components=1
 
+# untar the args
+tar -xf args.tar.gz
+
 # download the rosetta distribution from SQUID
 # wget --recursive --no-parent http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/
 wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/rosetta_minimal.tar.gz.aa
@@ -35,7 +38,9 @@ wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/rosetta_minimal.tar
 
 # combine the split database tar files into a single database
 cat rosetta_minimal.tar.gz.* > rosetta_minimal.tar.gz
+rm rosetta_minimal.tar.gz.*
 tar -xf rosetta_minimal.tar.gz
+rm rosetta_minimal.tar.gz
 
 # set up miniconda and add it to path
 # todo: download miniconda from squid instead of anaconda repo? less chance for http error?
