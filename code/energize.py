@@ -61,6 +61,8 @@ def run_mutate_relax_steps(rosetta_main_dir, working_dir, mutate_default_max_cyc
     # path to the rosetta database
     database_path = abspath(join(rosetta_main_dir, "database"))
 
+    # todo: send rosetta outputs to a separate file so as not to clog out stdout/htcondorout
+
     # run the mutate step
     mutate_cmd = [relax_bin_fn, '-database', database_path,
                   '-default_max_cycles', str(mutate_default_max_cycles), '@flags_mutate']

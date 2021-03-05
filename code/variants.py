@@ -174,7 +174,7 @@ def single_pdb_local_variants(pdb_fn, target_num, num_subs_list, chars, rng):
             # in that case it would be much faster to just generate all and select a sample from the pre-generated ones
             all_variants = list(gen_all_variants(seq, num_subs, chars, seq_idxs))
             # variants += random.sample(all_variants, num_v)
-            variants += rng.choice(all_variants, num_v, replace=False)
+            variants += rng.choice(all_variants, num_v, replace=False).tolist()
         else:
             print("num_subs: {} num_v: {} approach: sample".format(num_subs, num_v))
             variants += gen_sample(seq, num_v, num_subs, chars, seq_idxs, rng)
@@ -204,7 +204,7 @@ def main():
 
     target_num = 50000
     # max_num_subs = 2
-    num_subs_list = [2]
+    num_subs_list = [1, 2, 3]
     pdb_fn = "prepared_pdb_files/2qmt_p.pdb"
     seed = 1
 
