@@ -1,5 +1,4 @@
 """ this is the run script that executes on the server """
-# todo: rename this file to run_mutate.py or similar to differentiate from potential runs to prep PDB files
 
 import argparse
 import subprocess
@@ -61,12 +60,13 @@ def run_mutate_relax_steps(rosetta_main_dir, working_dir, mutate_default_max_cyc
     # path to the rosetta database
     database_path = abspath(join(rosetta_main_dir, "database"))
 
-    # todo: send rosetta outputs to a separate file so as not to clog out stdout/htcondorout
-
     # run the mutate step
     mutate_cmd = [relax_bin_fn, '-database', database_path,
                   '-default_max_cycles', str(mutate_default_max_cycles), '@flags_mutate']
-    return_code = subprocess.call(mutate_cmd, cwd=working_dir)
+    mutate_out_fn = join(working_dir, "mutate.out")
+    # to completely void output, can direct it to subprocess.DEVNULL instead of f
+    with open(mutate_out_fn, "w") as f:
+        return_code = subprocess.call(mutate_cmd, cwd=working_dir, stdout=f, stderr=f)
     if return_code != 0:
         raise RosettaError("Mutate step did not execute successfully. Return code: {}".format(return_code))
 
@@ -75,7 +75,9 @@ def run_mutate_relax_steps(rosetta_main_dir, working_dir, mutate_default_max_cyc
 
     # run the relax step
     relax_cmd = [relax_bin_fn, '-database', database_path, '-nstruct', str(relax_nstruct), '@flags_relax']
-    return_code = subprocess.call(relax_cmd, cwd=working_dir)
+    relax_out_fn = join(working_dir, "relax.out")
+    with open(relax_out_fn, "w") as f:
+        return_code = subprocess.call(relax_cmd, cwd=working_dir, stdout=f, stderr=f)
     if return_code != 0:
         raise RosettaError("Relax step did not execute successfully. Return code: {}".format(return_code))
 
@@ -129,14 +131,18 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, outpu
     run_time = time.time() - start
     print("Processing variant {} {} took {}".format(basename(pdb_fn), variant, run_time))
 
+    # copy over or parse any files we want to keep from the working directory to the output directory
+    # the stdout and stderr outputs from rosetta are in the working directory under mutate.out and relax.out
+    # however, we don't need them, so we are going to leave them there and just parse the energies
+
     # parse the output file into a single-record csv, appending info about variant
     # place in a staging directory and combine with other variants that run during this job
     sdf = parse_score_sc(join(working_dir, "score.sc"))
     # append info about this variant
     sdf.insert(0, "pdb_fn", [basename(pdb_fn)])
     sdf.insert(1, "variant", [variant])
-    sdf.insert(2, "start_time", [start])
-    sdf.insert(3, "run_time", [run_time])
+    sdf.insert(2, "start_time", [time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(start))])
+    sdf.insert(3, "run_time", [int(run_time)])
     # note: it's not the best practice to have filenames with periods and commas
     #   could pass in the loop ID for this single variant and use that to save the file
     sdf.to_csv(join(staging_dir, "{}_{}_energies.csv".format(basename(pdb_fn), variant)), index=False)
@@ -152,14 +158,14 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, outpu
     return run_time
 
 
-def get_log_dir_name(args, job_uuid):
+def get_log_dir_name(args, job_uuid, start_time):
     """ get a log dir name for this run, whether running locally or on HTCondor """
 
     # note: it would be informative to include the PDB file in the log dir name.
     # however, i might set up the script to accept different PDB files for different variants (defined in the
     # input variants text file). in which case, there'd be multiple PDB files. so best keep PDB file out of it
     # for now, until I figure out whether I want the runs to support only one or multiple PDB files
-    format_args = [args.cluster, args.process, time.strftime("%Y-%m-%d_%H-%M-%S"), job_uuid]
+    format_args = [args.cluster, args.process, time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime(start_time)), job_uuid]
     log_dir_str = "energize_{}_{}_{}_{}"
     log_dir = log_dir_str.format(*format_args)
     return log_dir
@@ -202,19 +208,24 @@ def save_argparse_args(args_dict, out_fn):
 
 def main(args):
 
+    # rough script start time for logging
+    # this will be logged in UTC time (GM time) in the log directory name and output files
+    script_start = time.time()
+
     # generate a unique identifier for this run
     job_uuid = shortuuid.encode(uuid.uuid4())[:12]
 
     # create the log directory for this job
-    log_dir = join(args.log_dir_base, get_log_dir_name(args, job_uuid))
+    log_dir = join(args.log_dir_base, get_log_dir_name(args, job_uuid, script_start))
     os.makedirs(log_dir)
 
     # save the argparse arguments back out to a file
     save_argparse_args(vars(args), join(log_dir, "args.txt"))
 
     # create an info file for this job (cluster, process, server, github commit id, etc)
+    start_time_utc = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(script_start))
     job_info = {"uuid": job_uuid, "cluster": args.cluster, "process": args.process, "hostname": socket.gethostname(),
-                "github_commit_id": args.commit_id, "script_start_time": time.time()}
+                "github_commit_id": args.commit_id, "script_start_time": start_time_utc}
     save_csv_from_dict(join(log_dir, "job.csv"), job_info)
 
     # create a dictionary of just rosetta hyperparameters that can be passed around throughout functions and saved
@@ -237,6 +248,7 @@ def main(args):
         pdb_fn = join(args.pdb_dir, pdb_basename)
 
         # todo: run_single_variant can throw a RosettaError if Rosetta fails to run for a particular variant
+        # todo: can also throw a file not found error if we attempt to parse the energies and it doesnt exist
         # but what are the chances that one variant fails and the others don't? I feel like any problems would
         # be universal for the particular protein or condor job, so maybe just let it crash?
         run_single_variant(args.rosetta_main_dir, pdb_fn, variant, rosetta_hparams, log_dir, args.save_wd)
