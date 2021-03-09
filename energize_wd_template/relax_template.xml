@@ -12,6 +12,7 @@
         </OperateOnResidueSubset>
     </TASKOPERATIONS>
     <MOVERS>
+        <!-- todo: disable_design should be true? does it matter? -->
         <FastRelax name="relax" scorefxn="REF2015" task_operations="repack_res,no_repack" disable_design="false" repeats="{relax_repeats}">
         </FastRelax>
     </MOVERS>

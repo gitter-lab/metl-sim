@@ -3,6 +3,7 @@
         <ReadResfile name="mutation" filename="mutation.resfile"/>
     </TASKOPERATIONS>
     <MOVERS>
+        <!-- todo: disable_design should be true? does it matter? -->
         <FastRelax name="mutate" scorefxn="REF2015" task_operations="mutation" disable_design="false" repeats="1">
         </FastRelax>
     </MOVERS>
