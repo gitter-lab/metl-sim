@@ -1,3 +1,4 @@
 -s structure_0001.pdb
 -parser:protocol relax.xml
 -ignore_unrecognized_res
+-out:file:scorefile relax.sc

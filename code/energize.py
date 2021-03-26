@@ -46,21 +46,14 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, relax_distance,
     fill_templates(template_dir, variant, relax_distance, relax_repeats, working_dir)
 
     # copy over files from the template dir that don't need to be changed
-    files_to_copy = ["flags_mutate", "flags_relax"]
+    files_to_copy = ["flags_mutate", "flags_relax", "flags_filter", "flags_centroid", "filter_3rd.xml",
+                     "total_hydrophobic_weights_version1.wts", "total_hydrophobic_weights_version2.wts"]
     for fn in files_to_copy:
         shutil.copy(join(template_dir, fn), working_dir)
 
 
-def run_mutate_relax_steps(rosetta_main_dir, working_dir, mutate_default_max_cycles, relax_nstruct):
-    # path to the relax binary which is used for both the mutate and relax steps
-    # subprocess wants a full path... or "./", so let's just add abspath
-    # TODO: IS THIS SUPPOSED TO BE THE RELAX BINARY OR THE ROSETTASCRIPTS BINARY?
-    relax_bin_fn = abspath(join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease"))
-
-    # path to the rosetta database
-    database_path = abspath(join(rosetta_main_dir, "database"))
-
-    # run the mutate step
+def run_mutate_step(relax_bin_fn, database_path, mutate_default_max_cycles, working_dir):
+    # todo: should this use the relax binary or rosetta_scripts binary? both seem to work the same
     mutate_cmd = [relax_bin_fn, '-database', database_path,
                   '-default_max_cycles', str(mutate_default_max_cycles), '@flags_mutate']
     mutate_out_fn = join(working_dir, "mutate.out")
@@ -71,9 +64,12 @@ def run_mutate_relax_steps(rosetta_main_dir, working_dir, mutate_default_max_cyc
         raise RosettaError("Mutate step did not execute successfully. Return code: {}".format(return_code))
 
     # rename the resulting score.sc to keep the score files from the mutate and relax steps separate
-    os.rename(join(working_dir, "score.sc"), join(working_dir, "mutate.sc"))
+    # todo: should be a way to do this with rosetta flag rather than renaming afterward
+    # os.rename(join(working_dir, "score.sc"), join(working_dir, "mutate.sc"))
 
-    # run the relax step
+
+def run_relax_step(relax_bin_fn, database_path, relax_nstruct, working_dir):
+    # todo: should this use the relax binary or rosetta_scripts binary? both seem to work the same
     relax_cmd = [relax_bin_fn, '-database', database_path, '-nstruct', str(relax_nstruct), '@flags_relax']
     relax_out_fn = join(working_dir, "relax.out")
     with open(relax_out_fn, "w") as f:
@@ -82,8 +78,44 @@ def run_mutate_relax_steps(rosetta_main_dir, working_dir, mutate_default_max_cyc
         raise RosettaError("Relax step did not execute successfully. Return code: {}".format(return_code))
 
 
+def run_filter_step(rosetta_scripts_bin_fn, database_path, working_dir):
+    filter_cmd = [rosetta_scripts_bin_fn, '-database', database_path, '@flags_filter']
+    filter_out_fn = join(working_dir, "filter.out")
+    with open(filter_out_fn, "w") as f:
+        return_code = subprocess.call(filter_cmd, cwd=working_dir, stdout=f, stderr=f)
+    if return_code != 0:
+        raise RosettaError("Filter step did not execute successfully. Return code: {}".format(return_code))
+
+
+def run_centroid_step(score_jd2_bin_fn, database_path, working_dir):
+    centroid_cmd = [score_jd2_bin_fn, '-database', database_path, '@flags_centroid']
+    centroid_out_fn = join(working_dir, "centroid.out")
+    with open(centroid_out_fn, "w") as f:
+        return_code = subprocess.call(centroid_cmd, cwd=working_dir, stdout=f, stderr=f)
+    if return_code != 0:
+        raise RosettaError("Centroid step did not execute successfully. Return code: {}".format(return_code))
+
+
+def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycles, relax_nstruct):
+    # path to rosetta binaries which are used for the various steps
+    # subprocess wants a full path... or "./", so let's just add abspath
+    relax_bin_fn = abspath(join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease"))
+    rosetta_scripts_bin_fn = abspath(join(rosetta_main_dir, "source/bin/rosetta_scripts.static.linuxgccrelease"))
+    score_jd2_bin_fn = abspath(join(rosetta_main_dir, "source/bin/score_jd2.static.linuxgccrelease"))
+
+    # path to the rosetta database
+    database_path = abspath(join(rosetta_main_dir, "database"))
+
+    run_mutate_step(relax_bin_fn, database_path, mutate_default_max_cycles, working_dir)
+    run_relax_step(relax_bin_fn, database_path, relax_nstruct, working_dir)
+    run_filter_step(rosetta_scripts_bin_fn, database_path, working_dir)
+    run_centroid_step(score_jd2_bin_fn, database_path, working_dir)
+
+
 def parse_score_sc(score_sc_fn, agg_method="avg"):
-    """ parse the score.sc file from the energize run, aggregating energies and appending info about variant """
+    """ parse the score.sc file from the energize run, aggregating energies and appending info about variant
+        this function has also been co-opted to parse the centroid and filter score files, which should only
+        have 1 possible record, so no need to do any agg (and it shouldn't) """
     score_df = pd.read_csv(score_sc_fn, delim_whitespace=True, skiprows=1, header=0)
 
     # drop the "SCORE:" and "description" columns, these won't be needed for final output
@@ -126,8 +158,8 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, outpu
     # run the mutate and relax steps
     print("Running Rosetta on variant {} {}".format(basename(pdb_fn), variant))
     start = time.time()
-    run_mutate_relax_steps(rosetta_main_dir, working_dir,
-                           rosetta_hparams["mutate_default_max_cycles"], rosetta_hparams["relax_nstruct"])
+    run_rosetta_pipeline(rosetta_main_dir, working_dir,
+                         rosetta_hparams["mutate_default_max_cycles"], rosetta_hparams["relax_nstruct"])
     run_time = time.time() - start
     print("Processing variant {} {} took {}".format(basename(pdb_fn), variant, run_time))
 
@@ -135,17 +167,27 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, outpu
     # the stdout and stderr outputs from rosetta are in the working directory under mutate.out and relax.out
     # however, we don't need them, so we are going to leave them there and just parse the energies
 
-    # parse the output file into a single-record csv, appending info about variant
+    # parse the output files into a single-record csv, appending info about variant
     # place in a staging directory and combine with other variants that run during this job
-    sdf = parse_score_sc(join(working_dir, "score.sc"))
+    score_df = parse_score_sc(join(working_dir, "relax.sc"))
+    filter_df = parse_score_sc(join(working_dir, "filter.sc"))
+    centroid_df = parse_score_sc(join(working_dir, "centroid.sc"))
+
+    # the total_score from filter and centroid probably won't be used, but let's keep them in just in case
+    # just need to resolve the name conflict with the total_score from score_df
+    filter_df.rename(columns={"total_score": "filter_total_score"}, inplace=True)
+    centroid_df.rename(columns={"total_score": "centroid_total_score"}, inplace=True)
+
+    full_df = pd.concat((score_df, filter_df, centroid_df), axis=1)
+
     # append info about this variant
-    sdf.insert(0, "pdb_fn", [basename(pdb_fn)])
-    sdf.insert(1, "variant", [variant])
-    sdf.insert(2, "start_time", [time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(start))])
-    sdf.insert(3, "run_time", [int(run_time)])
+    full_df.insert(0, "pdb_fn", [basename(pdb_fn)])
+    full_df.insert(1, "variant", [variant])
+    full_df.insert(2, "start_time", [time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(start))])
+    full_df.insert(3, "run_time", [int(run_time)])
     # note: it's not the best practice to have filenames with periods and commas
     #   could pass in the loop ID for this single variant and use that to save the file
-    sdf.to_csv(join(staging_dir, "{}_{}_energies.csv".format(basename(pdb_fn), variant)), index=False)
+    full_df.to_csv(join(staging_dir, "{}_{}_energies.csv".format(basename(pdb_fn), variant)), index=False)
 
     # if the flag is set, save all files in the working directory for this variant
     # these go directly to the output directory instead of the staging directory

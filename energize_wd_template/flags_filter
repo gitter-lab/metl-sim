@@ -1,0 +1,6 @@
+-s structure_0001.pdb
+-parser:protocol filter_3rd.xml
+-out:prefix filter_
+-jd2:failed_job_exception false
+-out:file:score_only filter.sc
+-out:level 100
