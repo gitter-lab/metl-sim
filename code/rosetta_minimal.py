@@ -17,12 +17,12 @@ def prep_for_squid(rosetta_minimal_dir, squid_dir):
 
     # create output directory
     # crash if output directory already exists -- don't overwrite
-    # os.makedirs(squid_dir, exist_ok=False)
+    os.makedirs(squid_dir, exist_ok=False)
 
     # compress the rosetta minimal distribution
     tar_fn = join(squid_dir, "rosetta_minimal.tar.gz")
     tar_cmd = ["tar", "-czvf", tar_fn, rosetta_minimal_dir]
-    # subprocess.call(tar_cmd)
+    subprocess.call(tar_cmd)
 
     # split into files less than 1gb (let's go with 700mb just because)
     # note: this might not work on windows or mac
@@ -42,6 +42,7 @@ def gen_minimal_distr(rosetta_main_dir, out_dir):
     # (path, executable) -- note the "executable" is ignored for directories (can't make a dir executable)
     to_copy = [("source/bin/relax.static.linuxgccrelease", True),
                ("source/bin/rosetta_scripts.static.linuxgccrelease", True),
+               ("source/bin/score_jd2.static.linuxgccrelease", True),
                ("database", None),
                ("source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py", True),
                ("source/src/apps/public/relax_w_allatom_cst/amino_acids.py", True)]
@@ -88,7 +89,7 @@ def gen_minimal_distr(rosetta_main_dir, out_dir):
 
 
 def main(args):
-    # gen_minimal_distr(args.rosetta_main_dir, args.out_dir)
+    gen_minimal_distr(args.rosetta_main_dir, args.out_dir)
 
     if args.prep_for_squid:
         prep_for_squid(args.out_dir, args.squid_dir)
