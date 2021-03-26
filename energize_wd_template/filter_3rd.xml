@@ -1,0 +1,100 @@
+<ROSETTASCRIPTS>
+	<RESIDUE_SELECTORS>
+		<Layer name="buried_core_boundary" select_core="true" select_boundary="true" select_surface="false" use_sidechain_neighbors="false" />
+		<Layer name="buried_core" select_core="true" select_boundary="false" select_surface="false" use_sidechain_neighbors="false" />	
+		<Not name="not_buried_core_boundary" selector="buried_core_boundary"/>
+		<Not name="not_buried_core" selector="buried_core"/>
+	</RESIDUE_SELECTORS>
+	<TASKOPERATIONS>
+		<OperateOnResidueSubset name="res_buried_core_boundary" selector="not_buried_core_boundary" >
+			<PreventRepackingRLT/>
+		</OperateOnResidueSubset>
+
+                <OperateOnResidueSubset name="res_buried_core" selector="not_buried_core" >
+                        <PreventRepackingRLT/>
+                </OperateOnResidueSubset>
+	</TASKOPERATIONS>
+	<SCOREFXNS>
+		<ScoreFunction name="TotalHydrophobic1" weights="total_hydrophobic_weights_version1.wts"/>
+		<ScoreFunction name="TotalHydrophobic2" weights="total_hydrophobic_weights_version2.wts"/>
+	</SCOREFXNS>
+	<FILTERS>
+		
+		<AtomicContactCount name="contact_all" distance="4.5" confidence="0" />
+		<AtomicContactCount name="contact_buried_core_boundary" task_operations="res_buried_core_boundary" distance="4.5" confidence="0" />
+		<AtomicContactCount name="contact_buried_core" task_operations="res_buried_core" distance="4.5" confidence="0" />
+
+
+        	<AverageDegree name="degree_core" task_operations="res_buried_core" confidence="0" threshold="9.4" />
+    		<AverageDegree name="degree_core_boundary" task_operations="res_buried_core_boundary" confidence="0" threshold="9.4" />
+    		<AverageDegree name="degree" confidence="0" threshold="9.4"/>
+    		
+		
+		<ResidueCount name="res_count_all" max_residue_count="9999" confidence="0"/>
+    		<ResidueCount name="res_count_buried_core" residue_selector="buried_core" max_residue_count="9999" confidence="0"/>
+    		<ResidueCount name="res_count_buried_core_boundary" residue_selector="buried_core_boundary" max_residue_count="9999" confidence="0"/>
+
+                <ResidueCount name="res_count_buried_np_core" residue_selector="buried_core" include_property="HYDROPHOBIC"  max_residue_count="9999" confidence="0" />
+                <ResidueCount name="res_count_buried_np_core_boundary" residue_selector="buried_core_boundary" include_property="HYDROPHOBIC"  max_residue_count="9999" confidence="0" />
+
+
+  		<TotalSasa name="total_sasa" threshold="1" upper_threshold="1000000000000000" report_per_residue_sasa="True" confidence="0" />
+		
+		<BuriedSurfaceArea name="buried_all" select_only_FAMILYVW="false"  confidence="0" />
+                <BuriedSurfaceArea name="buried_np" select_only_FAMILYVW="true"  confidence="0" />
+
+
+
+		<TotalSasa name="exposed_hydrophobics" confidence="0" hydrophobic="True" polar="False" />
+  		<TotalSasa name="exposed_total" confidence="0"/>
+  		<TotalSasa name="exposed_polars" confidence="0" polar="True" hydrophobic="False"/>
+		<ExposedHydrophobics name="exposed_np_AFIMLWVY" sasa_cutoff="20" confidence="0" threshold="1"/> 
+
+
+  		<ScoreType name="total_hydrophobic" scorefxn="TotalHydrophobic1" threshold="0" confidence="0"/>
+		<ScoreType name="total_hydrophobic_AFILMVWY" scorefxn="TotalHydrophobic2" threshold="0" confidence="0"/>
+
+
+  		<PackStat name="pack" confidence="0"/>
+		<SSPrediction name="ss_mis" threshold="99999" use_probability="true" mismatch_probability="true" use_svm="true" confidence="0"/>
+
+  		<BuriedUnsatHbonds name="unsat_hbond" confidence="0" jump_number="0"/>
+  
+    		<SecondaryStructureHasResidue name="one_core_each" secstruct_fraction_threshold="1.0" res_check_task_operations="res_buried_core" required_restypes="VILMFYW" nres_required_per_secstruct="1" filter_helix="1" filter_sheet="1" filter_loop="0" min_helix_length="4" min_sheet_length="3" min_loop_length="1" confidence="0" />
+    		<SecondaryStructureHasResidue name="two_core_each" secstruct_fraction_threshold="1.0" res_check_task_operations="res_buried_core" required_restypes="VILMFYW" nres_required_per_secstruct="2" filter_helix="1" filter_sheet="1" filter_loop="0" min_helix_length="4" min_sheet_length="3" min_loop_length="1" confidence="0" />
+    		<SecondaryStructureHasResidue name="ss_contributes_core" secstruct_fraction_threshold="1.0" res_check_task_operations="res_buried_core_boundary" required_restypes="VILMFYW" nres_required_per_secstruct="1" filter_helix="1" filter_sheet="1" filter_loop="0" min_helix_length="4" min_sheet_length="3" min_loop_length="1" confidence="0" />
+ 
+	</FILTERS>
+	<MOVERS>
+	</MOVERS>
+	<APPLY_TO_POSE>
+	</APPLY_TO_POSE>
+	<PROTOCOLS>
+		<Add filter_name="contact_all" />
+		<Add filter_name="contact_buried_core_boundary" />
+		<Add filter_name="contact_buried_core" />
+		<Add filter_name="degree_core" />
+                <Add filter_name="degree_core_boundary" />
+                <Add filter_name="degree" />
+                <Add filter_name="res_count_all" />
+                <Add filter_name="res_count_buried_core" />
+		<Add filter_name="res_count_buried_core_boundary" />
+		<Add filter_name="res_count_buried_np_core" />
+                <Add filter_name="res_count_buried_np_core_boundary" />
+                <Add filter_name="total_sasa" />
+                <Add filter_name="buried_all" />
+                <Add filter_name="buried_np" />
+                <Add filter_name="exposed_hydrophobics" />
+                <Add filter_name="exposed_total" />
+                <Add filter_name="exposed_polars" />
+                <Add filter_name="exposed_np_AFIMLWVY" />
+		<Add filter_name="total_hydrophobic" />
+                <Add filter_name="total_hydrophobic_AFILMVWY" />
+                <Add filter_name="pack" />
+                <Add filter_name="unsat_hbond" />
+		<Add filter_name="ss_mis" />               
+		<Add filter_name="one_core_each" />
+                <Add filter_name="two_core_each" />
+		<Add filter_name="ss_contributes_core" />
+	</PROTOCOLS>
+</ROSETTASCRIPTS>
