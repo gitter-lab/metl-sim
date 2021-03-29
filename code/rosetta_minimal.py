@@ -7,6 +7,7 @@ import errno
 import shutil
 import stat
 import subprocess
+import time
 
 
 def prep_for_squid(rosetta_minimal_dir, squid_dir):
@@ -15,12 +16,16 @@ def prep_for_squid(rosetta_minimal_dir, squid_dir):
     # https://stackoverflow.com/questions/45250329/split-equivalent-of-gzip-files-in-python
     # however, just going to do it with linux utilities for simplicity right now
 
-    # create output directory
+    # set up the output directory
+    squid_dir_with_datetime = join(dirname(squid_dir), basename(squid_dir) + "_{}".format(
+        time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime(time.time()))))
+    tar_fn = join(squid_dir_with_datetime, "rosetta_minimal.tar.gz")
+
     # crash if output directory already exists -- don't overwrite
-    os.makedirs(squid_dir, exist_ok=False)
+    # note: this should not happen ever since I started appending datetime to directory name
+    os.makedirs(squid_dir_with_datetime, exist_ok=False)
 
     # compress the rosetta minimal distribution
-    tar_fn = join(squid_dir, "rosetta_minimal.tar.gz")
     tar_cmd = ["tar", "-czvf", tar_fn, rosetta_minimal_dir]
     subprocess.call(tar_cmd)
 
@@ -89,7 +94,11 @@ def gen_minimal_distr(rosetta_main_dir, out_dir):
 
 
 def main(args):
-    gen_minimal_distr(args.rosetta_main_dir, args.out_dir)
+    if not args.gen_distribution and not args.prep_for_squid:
+        print("gen_distribution and prep_for_squid are both false. nothing to do...")
+
+    if args.gen_distribution:
+        gen_minimal_distr(args.rosetta_main_dir, args.out_dir)
 
     if args.prep_for_squid:
         prep_for_squid(args.out_dir, args.squid_dir)
@@ -99,6 +108,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter)
+
+    parser.add_argument("--gen_distribution",
+                        help="set this to generate the minimal distribution",
+                        action="store_true")
 
     parser.add_argument("--rosetta_main_dir",
                         help="the main directory of the full rosetta distribution containing the binaries and "
@@ -116,7 +129,8 @@ if __name__ == "__main__":
                         action="store_true")
 
     parser.add_argument("--squid_dir",
-                        help="the output directory where to place the compressed and split version for squid",
+                        help="the output directory where to place the compressed and split version for squid. "
+                             "a timestamp will be appended to this directory name",
                         type=str,
                         default="output/squid_rosetta")
 

@@ -31,10 +31,11 @@ tar -xf args.tar.gz
 
 # download the rosetta distribution from SQUID
 # wget --recursive --no-parent http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/
-wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/rosetta_minimal.tar.gz.aa
-wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/rosetta_minimal.tar.gz.ab
-wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/rosetta_minimal.tar.gz.ac
-wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/rosetta_minimal.tar.gz.ad
+SQUID_DIR="squid_rosetta_2021-03-29_19-55-08"
+wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_minimal.tar.gz.aa
+wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_minimal.tar.gz.ab
+wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_minimal.tar.gz.ac
+wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_minimal.tar.gz.ad
 
 # combine the split database tar files into a single database
 cat rosetta_minimal.tar.gz.* > rosetta_minimal.tar.gz
