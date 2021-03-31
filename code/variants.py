@@ -202,11 +202,11 @@ def main():
     # not using stop codon
     chars = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
 
-    target_num = 50000
+    target_num = 1000000
     # max_num_subs = 2
     num_subs_list = [1, 2, 3]
     pdb_fn = "prepared_pdb_files/2qmt_p.pdb"
-    seed = 1
+    seed = 7
 
     # create a random number generator for this call
     rng = np.random.default_rng(seed=seed)

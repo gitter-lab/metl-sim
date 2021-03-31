@@ -45,7 +45,6 @@ def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False)
     return len(split_variant_lists)
 
 
-
 def save_argparse_args(args_dict, out_fn):
     """ save argparse arguments out to a file """
     with open(out_fn, "w") as f:
