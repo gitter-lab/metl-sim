@@ -42,16 +42,20 @@ def check_for_failed_jobs(energize_out_d):
     return failed_jobs
 
 
-def check_for_missing_jobs(main_d, energize_out_d):
+def check_for_missing_jobs(main_d, energize_out_d, num_expected_jobs=None):
     """ check for missing jobs on basis of no job folder in the energize output directory """
     job_out_dirs = [join(energize_out_d, jd) for jd in os.listdir(energize_out_d)]
     # check if any job output folders are missing by looking at the job nums
     job_nums = [int(parse_job_dir_name(basename(job_dir))["process"]) for job_dir in job_out_dirs]
-    # automatically get the number of expected jobs from the env_vars.txt file
-    env_vars_fn = join(main_d, "env_vars.txt")
-    env_vars = parse_env_vars(env_vars_fn)
+
+    if num_expected_jobs is None:
+        # automatically get the number of expected jobs from the env_vars.txt file
+        env_vars_fn = join(main_d, "env_vars.txt")
+        env_vars = parse_env_vars(env_vars_fn)
+        num_expected_jobs = int(env_vars["NUM_JOBS"])
+
     # check if any job nums missing from expected range of job job_nums
-    missing_jobs = list(set(range(int(env_vars["NUM_JOBS"]))) - set(job_nums))
+    missing_jobs = list(set(range(num_expected_jobs)) - set(job_nums))
 
     return missing_jobs
 
@@ -104,8 +108,13 @@ def load_energies(energize_out_d):
     per_job_dfs = []
     for jd in job_out_dirs:
         energies_fn = join(jd, "energies.csv")
-        per_job_dfs.append(pd.read_csv(energies_fn))
+        skipped = []
+        if isfile(energies_fn):
+            per_job_dfs.append(pd.read_csv(energies_fn))
+        else:
+            skipped.append(energies_fn)
 
+    print("Skipped {} log directories because they did not contain energies.txt".format(len(skipped)))
     return pd.concat(per_job_dfs, axis=0).reset_index(drop=True)
 
 
