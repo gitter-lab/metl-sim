@@ -1,0 +1,10 @@
+--run_name
+gb1_ut3_1mv
+--energize_args_fn
+energize_args/condor_set_1.txt
+--master_variant_fn
+variant_lists/2qmt_p_2021-03-31_10-47-27_NV-1M_NS-1,2,3_RS-7.txt
+--variants_per_job
+100
+--github_tag
+v0.2
