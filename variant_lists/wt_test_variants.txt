@@ -1,0 +1,2 @@
+2qmt_p.pdb _wt
+2qmt_p.pdb E27W,N37A

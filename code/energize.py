@@ -82,7 +82,7 @@ def run_relax_step(relax_bin_fn, database_path, relax_nstruct, relax_repeats, wo
         # this is for running relax on the wild-type structure, without mutating it, in which case we don't
         # select residues around the mutated positions (there are none), just relax the whole structure
         relax_cmd = [relax_bin_fn, '-database', database_path, '-nstruct', str(relax_nstruct),
-                     '-repeats', str(relax_repeats), '@flags_relax_all']
+                     '-relax:default_repeats', str(relax_repeats), '@flags_relax_all']
 
     relax_out_fn = join(working_dir, "relax.out")
     with open(relax_out_fn, "w") as f:
