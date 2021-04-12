@@ -43,11 +43,15 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, relax_distance,
     shutil.copyfile(pdb_fn, join(working_dir, "structure.pdb"))
 
     # fill the template rosetta arguments (Rosetta scripts XML files and resfile) for this variant
-    fill_templates(template_dir, variant, relax_distance, relax_repeats, working_dir)
+    # note that if the variant is the wild-type (no mutations), then there is no need to fill these in (wont be used)
+    if variant != "_wt":
+        fill_templates(template_dir, variant, relax_distance, relax_repeats, working_dir)
 
     # copy over files from the template dir that don't need to be changed
-    files_to_copy = ["flags_mutate", "flags_relax", "flags_filter", "flags_centroid", "filter_3rd.xml",
-                     "total_hydrophobic_weights_version1.wts", "total_hydrophobic_weights_version2.wts"]
+    files_to_copy = ["flags_mutate", "flags_relax", "flags_relax_all", "flags_filter", "flags_centroid",
+                     "filter_3rd.xml", "total_hydrophobic_weights_version1.wts",
+                     "total_hydrophobic_weights_version2.wts"]
+
     for fn in files_to_copy:
         shutil.copy(join(template_dir, fn), working_dir)
 
@@ -68,9 +72,18 @@ def run_mutate_step(relax_bin_fn, database_path, mutate_default_max_cycles, work
     # os.rename(join(working_dir, "score.sc"), join(working_dir, "mutate.sc"))
 
 
-def run_relax_step(relax_bin_fn, database_path, relax_nstruct, working_dir):
+def run_relax_step(relax_bin_fn, database_path, relax_nstruct, relax_repeats, working_dir, variant_has_mutations=True):
     # todo: should this use the relax binary or rosetta_scripts binary? both seem to work the same
-    relax_cmd = [relax_bin_fn, '-database', database_path, '-nstruct', str(relax_nstruct), '@flags_relax']
+    if variant_has_mutations:
+        # this is the main way to run relax for variants, where the rosettascript protocol specified in @flags_relax
+        # and relax_template.xml is used to only relax around the mutated residues
+        relax_cmd = [relax_bin_fn, '-database', database_path, '-nstruct', str(relax_nstruct), '@flags_relax']
+    else:
+        # this is for running relax on the wild-type structure, without mutating it, in which case we don't
+        # select residues around the mutated positions (there are none), just relax the whole structure
+        relax_cmd = [relax_bin_fn, '-database', database_path, '-nstruct', str(relax_nstruct),
+                     '-repeats', str(relax_repeats), '@flags_relax_all']
+
     relax_out_fn = join(working_dir, "relax.out")
     with open(relax_out_fn, "w") as f:
         return_code = subprocess.call(relax_cmd, cwd=working_dir, stdout=f, stderr=f)
@@ -96,7 +109,8 @@ def run_centroid_step(score_jd2_bin_fn, database_path, working_dir):
         raise RosettaError("Centroid step did not execute successfully. Return code: {}".format(return_code))
 
 
-def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycles, relax_nstruct):
+def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycles, relax_nstruct, relax_repeats,
+                         variant_has_mutations=True):
     # path to rosetta binaries which are used for the various steps
     # subprocess wants a full path... or "./", so let's just add abspath
     relax_bin_fn = abspath(join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease"))
@@ -106,8 +120,17 @@ def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycle
     # path to the rosetta database
     database_path = abspath(join(rosetta_main_dir, "database"))
 
-    run_mutate_step(relax_bin_fn, database_path, mutate_default_max_cycles, working_dir)
-    run_relax_step(relax_bin_fn, database_path, relax_nstruct, working_dir)
+    # this branch logic is just handling the special case of the "_wt" variant (no mutations)
+    if variant_has_mutations:
+        run_mutate_step(relax_bin_fn, database_path, mutate_default_max_cycles, working_dir)
+    else:
+        # variant has no mutations (wild-type), so just rename structure.pdb to structure_0001.pdb
+        # which is the expected structure filename for the remaining pipelie steps
+        os.rename(join(working_dir, "structure.pdb"), join(working_dir, "structure_0001.pdb"))
+
+    # relax also needs to know whether the variant has mutations because it needs to either run relax
+    # around just the mutated residues or around the whole structure
+    run_relax_step(relax_bin_fn, database_path, relax_nstruct, relax_repeats, working_dir, variant_has_mutations)
     run_filter_step(rosetta_scripts_bin_fn, database_path, working_dir)
     run_centroid_step(score_jd2_bin_fn, database_path, working_dir)
 
@@ -158,8 +181,10 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, outpu
     # run the mutate and relax steps
     print("Running Rosetta on variant {} {}".format(basename(pdb_fn), variant))
     start = time.time()
+    variant_has_mutations = False if variant == "_wt" else True
     run_rosetta_pipeline(rosetta_main_dir, working_dir,
-                         rosetta_hparams["mutate_default_max_cycles"], rosetta_hparams["relax_nstruct"])
+                         rosetta_hparams["mutate_default_max_cycles"], rosetta_hparams["relax_nstruct"],
+                         rosetta_hparams["relax_repeats"], variant_has_mutations)
     run_time = time.time() - start
     print("Processing variant {} {} took {}".format(basename(pdb_fn), variant, run_time))
 
