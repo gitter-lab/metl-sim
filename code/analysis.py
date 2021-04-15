@@ -106,15 +106,84 @@ def load_energies(energize_out_d):
 
     # load the energies dataframes for each job separately, then concatenate
     per_job_dfs = []
+    skipped = []
     for jd in job_out_dirs:
         energies_fn = join(jd, "energies.csv")
-        skipped = []
         if isfile(energies_fn):
             per_job_dfs.append(pd.read_csv(energies_fn))
         else:
             skipped.append(energies_fn)
 
-    print("Skipped {} log directories because they did not contain energies.txt".format(len(skipped)))
+    if len(skipped) > 0:
+        print("skipped {} log directories because they did not contain energies.csv".format(len(skipped)))
+
+    return pd.concat(per_job_dfs, axis=0).reset_index(drop=True)
+
+
+def load_job_info(energize_out_d):
+    """ loads all job info across all jobs into a single pandas dataframe
+        SKIPS a job if there is no energies.csv
+        similar to load_energies except it loads job.csv instead of energies.csv """
+
+    job_out_dirs = [join(energize_out_d, jd) for jd in os.listdir(energize_out_d)]
+
+    # load the energies dataframes for each job separately, then concatenate
+    per_job_dfs = []
+    skipped_energies = []
+    skipped_job = []
+    for jd in job_out_dirs:
+        energies_fn = join(jd, "energies.csv")
+        job_fn = join(jd, "job.csv")
+
+        # check if energies.csv exists
+        if not isfile(energies_fn):
+            skipped_energies.append(energies_fn)
+        # check if the job.csv file exists
+        elif not isfile(job_fn):
+            skipped_job.append(job_fn)
+        else:
+            per_job_dfs.append(pd.read_csv(job_fn, index_col=0, header=None).T)
+
+    if len(skipped_energies) > 0:
+        print("skipped {} log directories because they did not contain energies.csv".format(len(skipped_energies)))
+    if len(skipped_job) > 0:
+        print("skipped {} log directories because they did not contain job.csv".format(len(skipped_job)))
+
+    return pd.concat(per_job_dfs, axis=0).reset_index(drop=True)
+
+
+def load_hparams(energize_out_d):
+    """ loads all hyperparam across all jobs into a single pandas dataframe
+        SKIPS a job if there is no energies.csv
+        similar to load_energies except it loads hparams.csv instead of energies.csv """
+
+    # TODO: combine this function with load_job_info and load_energies
+    # TODO: loading the hparams doesnt associate a job uuid with the hparams... can be solved in combined function
+
+    job_out_dirs = [join(energize_out_d, jd) for jd in os.listdir(energize_out_d)]
+
+    # load the energies dataframes for each job separately, then concatenate
+    per_job_dfs = []
+    skipped_energies = []
+    skipped_hparam = []
+    for jd in job_out_dirs:
+        energies_fn = join(jd, "energies.csv")
+        hparam_fn = join(jd, "hparams.csv")
+
+        # check if energies.csv exists
+        if not isfile(energies_fn):
+            skipped_energies.append(energies_fn)
+        # check if the job.csv file exists
+        elif not isfile(hparam_fn):
+            skipped_hparam.append(hparam_fn)
+        else:
+            per_job_dfs.append(pd.read_csv(hparam_fn, index_col=0, header=None).T)
+
+    if len(skipped_energies) > 0:
+        print("skipped {} log directories because they did not contain energies.csv".format(len(skipped_energies)))
+    if len(skipped_hparam) > 0:
+        print("skipped {} log directories because they did not contain hparams.csv".format(len(skipped_hparam)))
+
     return pd.concat(per_job_dfs, axis=0).reset_index(drop=True)
 
 
