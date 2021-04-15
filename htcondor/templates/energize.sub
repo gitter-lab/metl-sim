@@ -30,4 +30,7 @@ request_disk = 10GB
 # https://stackoverflow.com/questions/10856129/setting-an-environment-variable-before-a-command-in-bash-is-not-working-for-the
 environment = "CLUSTER=$(Cluster) PROCESS=$(Process) RUNNINGON=$$(Name) GITHUB_TAG=$ENV(GITHUB_TAG) TOKEN=$ENV(TOKEN)"
 
+# when submitting more than 10k jobs this will prevent the scheduler from getting overloaded
+max_idle = 1000
+
 queue $ENV(NUM_JOBS)
