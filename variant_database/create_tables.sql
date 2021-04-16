@@ -79,19 +79,23 @@ CREATE TABLE IF NOT EXISTS  `pdb_file` (
 
 CREATE TABLE IF NOT EXISTS  `job` (
     `uuid` VARCHAR,
-    `hparam_set_id` VARCHAR,
+--     `hparam_set_id` VARCHAR,
     `cluster` VARCHAR,
     `process` VARCHAR,
     `hostname` VARCHAR,
     `github_tag` VARCHAR,
     `script_start_time` DATETIME,
-    PRIMARY KEY (`uuid`),
-    FOREIGN KEY (`hparam_set_id`) REFERENCES rosetta_hparam_set(`id`));
+    `hp_mutate_default_max_cycles` INT unsigned,
+    `hp_relax_repeats` INT unsigned,
+    `hp_relax_nstruct` INT unsigned,
+    `hp_relax_distance` DECIMAL,
+    PRIMARY KEY (`uuid`));
+--     FOREIGN KEY (`hparam_set_id`) REFERENCES rosetta_hparam_set(`id`));
 
-CREATE TABLE IF NOT EXISTS  `rosetta_hparam_set` (
-    `id` INT unsigned AUTO_INCREMENT,
-    `mutate_default_max_cycles` INT unsigned,
-    `relax_repeats` INT unsigned,
-    `relax_nstruct` INT unsigned,
-    `relax_distance` DECIMAL,
-    PRIMARY KEY (`id`));
+-- CREATE TABLE IF NOT EXISTS  `rosetta_hparam_set` (
+--     `id` INT unsigned AUTO_INCREMENT,
+--     `mutate_default_max_cycles` INT unsigned,
+--     `relax_repeats` INT unsigned,
+--     `relax_nstruct` INT unsigned,
+--     `relax_distance` DECIMAL,
+--     PRIMARY KEY (`id`));
