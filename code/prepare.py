@@ -48,7 +48,9 @@ def run_clean_pdb(rosetta_main_dir, working_dir):
 
     # run the clean pdb script
     clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', '-ignorechain']
-    subprocess.call(clean_pdb_cmd, cwd=working_dir)
+    return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir)
+    if return_code != 0:
+        raise RuntimeError("Clean PDB did not execute successfully, return code: {}".format(return_code))
 
     # this script saves the output file in the same directory as the input file
     # the output filename is just the input filename with _00.pdb appended
