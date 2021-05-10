@@ -5,6 +5,7 @@ from os.path import join
 import argparse
 import shutil
 import subprocess
+import urllib3
 
 
 def get_run_dir_name(run_name="unnamed"):
@@ -57,13 +58,42 @@ def save_argparse_args(args_dict, out_fn):
                     f.write("{}\n".format(v))
 
 
+def fetch_repo(github_tag, github_token, out_dir):
+    """ fetches the codebase from Github """
+    # https://stackoverflow.com/questions/17285464/whats-the-best-way-to-download-file-using-urllib3
+    # https://stackoverflow.com/questions/27387783/how-to-download-a-file-with-urllib3
+
+    url = "https://github.com/samgelman/rosettafy/archive/{}.tar.gz".format(github_tag)
+
+    http = urllib3.PoolManager()
+    # todo: when repo is public, authorization token will no longer be needed
+    response = http.request("GET", url, preload_content=False, headers={"Authorization": "token {}".format(github_token)})
+
+    # save_fn = join(out_dir, "{}.tar.gz".format(github_tag))
+    # use static output filename to make transfer/unzipping easier (less need to fill in github_tag everywhere)
+    save_fn = join(out_dir, "code.tar.gz")
+
+    with open(save_fn, 'wb') as out_file:
+        shutil.copyfileobj(response, out_file)
+
+    # unclear whether this is needed or not, can't hurt though
+    response.release_conn()
+    response.close()
+
+
 def main(args):
 
     out_dir = join("output", "htcondor_runs", get_run_dir_name(args.run_name))
     os.makedirs(out_dir)
 
     # save the arguments for this condor run as run_def.txt in the log directory
+    # remove the github authorization token to avoid storing it in a file
+    args_dict = dict(vars(args))
+    del args_dict["github_token"]
     save_argparse_args(vars(args), join(out_dir, "run_def.txt"))
+
+    # download the repository
+    fetch_repo(args.github_tag, args.github_token, out_dir)
 
     # generate arguments files from the master variant list. returns the number of jobs
     # could also use a different system based on the master list, and computing variants per job dynamically
@@ -112,5 +142,9 @@ if __name__ == "__main__":
     parser.add_argument("--github_tag",
                         type=str,
                         help="github tag specifying which version of code to retrieve for this run")
+
+    parser.add_argument("--github_token",
+                        type=str,
+                        help="authorization token for private rosettafy repository")
 
     main(parser.parse_args())

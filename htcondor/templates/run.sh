@@ -18,13 +18,14 @@ export HOME=$PWD
 
 # get the rosettafy repository from github at the specific tag
 # prefer wget rather than git clone for portability
-# todo: when the repo is public, switch to this public github link
 # wget https://github.com/samgelman/rosettafy/archive/{github_tag}.zip
 # for private repo, use OAuth token that is passed in as an environment variable from the submit node each time
-wget --header="Authorization: token ${TOKEN}" "https://github.com/samgelman/rosettafy/archive/${GITHUB_TAG}.tar.gz"
+# wget --header="Authorization: token ${TOKEN}" "https://github.com/samgelman/rosettafy/archive/${GITHUB_TAG}.tar.gz"
 
-# untar the repo, removing the enclosing folder with strip-components
-tar -xf "${GITHUB_TAG}.tar.gz" --strip-components=1
+# untar the code repo (transferred from submit node), removing the enclosing folder with strip-components
+# tar -xf "${GITHUB_TAG}.tar.gz" --strip-components=1
+# switched to a static filename so there's less need to have github tag everywhere
+tar -xf code.tar.gz --strip-components=1
 
 # untar the args
 tar -xf args.tar.gz
