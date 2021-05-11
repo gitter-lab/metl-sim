@@ -51,8 +51,8 @@ tar -xf rosetta_min.tar.gz
 rm rosetta_min.tar.gz
 
 # set up miniconda and add it to path
-# todo: download miniconda from squid instead of anaconda repo? less chance for http error?
-wget -q https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh
+#wget -q https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh
+wget -q http://proxy.chtc.wisc.edu/SQUID/sgelman2/Miniconda3-py38_4.9.2-Linux-x86_64.sh
 bash Miniconda3-py38_4.9.2-Linux-x86_64.sh -b -p ~/miniconda3
 export PATH=$HOME/miniconda3/bin:$PATH
 
