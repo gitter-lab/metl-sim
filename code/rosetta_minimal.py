@@ -19,7 +19,7 @@ def prep_for_squid(rosetta_minimal_dir, squid_dir):
     # set up the output directory
     squid_dir_with_datetime = join(dirname(squid_dir), basename(squid_dir) + "_{}".format(
         time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime(time.time()))))
-    tar_fn = join(squid_dir_with_datetime, "rosetta_minimal.tar.gz")
+    tar_fn = join(squid_dir_with_datetime, "rosetta_min.tar.gz")
 
     # crash if output directory already exists -- don't overwrite
     # note: this should not happen ever since I started appending datetime to directory name
@@ -29,9 +29,15 @@ def prep_for_squid(rosetta_minimal_dir, squid_dir):
     tar_cmd = ["tar", "-czvf", tar_fn, rosetta_minimal_dir]
     subprocess.call(tar_cmd)
 
+    # encrypt the tar file for extra security against public distribution
+    tar_fn_encrypted = join(squid_dir_with_datetime, "rosetta_min_enc.tar.gz")
+    encrypt_cmd = ["openssl", "enc", "-e", "-aes256",
+                   "-in", tar_fn, "-out", tar_fn_encrypted, "-pass", "pass:R0S3774123"]
+    subprocess.call(encrypt_cmd)
+
     # split into files less than 1gb (let's go with 700mb just because)
     # note: this might not work on windows or mac
-    split_cmd = ["split", "-b", "500m", tar_fn, tar_fn + "."]
+    split_cmd = ["split", "-b", "700m", tar_fn_encrypted, tar_fn_encrypted + "."]
     subprocess.call(split_cmd)
 
 

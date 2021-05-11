@@ -32,17 +32,19 @@ tar -xf args.tar.gz
 
 # download the rosetta distribution from SQUID
 # wget --recursive --no-parent http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/
-SQUID_DIR="squid_rosetta_2021-03-29_19-55-08"
-wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_minimal.tar.gz.aa
-wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_minimal.tar.gz.ab
-wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_minimal.tar.gz.ac
-wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_minimal.tar.gz.ad
+SQUID_DIR="squid_rosetta_2021-05-11_14-57-25"
+wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_min_enc.tar.gz.aa
+wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_min_enc.tar.gz.ab
+wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_min_enc.tar.gz.ac
 
 # combine the split database tar files into a single database
-cat rosetta_minimal.tar.gz.* > rosetta_minimal.tar.gz
-rm rosetta_minimal.tar.gz.*
-tar -xf rosetta_minimal.tar.gz
-rm rosetta_minimal.tar.gz
+cat rosetta_min_enc.tar.gz.* > rosetta_min_enc.tar.gz
+rm rosetta_min_enc.tar.gz.*
+# decrypt
+openssl enc -d -aes256 -in rosetta_min_enc.tar.gz -out rosetta_min.tar.gz -pass pass:R0S3774123
+# extract
+tar -xf rosetta_min.tar.gz
+rm rosetta_min.tar.gz
 
 # set up miniconda and add it to path
 # todo: download miniconda from squid instead of anaconda repo? less chance for http error?
