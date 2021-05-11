@@ -1,6 +1,6 @@
 universe = vanilla
 +WantFlocking = true
-+WantGlideIn = false
++WantGlideIn = true
 
 log = output/condor_logs/rosetta_$(Cluster)_$(Process).log
 error = output/condor_logs/rosetta_$(Cluster)_$(Process).err
