@@ -41,7 +41,11 @@ wget http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_min_enc.tar.gz
 cat rosetta_min_enc.tar.gz.* > rosetta_min_enc.tar.gz
 rm rosetta_min_enc.tar.gz.*
 # decrypt
-openssl enc -d -aes256 -in rosetta_min_enc.tar.gz -out rosetta_min.tar.gz -pass pass:R0S3774123
+openssl version # echo the version for my knowledge
+# this was encrypted w/ openssl v > 1.1.0, which uses default digest sha256
+# include "-md sha256" for decrypt compatibility with older versions that used md5
+openssl enc -d -aes256 -md sha256 -in rosetta_min_enc.tar.gz -out rosetta_min.tar.gz -pass pass:R0S3774123
+rm rosetta_min_enc.tar.gz
 # extract
 tar -xf rosetta_min.tar.gz
 rm rosetta_min.tar.gz
