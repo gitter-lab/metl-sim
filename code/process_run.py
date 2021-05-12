@@ -81,7 +81,8 @@ def process_run(main_dir, condor_log_dir, energize_out_dir, out_dir):
 
 def main():
     # path to the parent condor directory for this run
-    main_dir = "output/htcondor_runs/condor_energize_2021-04-15_13-46-55_gb1_s45_2mv"
+    # main_dir = "output/htcondor_runs/condor_energize_2021-04-15_13-46-55_gb1_s45_2mv"
+    main_dir = "output/htcondor_runs/condor_energize_2021-05-12_11-14-57_osg_test-run"
 
     # condor log dir contains the condor .out, .err, and .log files for every job
     condor_log_dir = join(main_dir, "output", "condor_logs")
