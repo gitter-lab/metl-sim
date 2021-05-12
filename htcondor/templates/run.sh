@@ -16,14 +16,7 @@ echo "RunningOn: $RUNNINGON"
 # this makes it easier to set up the environments, since the PWD we are running in is not $HOME
 export HOME=$PWD
 
-# get the rosettafy repository from github at the specific tag
-# prefer wget rather than git clone for portability
-# wget https://github.com/samgelman/rosettafy/archive/{github_tag}.zip
-# for private repo, use OAuth token that is passed in as an environment variable from the submit node each time
-# wget --header="Authorization: token ${TOKEN}" "https://github.com/samgelman/rosettafy/archive/${GITHUB_TAG}.tar.gz"
-
 # untar the code repo (transferred from submit node), removing the enclosing folder with strip-components
-# tar -xf "${GITHUB_TAG}.tar.gz" --strip-components=1
 # switched to a static filename so there's less need to have github tag everywhere
 tar -xf code.tar.gz --strip-components=1
 
@@ -50,22 +43,18 @@ rm rosetta_min_enc.tar.gz
 tar -xf rosetta_min.tar.gz
 rm rosetta_min.tar.gz
 
-# set up miniconda and add it to path
-#wget -q https://repo.anaconda.com/miniconda/Miniconda3-py38_4.9.2-Linux-x86_64.sh
-wget -q http://proxy.chtc.wisc.edu/SQUID/sgelman2/Miniconda3-py38_4.9.2-Linux-x86_64.sh
-bash Miniconda3-py38_4.9.2-Linux-x86_64.sh -b -p ~/miniconda3
-export PATH=$HOME/miniconda3/bin:$PATH
+# set up the python environment (from packaged version)
+# https://chtc.cs.wisc.edu/conda-installation.shtml
 
-# set up conda environment from env.yml
-source "$HOME/miniconda3/etc/profile.d/conda.sh"
-hash -r
-conda config --set always_yes yes --set changeps1 no
-conda env create -f setup/rosettafy_env.yml
-
-# activate environment and list out packages
-conda activate rosettafy
-conda list
+# this is the version of the rosettafy environment in repo version 0.4
+# simply a convenient way to keep track of versioning for this package which was created by hand
+wget -q http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosettafy_env_v0.4.tar.gz
+# these lines handle setting up the environment
+export PATH
+mkdir rosettafy_env
+tar -xzf rosettafy_env_v0.4.tar.gz -C rosettafy_env
+. rosettafy_env/bin/activate
 
 # launch our python run script with argument file number
-python code/energize.py @energize_args.txt --variants_fn="args/${PROCESS}.txt" --cluster="$CLUSTER" --process="$PROCESS" --commit_id="$GITHUB_TAG"
+python3 code/energize.py @energize_args.txt --variants_fn="args/${PROCESS}.txt" --cluster="$CLUSTER" --process="$PROCESS" --commit_id="$GITHUB_TAG"
 

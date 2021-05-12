@@ -1,5 +1,4 @@
 name: rosettafy
-# todo: create separate environment without jupyterlab and plotting libraries (for HTCondor runs)
 dependencies:
   - python=3.9.1
   - numpy=1.19.2
