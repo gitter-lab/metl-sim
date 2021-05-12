@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# exit if any command fails...
+set -e
+
 # create output directory for condor logs early
 # not sure exactly when/if this needs to be done
 mkdir -p output/condor_logs
@@ -19,9 +22,6 @@ export HOME=$PWD
 # untar the code repo (transferred from submit node), removing the enclosing folder with strip-components
 # switched to a static filename so there's less need to have github tag everywhere
 tar -xf code.tar.gz --strip-components=1
-
-# untar the args
-tar -xf args.tar.gz
 
 # download the rosetta distribution from SQUID
 # wget --recursive --no-parent http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/
@@ -56,5 +56,5 @@ tar -xzf rosettafy_env_v0.4.tar.gz -C rosettafy_env
 . rosettafy_env/bin/activate
 
 # launch our python run script with argument file number
-python3 code/energize.py @energize_args.txt --variants_fn="args/${PROCESS}.txt" --cluster="$CLUSTER" --process="$PROCESS" --commit_id="$GITHUB_TAG"
+python3 code/energize.py @energize_args.txt --variants_fn="${PROCESS}.txt" --cluster="$CLUSTER" --process="$PROCESS" --commit_id="$GITHUB_TAG"
 

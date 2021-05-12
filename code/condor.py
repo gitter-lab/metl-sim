@@ -42,6 +42,11 @@ def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False)
     if not keep_sep_files:
         shutil.rmtree(args_dir)
 
+    # # create a file containing the list of separate variant lists files (for condor queue)
+    # with open(join(out_dir, "variant_list_fns.txt"), "w") as f:
+    #     for i in range(len(split_variant_lists)):
+    #         f.write("{}.txt\n".format(i))
+
     # return the number of args files (jobs)
     return len(split_variant_lists)
 
@@ -96,7 +101,7 @@ def main(args):
     fetch_repo(args.github_tag, args.github_token, out_dir)
 
     # generate arguments files from the master variant list. returns the number of jobs
-    # could also use a different system based on the master list, and computing variants per job dynamically
+    # also generates a file containing the filenames of the separate variant lists (for condor queue)
     num_jobs = gen_args(args.master_variant_fn, args.variants_per_job, out_dir)
 
     # create an env_vars.txt file to define environment variables for run.sh and energize.sub

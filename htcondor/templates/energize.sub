@@ -17,7 +17,7 @@ should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 
 # todo: update input files to whatever the new system will be
-transfer_input_files = run.sh, code.tar.gz, args.tar.gz, energize_args.txt
+transfer_input_files = run.sh, code.tar.gz, args/$(Process).txt, energize_args.txt
 transfer_output_files = output
 
 request_cpus = 1
