@@ -95,7 +95,7 @@ def main(args):
     # remove the github authorization token to avoid storing it in a file
     args_dict = dict(vars(args))
     del args_dict["github_token"]
-    save_argparse_args(vars(args), join(out_dir, "run_def.txt"))
+    save_argparse_args(args_dict, join(out_dir, "run_def.txt"))
 
     # download the repository
     fetch_repo(args.github_tag, args.github_token, out_dir)
