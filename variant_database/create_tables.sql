@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS  `variant` (
     `job_uuid` VARCHAR NOT NULL,
     `start_time` DATETIME,
     `run_time` INT unsigned,
+
     `total_score` DECIMAL,
     `dslf_fa13` DECIMAL,
     `fa_atr` DECIMAL,

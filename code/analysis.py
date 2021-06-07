@@ -51,11 +51,16 @@ def check_for_missing_jobs(main_d, energize_out_d, num_expected_jobs=None):
     if num_expected_jobs is None:
         # automatically get the number of expected jobs from the env_vars.txt file
         env_vars_fn = join(main_d, "env_vars.txt")
-        env_vars = parse_env_vars(env_vars_fn)
-        num_expected_jobs = int(env_vars["NUM_JOBS"])
+        if isfile(env_vars_fn):
+            env_vars = parse_env_vars(env_vars_fn)
+            num_expected_jobs = int(env_vars["NUM_JOBS"])
+            # check if any job nums missing from expected range of job job_nums
+            missing_jobs = list(set(range(num_expected_jobs)) - set(job_nums))
+        else:
+            # unable to compute the number of mising jobs due to no num expected jobs specified and no env_vars.txt
+            # set missing jobs to None, rather than 0, to signify unable to compute
+            missing_jobs = None
 
-    # check if any job nums missing from expected range of job job_nums
-    missing_jobs = list(set(range(num_expected_jobs)) - set(job_nums))
 
     return missing_jobs
 

@@ -6,6 +6,8 @@ import sqlite3
 import sys
 import argparse
 
+import pandas as pd
+
 
 def create_tables(con):
     # retrieve table creation commands from file
@@ -20,6 +22,39 @@ def create_tables(con):
     # run the table creation commands
     for command in sql_commands:
         cur.execute(command)
+
+
+def add_energies(db_fn, energies_df):
+    """ add new variant records into database """
+    con = sqlite3.connect(db_fn)
+    energies_db_ready = energies_df.rename(columns={"variant": "mutations"})
+
+    try:
+        energies_db_ready.to_sql("variant", con, if_exists="append", index=False)
+    except sqlite3.IntegrityError:
+        pass
+
+    con.close()
+
+
+def add_meta(db_fn, hparams_df, jobs_df):
+    """ add job and hyperparameter metadata to database """
+    con = sqlite3.connect(db_fn)
+
+    # job info dataframe must be merged with the hparam dataframe as they are both in the same SQL table
+    # also add an "hp_" prefix to the hparams dataframe because that's what the SQL table expects
+    hparams_db_ready = hparams_df.add_prefix("hp_").rename(columns={"hp_job_uuid": "uuid"})
+    jobs_db_ready = pd.merge(jobs_df, hparams_db_ready, on="uuid")
+
+    # github_commit_id --> github_tag
+    jobs_db_ready = jobs_db_ready.rename(columns={"github_commit_id": "github_tag"})
+
+    try:
+        jobs_db_ready.to_sql("job", con, if_exists="append", index=False)
+    except sqlite3.IntegrityError:
+        pass
+
+    con.close()
 
 
 def main(args):
