@@ -48,18 +48,22 @@ def check_for_missing_jobs(main_d, energize_out_d, num_expected_jobs=None):
     # check if any job output folders are missing by looking at the job nums
     job_nums = [int(parse_job_dir_name(basename(job_dir))["process"]) for job_dir in job_out_dirs]
 
-    if num_expected_jobs is None:
-        # automatically get the number of expected jobs from the env_vars.txt file
-        env_vars_fn = join(main_d, "env_vars.txt")
-        if isfile(env_vars_fn):
-            env_vars = parse_env_vars(env_vars_fn)
-            num_expected_jobs = int(env_vars["NUM_JOBS"])
-            # check if any job nums missing from expected range of job job_nums
-            missing_jobs = list(set(range(num_expected_jobs)) - set(job_nums))
-        else:
-            # unable to compute the number of mising jobs due to no num expected jobs specified and no env_vars.txt
-            # set missing jobs to None, rather than 0, to signify unable to compute
-            missing_jobs = None
+    # automatically get the number of expected jobs from the env_vars.txt file
+    env_vars_fn = join(main_d, "env_vars.txt")
+
+    if num_expected_jobs is None and isfile(env_vars_fn):
+        # the number of expected jobs is not specified, but we can pull it out of the environment vars text file
+        env_vars = parse_env_vars(env_vars_fn)
+        num_expected_jobs = int(env_vars["NUM_JOBS"])
+        # check if any job nums missing from expected range of job job_nums
+        missing_jobs = list(set(range(num_expected_jobs)) - set(job_nums))
+    elif num_expected_jobs is None and not isfile(env_vars_fn):
+        # the expected number of jobs was not specified and we cannot find it in the environment vars text file
+        # set missing jobs to None, rather than 0, to signify unable to compute
+        missing_jobs = None
+    else:
+        # the number of expected jobs is specified as an argument
+        missing_jobs = list(set(range(num_expected_jobs)) - set(job_nums))
 
     return missing_jobs
 
