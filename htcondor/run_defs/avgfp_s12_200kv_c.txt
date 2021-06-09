@@ -1,0 +1,10 @@
+--run_name
+avgfp_s12_200kv_c
+--energize_args_fn
+energize_args/condor_set_1.txt
+--master_variant_fn
+variant_lists/avgfp_s12_200kv_c_variants.txt
+--variants_per_job
+25
+--github_tag
+v0.5
