@@ -61,7 +61,6 @@ def check_for_missing_jobs(main_d, energize_out_d, num_expected_jobs=None):
             # set missing jobs to None, rather than 0, to signify unable to compute
             missing_jobs = None
 
-
     return missing_jobs
 
 

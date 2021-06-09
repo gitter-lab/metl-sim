@@ -65,7 +65,8 @@ def runtimes_and_energies(energize_out_dir, out_dir):
 
     fig, ax = plt.subplots(1)
     sns.histplot(data=energies, x="run_time", ax=ax, bins=30)
-    ax.set(title="Runtimes per variant (mean={:.2f})".format(energies["run_time"].mean()), xlabel="Runtime (seconds)", ylabel="Num jobs")
+    ax.set(title="Runtimes per variant (mean={:.2f})".format(energies["run_time"].mean()),
+           xlabel="Runtime (seconds)", ylabel="Num jobs")
     fig.tight_layout()
     fig.savefig(join(out_dir, "runtimes.png"))
     plt.close(fig)
@@ -241,7 +242,7 @@ def main():
         energize_out_dir = join(main_dir, "output", "energize_outputs")
 
         if isdir(processed_run_dir):
-            print("err: processed run directory already exists, delete before reprocessing this run: {}".format(processed_run_dir))
+            print("err: processed run directory already exists, delete before continuing: {}".format(processed_run_dir))
         else:
             os.makedirs(processed_run_dir)
             process_run(main_dir, condor_log_dir, energize_out_dir, processed_run_dir)
