@@ -1,6 +1,10 @@
 """ process an htcondor run """
 import os
-from os.path import join, isdir, isfile
+from os.path import join, isdir, isfile, basename
+import subprocess
+from collections import defaultdict
+import time
+import shutil
 
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -112,30 +116,148 @@ def add_to_database(db_fn, processed_run_dir, energize_out_dir):
     db.add_meta(db_fn, hparams_df, jobs_df)
 
 
+def get_real_failed_jobs(failed_jobs, energize_out_dir):
+    # todo: integrate this functionality into analysis.check_for_failed_jobs() and optimize...can be more efficient
+    # some of the failed jobs might actually have succeeded if they got re-scheduled by HTCondor
+    # in those cases, there could be multiple job log directories, and only one of them contains the complete output
+    # create a dictionary of job ids to make these easier to find
+    job_out_dirs = [join(energize_out_dir, jd) for jd in os.listdir(energize_out_dir)]  # all the job output dirs
+    job_nums = [int(an.parse_job_dir_name(basename(job_dir))["process"]) for job_dir in job_out_dirs]
+    job_num_dict = defaultdict(list)
+    for job_num, job_out_dir in zip(job_nums, job_out_dirs):
+        job_num_dict[job_num].append(job_out_dir)
+
+    # check if any of the failed jobs have multiple log directories, and if so, did any of them complete successfully
+    real_failed_jobs = []
+    for fj in failed_jobs:
+        if len(job_num_dict[fj]) == 1:
+            # if the failed job only has 1 log directory, it's a real failed job
+            real_failed_jobs.append(fj)
+        elif len(job_num_dict[fj]) > 1:
+            # if the failed job has multiple log directories, check if any of them succeeded
+            job_succeeded = False
+            for jld in job_num_dict[fj]:
+                if isfile(join(jld, "energies.csv")):
+                    job_succeeded = True
+            if not job_succeeded:
+                real_failed_jobs.append(fj)
+
+    return real_failed_jobs
+
+
+def parse_run_def(run_def_fn):
+    # todo: this is better done with argparse
+    with open(run_def_fn, "r") as f:
+        run_def_txt = f.readlines()
+    run_def = {}
+    for i in range(0, len(run_def_txt), 2):
+        var_name = run_def_txt[i].strip()[2:]
+        value = run_def_txt[i + 1].strip()
+        run_def[var_name] = value
+    return run_def
+
+
+def gen_cleanup_rundef(main_run_dir):
+    """ create an HTCondor run_def to re-process failed or missing jobs from a different run """
+
+    # load the previous rundef to match parameters with this new run
+    run_def_fn = join(main_run_dir, "run_def.txt")
+    run_def = parse_run_def(run_def_fn)
+    print("new run is based on existing run {}".format(run_def["run_name"]))
+
+    # the new run name is just the old name with _c subscript for "clean up"
+    new_run_name = run_def["run_name"] + "_c"
+    print("new run name will be {}".format(new_run_name))
+
+    # get the failed and missing job ids
+    energize_out_dir = join(main_run_dir, "output", "energize_outputs")
+    failed_jobs = an.check_for_failed_jobs(energize_out_dir)
+    real_failed_jobs = get_real_failed_jobs(failed_jobs, energize_out_dir)
+    missing_jobs = an.check_for_missing_jobs(main_run_dir, energize_out_dir)
+    print("num failed jobs: {}".format(len(failed_jobs)))
+    print("num real failed jobs: {}".format(len(real_failed_jobs)))
+    print("num missing jobs: {}".format(len(missing_jobs)))
+
+    # determine which variants need to be re-run (based on failed+missing jobs) and create a new master variant list
+    # need access to the args folder, so uncompress it into a temp directory
+    temp_out_dir = join("output", "temp_{}".format(time.strftime("%Y-%m-%d_%H-%M-%S")))
+    os.makedirs(temp_out_dir)
+    args_tar_fn = join(main_run_dir, "args.tar.gz")
+    tar_cmd = ["tar", "-C", temp_out_dir, "-xf", args_tar_fn]
+    subprocess.call(tar_cmd)
+    # open up the args file for each failed job and add the variants to a list
+    variants = []
+    for job_id in real_failed_jobs + missing_jobs:
+        with open(join(temp_out_dir, "args", "{}.txt".format(job_id)), "r") as f:
+            variants = variants + f.read().splitlines()
+    # remove temp directory
+    shutil.rmtree(temp_out_dir)
+
+    # save the variants to a new master variant list
+    master_list_fn = join("variant_lists", "{}_variants.txt".format(new_run_name))
+    if isfile(master_list_fn):
+        print("err: variant master list already exists. delete before continuing: {}".format(master_list_fn))
+        quit()
+    with open(master_list_fn, "w") as f:
+        for variant in variants:
+            f.write("{}\n".format(variant))
+    print("saved variant master list to {}".format(master_list_fn))
+
+    # create the run_def file for this clean up run
+    new_run_def_fn = join("htcondor", "run_defs", "{}.txt".format(new_run_name))
+    if isfile(new_run_def_fn):
+        print("err: run def already exists. delete before continuing: {}".format(new_run_def_fn))
+        quit()
+    with open(new_run_def_fn, "w") as f:
+        f.write("--run_name\n{}\n".format(new_run_name))
+        f.write("--energize_args_fn\n{}\n".format(run_def["energize_args_fn"]))
+        f.write("--master_variant_fn\n{}\n".format(master_list_fn))
+        f.write("--variants_per_job\n{}\n".format(run_def["variants_per_job"]))
+        f.write("--github_tag\n{}".format(run_def["github_tag"]))
+    print("saved run def to {}".format(new_run_def_fn))
+
+
 def main():
     # path to the parent condor directory for this run
+
+    # stats, database, cleanup
+    mode = "cleanup"
 
     # GB1 runs
     # main_dir = "output/htcondor_runs/condor_energize_2021-03-31_15-29-09_gb1_ut3_1mv"
     # main_dir = "output/htcondor_runs/condor_energize_2021-04-15_13-46-55_gb1_s45_2mv"
-    main_dir = "output/htcondor_runs/condor_energize_2021-05-14_12-24-59_gb1_s23_4mv"
+    # main_dir = "output/htcondor_runs/condor_energize_2021-05-14_12-24-59_gb1_s23_4mv"
 
-    # condor log dir contains the condor .out, .err, and .log files for every job
-    # the energize out dir contains the output folder for every job
-    condor_log_dir = join(main_dir, "output", "condor_logs")
-    energize_out_dir = join(main_dir, "output", "energize_outputs")
+    # avGFP runs
+    main_dir = "output/htcondor_runs/condor_energize_2021-05-26_15-03-47_avgfp_s12_200kv"
 
-    # process run (does not add to database)
-    processed_run_dir = join(main_dir, "processed_run")
-    if isdir(processed_run_dir):
-        print("err: processed run directory already exists, delete before reprocessing this run: {}".format(processed_run_dir))
-    else:
-        os.makedirs(processed_run_dir)
-        process_run(main_dir, condor_log_dir, energize_out_dir, processed_run_dir)
+    if mode == "stats":
+        # output directory for processed run stats
+        processed_run_dir = join(main_dir, "processed_run")
 
-    # add to database
-    database_fn = "variant_database/database2.db"
-    add_to_database(database_fn, processed_run_dir, energize_out_dir)
+        # condor log dir contains the condor .out, .err, and .log files for every job
+        # the energize out dir contains the output folder for every job
+        condor_log_dir = join(main_dir, "output", "condor_logs")
+        energize_out_dir = join(main_dir, "output", "energize_outputs")
+
+        if isdir(processed_run_dir):
+            print("err: processed run directory already exists, delete before reprocessing this run: {}".format(processed_run_dir))
+        else:
+            os.makedirs(processed_run_dir)
+            process_run(main_dir, condor_log_dir, energize_out_dir, processed_run_dir)
+
+    elif mode == "database":
+        processed_run_dir = join(main_dir, "processed_run")
+        energize_out_dir = join(main_dir, "output", "energize_outputs")
+
+        # add to database
+        database_fn = "variant_database/database2.db"
+        add_to_database(database_fn, processed_run_dir, energize_out_dir)
+
+    elif mode == "cleanup":
+        # create a new condor run definition file to re-run failed jobs
+        gen_cleanup_rundef(main_dir)
+
 
 if __name__ == "__main__":
     main()
