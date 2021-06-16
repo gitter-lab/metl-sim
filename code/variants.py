@@ -166,17 +166,17 @@ def single_pdb_local_variants(pdb_fn, target_num, num_subs_list, chars, rng):
     for num_subs, num_v, max_v in zip(num_subs_list, variants_per_num_subs, max_variants):
         # print("getting sample: {} subs, {} variants".format(num_subs, num_v))
         if num_v == max_v:
-            print("num_subs: {} num_v: {} approach: gen all".format(num_subs, num_v))
+            print("num_subs: {} num_v: {} max_v: {} approach: gen all".format(num_subs, num_v, max_v))
             variants += list(gen_all_variants(seq, num_subs, chars, seq_idxs))
         elif num_v / max_v > 0.4:
-            print("num_subs: {} num_v: {} approach: gen all, then sample".format(num_subs, num_v))
+            print("num_subs: {} num_v: {} max_v: {} approach: gen all, then sample".format(num_subs, num_v, max_v))
             # gen_sample could be slow if we are generating a sample approaching the max number of variants
             # in that case it would be much faster to just generate all and select a sample from the pre-generated ones
             all_variants = list(gen_all_variants(seq, num_subs, chars, seq_idxs))
             # variants += random.sample(all_variants, num_v)
             variants += rng.choice(all_variants, num_v, replace=False).tolist()
         else:
-            print("num_subs: {} num_v: {} approach: sample".format(num_subs, num_v))
+            print("num_subs: {} num_v: {} max_v: {} approach: sample".format(num_subs, num_v, max_v))
             variants += gen_sample(seq, num_v, num_subs, chars, seq_idxs, rng)
 
     return variants
@@ -202,10 +202,10 @@ def main():
     # not using stop codon
     chars = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
 
-    target_num = 200000
-    num_subs_list = [1, 2]
+    target_num = 3000000
+    num_subs_list = [2, 3]
     pdb_fn = "prepared_pdb_files/1gfl_cm.pdb"
-    seed = 11
+    seed = 12
 
     # create a random number generator for this call
     rng = np.random.default_rng(seed=seed)
