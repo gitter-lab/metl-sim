@@ -31,7 +31,6 @@ environment = "CLUSTER=$(Cluster) PROCESS=$(Process) RUNNINGON=$$(Name) GITHUB_T
 max_idle = 1000
 
 # auto release jobs that fail to transfer files from squid
-periodic_release = (NumJobStarts < 5) && (HoldReasonCode == 12) &&
-(HoldReasonSubCode == 0) && ( (CurrentTime - EnteredCurrentStatus) > 600)
+periodic_release = (NumJobStarts < 5) && (HoldReasonCode == 12) && (HoldReasonSubCode == 0) && ( (CurrentTime - EnteredCurrentStatus) > 600)
 
 queue $ENV(NUM_JOBS)
