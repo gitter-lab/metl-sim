@@ -222,42 +222,49 @@ def main():
     # path to the parent condor directory for this run
 
     # stats, database, cleanup
-    mode = "cleanup"
+    mode = "database"
 
     # GB1 runs
-    # main_dir = "output/htcondor_runs/condor_energize_2021-03-31_15-29-09_gb1_ut3_1mv"
-    # main_dir = "output/htcondor_runs/condor_energize_2021-04-15_13-46-55_gb1_s45_2mv"
-    # main_dir = "output/htcondor_runs/condor_energize_2021-05-14_12-24-59_gb1_s23_4mv"
+    gb1_runs = ["output/htcondor_runs/condor_energize_2021-03-31_15-29-09_gb1_ut3_1mv",
+                "output/htcondor_runs/condor_energize_2021-04-15_13-46-55_gb1_s45_2mv",
+                "output/htcondor_runs/condor_energize_2021-05-14_12-24-59_gb1_s23_4mv"]
 
     # avGFP runs
-    main_dir = "output/htcondor_runs/condor_energize_2021-05-26_15-03-47_avgfp_s12_200kv"
+    avgfp_runs = ["output/htcondor_runs/condor_energize_2021-05-26_15-03-47_avgfp_s12_200kv",
+                  "output/htcondor_runs/condor_energize_2021-06-09_16-43-13_avgfp_s12_200kv_c",
+                  "output/htcondor_runs/condor_energize_2021-06-09_19-08-35_avgfp_s23_3mv",
+                  "output/htcondor_runs/condor_energize_2021-06-24_11-19-48_avgfp_s23_3mv_c",
+                  "output/htcondor_runs/condor_energize_2021-06-25_16-46-01_avgfp_s45_3mv"]
 
-    if mode == "stats":
-        # output directory for processed run stats
-        processed_run_dir = join(main_dir, "processed_run")
+    main_dirs = gb1_runs + avgfp_runs
 
-        # condor log dir contains the condor .out, .err, and .log files for every job
-        # the energize out dir contains the output folder for every job
-        condor_log_dir = join(main_dir, "output", "condor_logs")
-        energize_out_dir = join(main_dir, "output", "energize_outputs")
+    for main_dir in main_dirs:
+        if mode == "stats":
+            # output directory for processed run stats
+            processed_run_dir = join(main_dir, "processed_run")
 
-        if isdir(processed_run_dir):
-            print("err: processed run directory already exists, delete before continuing: {}".format(processed_run_dir))
-        else:
-            os.makedirs(processed_run_dir)
-            process_run(main_dir, condor_log_dir, energize_out_dir, processed_run_dir)
+            # condor log dir contains the condor .out, .err, and .log files for every job
+            # the energize out dir contains the output folder for every job
+            condor_log_dir = join(main_dir, "output", "condor_logs")
+            energize_out_dir = join(main_dir, "output", "energize_outputs")
 
-    elif mode == "database":
-        processed_run_dir = join(main_dir, "processed_run")
-        energize_out_dir = join(main_dir, "output", "energize_outputs")
+            if isdir(processed_run_dir):
+                print("err: processed run directory already exists, delete before continuing: {}".format(processed_run_dir))
+            else:
+                os.makedirs(processed_run_dir)
+                process_run(main_dir, condor_log_dir, energize_out_dir, processed_run_dir)
 
-        # add to database
-        database_fn = "variant_database/database2.db"
-        add_to_database(database_fn, processed_run_dir, energize_out_dir)
+        elif mode == "database":
+            processed_run_dir = join(main_dir, "processed_run")
+            energize_out_dir = join(main_dir, "output", "energize_outputs")
 
-    elif mode == "cleanup":
-        # create a new condor run definition file to re-run failed jobs
-        gen_cleanup_rundef(main_dir)
+            # add to database
+            database_fn = "variant_database/database.db"
+            add_to_database(database_fn, processed_run_dir, energize_out_dir)
+
+        elif mode == "cleanup":
+            # create a new condor run definition file to re-run failed jobs
+            gen_cleanup_rundef(main_dir)
 
 
 if __name__ == "__main__":

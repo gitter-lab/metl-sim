@@ -203,9 +203,9 @@ def main():
     chars = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
 
     target_num = 3000000
-    num_subs_list = [2, 3]
+    num_subs_list = [4, 5]
     pdb_fn = "prepared_pdb_files/1gfl_cm.pdb"
-    seed = 12
+    seed = 14
 
     # create a random number generator for this call
     rng = np.random.default_rng(seed=seed)

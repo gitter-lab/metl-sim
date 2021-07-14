@@ -70,6 +70,7 @@ def main(args):
             con.close()
 
     elif args.mode == "add":
+        # adding to database is done in process_run instead of here
         pass
 
 
