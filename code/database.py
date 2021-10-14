@@ -24,13 +24,33 @@ def create_tables(con):
         cur.execute(command)
 
 
+def sort_variant_mutations(variants):
+    """ put variant mutations in sorted order by position """
+    # this function is also duplicated in RosettaTL utils
+    sorted_variants = []
+    for variant in variants:
+        muts = variant.split(",")
+        positions = [int(mut[1:-1]) for mut in muts]
+        # now sort muts by positions index, then join on "," to recreate variant
+        sorted_muts = [x for x, _ in sorted(zip(muts, positions), key=lambda pair: pair[1])]
+        sorted_variants.append(",".join(sorted_muts))
+    return sorted_variants
+
+
 def add_energies(db_fn, energies_df):
     """ add new variant records into database """
     con = sqlite3.connect(db_fn)
+
     energies_db_ready = energies_df.rename(columns={"variant": "mutations"})
 
+    # before adding the energies to the database, sort the variants so the mutations are in sorted order
+    # of sequence position. variants generated via rosettafy *should* already be in this order
+    # however, there was the whole gb1_dms_cov dataset which used the order from the dms dataset
+    # also, just in case rosettafy generates variants in the wrong order, this is the backup
+    energies_db_ready["mutations"] = sort_variant_mutations(energies_db_ready["mutations"])
+
     try:
-        energies_db_ready.to_sql("variant", con, if_exists="append", index=False)
+        energies_db_ready.to_sql("variant", con, if_exists="append", chunksize=3000, index=False, method="multi")
     except sqlite3.IntegrityError:
         pass
 

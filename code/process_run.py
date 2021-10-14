@@ -225,9 +225,12 @@ def main():
     mode = "database"
 
     # GB1 runs
+    main_dirs = []
+
     gb1_runs = ["output/htcondor_runs/condor_energize_2021-03-31_15-29-09_gb1_ut3_1mv",
                 "output/htcondor_runs/condor_energize_2021-04-15_13-46-55_gb1_s45_2mv",
                 "output/htcondor_runs/condor_energize_2021-05-14_12-24-59_gb1_s23_4mv"]
+    main_dirs += gb1_runs
 
     # avGFP runs
     avgfp_runs = ["output/htcondor_runs/condor_energize_2021-05-26_15-03-47_avgfp_s12_200kv",
@@ -235,10 +238,14 @@ def main():
                   "output/htcondor_runs/condor_energize_2021-06-09_19-08-35_avgfp_s23_3mv",
                   "output/htcondor_runs/condor_energize_2021-06-24_11-19-48_avgfp_s23_3mv_c",
                   "output/htcondor_runs/condor_energize_2021-06-25_16-46-01_avgfp_s45_3mv"]
+    main_dirs += avgfp_runs
 
-    main_dirs = gb1_runs + avgfp_runs
+    gb1_dms_runs = ["output/htcondor_runs/condor_energize_2021-09-30_15-12-57_gb1_dms",
+                    "output/htcondor_runs/condor_energize_2021-10-01_12-04-04_gb1_dms_c"]
+    main_dirs += gb1_dms_runs
 
     for main_dir in main_dirs:
+        print("Processing {}".format(basename(main_dir)))
         if mode == "stats":
             # output directory for processed run stats
             processed_run_dir = join(main_dir, "processed_run")

@@ -72,6 +72,9 @@ CREATE TABLE IF NOT EXISTS  `variant` (
     FOREIGN KEY (`pdb_fn`) REFERENCES pdb_file(`pdb_fn`),
     FOREIGN KEY (`job_uuid`) REFERENCES job(`uuid`));
 
+CREATE INDEX mutations_index ON variant(mutations);
+CREATE INDEX pdb_fn_index ON variant(pdb_fn);
+
 CREATE TABLE IF NOT EXISTS  `pdb_file` (
     `pdb_fn` TEXT,
     `aa_sequence` TEXT,
@@ -100,5 +103,3 @@ CREATE TABLE IF NOT EXISTS  `job` (
 --     `relax_nstruct` INT unsigned,
 --     `relax_distance` DECIMAL,
 --     PRIMARY KEY (`id`));
-
--- todo: add index on pdb_fn to speed up queries for specific pdb_fns ?
