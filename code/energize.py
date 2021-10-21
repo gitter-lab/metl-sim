@@ -166,13 +166,13 @@ def parse_score_sc(score_sc_fn, agg_method="avg"):
     return parsed_df
 
 
-def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, output_dir, save_wd=False):
+def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, staging_dir, output_dir, save_wd=False):
     template_dir = "energize_wd_template"
     working_dir = "energize_wd"
 
-    # staging directory for variant outputs, which will be combined after all variants have been run
-    staging_dir = join(output_dir, "staging")
-    os.makedirs(staging_dir, exist_ok=True)
+    # if the working directory exists from a previously failed variant, remove it before starting new variant
+    if isdir(working_dir):
+        shutil.rmtree(working_dir)
 
     # set up the working directory (copies the pdb file, sets up the rosetta scripts, etc)
     prep_working_dir(template_dir, working_dir, pdb_fn, variant,
@@ -310,24 +310,42 @@ def main(args):
 
     # loop through each variant, model it with rosetta, save results
     # individual variant outputs will be placed in the staging directory
+    failed = []  # keep track of any variants that file after 3 attempts
     for pdb_variant in pdbs_variants:
         pdb_basename, variant = pdb_variant.split()
         pdb_fn = join(args.pdb_dir, pdb_basename)
 
-        # todo: run_single_variant can throw a RosettaError if Rosetta fails to run for a particular variant
-        # todo: can also throw a file not found error if we attempt to parse the energies and it doesnt exist
-        # but what are the chances that one variant fails and the others don't? I feel like any problems would
-        # be universal for the particular protein or condor job, so maybe just let it crash?
-        run_single_variant(args.rosetta_main_dir, pdb_fn, variant, rosetta_hparams, log_dir, args.save_wd)
+        # sometimes a single variant fails but others were/are successful
+        # give variants 3 attempts at success, then move on to other variants
+        # in worst case scenario, there is a system-level problem that will cause all variants to fail
+        num_attempts_per_variant = 3
+        for attempt in range(num_attempts_per_variant):
+            try:
+                run_single_variant(args.rosetta_main_dir, pdb_fn, variant, rosetta_hparams, log_dir, args.save_wd)
+            except (RosettaError, FileNotFoundError) as e:
+                print(e)
+                print("Encountered error running variant {} {}. "
+                      "Attempts remaining: {}".format(pdb_basename, variant, num_attempts_per_variant - attempt - 1))
+            else:
+                break
+        else:
+            # else clause of the for loop triggers if we burned through all attempts without success
+            # add this variant to a failed_variants.txt file and continue with the other variants
+            failed.append(pdb_variant)
 
-    # todo: check if any of the variants failed to run... and if so, try to run them again here? or add to failed list?
+    # save a txt file with failed variants
+    with open(join(log_dir, "failed.txt"), "w") as f:
+        for fv in failed:
+            f.write("{}\n".format(fv))
 
-    # combine outputs in the staging directory into a single csv file
-    cdf = combine_outputs(join(log_dir, "staging"))
-    # add additional column for job uuid
-    cdf.insert(2, "job_uuid", job_uuid)
-    # save in the main log directory
-    cdf.to_csv(join(log_dir, "energies.csv"), index=False)
+    # if any variants were successful, concat the outputs into a final energies.csv
+    if len(failed) < len(pdbs_variants):
+        # combine outputs in the staging directory into a single csv file
+        cdf = combine_outputs(join(log_dir, "staging"))
+        # add additional column for job uuid
+        cdf.insert(2, "job_uuid", job_uuid)
+        # save in the main log directory
+        cdf.to_csv(join(log_dir, "energies.csv"), index=False)
 
     # compress outputs, delete the output staging directory, etc
     shutil.rmtree(join(log_dir, "staging"))
