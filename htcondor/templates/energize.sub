@@ -2,6 +2,9 @@ universe = vanilla
 +WantFlocking = true
 +WantGlideIn = true
 
+# temporary to avoid CRUSH servers due to high failure rate
++UNDESIRED_Sites = "SU-ITS"
+
 log = output/condor_logs/rosetta_$(Cluster)_$(Process).log
 error = output/condor_logs/rosetta_$(Cluster)_$(Process).err
 output = output/condor_logs/rosetta_$(Cluster)_$(Process).out
@@ -33,7 +36,12 @@ max_idle = 1000
 # auto release jobs that fail to transfer files from squid
 periodic_release = (NumJobStarts < 5) && (HoldReasonCode == 12) && (HoldReasonSubCode == 0) && ( (CurrentTime - EnteredCurrentStatus) > 600)
 
-# temporary to avoid CRUSH servers due to high failure rate
-+UNDESIRED_Sites = "SU-ITS"
+# set it so jobs that fail will go on hold
+on_exit_hold = (ExitCode =!= 0)
+on_exit_hold_subcode = 1
+on_exit_hold_reason = "Nonzero exit-code"
+# periodically release failed jobs up to 5 times
+# the hold reason code for these jobs will be 3, and the subcode (set above) will be 1
+periodic_release = (NumJobStarts < 5) && (HoldReasonCode == 3) && (HoldReasonSubCode == 1) && ( (CurrentTime - EnteredCurrentStatus) > 600)
 
 queue $ENV(NUM_JOBS)
