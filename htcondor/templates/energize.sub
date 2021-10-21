@@ -33,4 +33,7 @@ max_idle = 1000
 # auto release jobs that fail to transfer files from squid
 periodic_release = (NumJobStarts < 5) && (HoldReasonCode == 12) && (HoldReasonSubCode == 0) && ( (CurrentTime - EnteredCurrentStatus) > 600)
 
+# temporary to avoid CRUSH servers due to high failure rate
++UNDESIRED_Sites = "SU-ITS"
+
 queue $ENV(NUM_JOBS)
