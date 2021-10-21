@@ -3,7 +3,7 @@ universe = vanilla
 +WantGlideIn = true
 
 # temporary to avoid CRUSH servers due to high failure rate
-+UNDESIRED_Sites = "SU-ITS"
+# +UNDESIRED_Sites = "SU-ITS"
 
 log = output/condor_logs/rosetta_$(Cluster)_$(Process).log
 error = output/condor_logs/rosetta_$(Cluster)_$(Process).err
