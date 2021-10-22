@@ -15,14 +15,16 @@ import database as db
 
 
 def check_for_failed_jobs(main_dir, energize_out_dir, out_dir):
-    failed_jobs = an.check_for_failed_jobs(energize_out_dir)
+    failed_log_dirs, failed_jobs = an.check_for_failed_jobs(energize_out_dir)
     missing_jobs = an.check_for_missing_jobs(main_dir, energize_out_dir)
 
     with open(join(out_dir, "failed_jobs.txt"), "w") as f:
+        num_failed_dirs = len(failed_log_dirs)
         num_failed = len(failed_jobs)
         # if missing_jobs is None, we were not able to infer the number of expected jobs (missing env_vars.txt)
-        nun_missing = len(missing_jobs) if missing_jobs is not None else "<unable to compute>"
-        f.write("Failed jobs: {}, Missing jobs: {}\n".format(num_failed, nun_missing))
+        num_missing = len(missing_jobs) if missing_jobs is not None else "<unable to compute>"
+        f.write(
+            "Failed log dirs: {}, Failed jobs: {}, Missing jobs: {}\n".format(num_failed_dirs, num_failed, num_missing))
         f.write("Failed job IDs: {}\n".format(failed_jobs))
         f.write("Missing job IDs: {}\n".format(missing_jobs if missing_jobs is not None else "<unable to compute>"))
 
@@ -117,35 +119,6 @@ def add_to_database(db_fn, processed_run_dir, energize_out_dir):
     db.add_meta(db_fn, hparams_df, jobs_df)
 
 
-def get_real_failed_jobs(failed_jobs, energize_out_dir):
-    # todo: integrate this functionality into analysis.check_for_failed_jobs() and optimize...can be more efficient
-    # some of the failed jobs might actually have succeeded if they got re-scheduled by HTCondor
-    # in those cases, there could be multiple job log directories, and only one of them contains the complete output
-    # create a dictionary of job ids to make these easier to find
-    job_out_dirs = [join(energize_out_dir, jd) for jd in os.listdir(energize_out_dir)]  # all the job output dirs
-    job_nums = [int(an.parse_job_dir_name(basename(job_dir))["process"]) for job_dir in job_out_dirs]
-    job_num_dict = defaultdict(list)
-    for job_num, job_out_dir in zip(job_nums, job_out_dirs):
-        job_num_dict[job_num].append(job_out_dir)
-
-    # check if any of the failed jobs have multiple log directories, and if so, did any of them complete successfully
-    real_failed_jobs = []
-    for fj in failed_jobs:
-        if len(job_num_dict[fj]) == 1:
-            # if the failed job only has 1 log directory, it's a real failed job
-            real_failed_jobs.append(fj)
-        elif len(job_num_dict[fj]) > 1:
-            # if the failed job has multiple log directories, check if any of them succeeded
-            job_succeeded = False
-            for jld in job_num_dict[fj]:
-                if isfile(join(jld, "energies.csv")):
-                    job_succeeded = True
-            if not job_succeeded:
-                real_failed_jobs.append(fj)
-
-    return real_failed_jobs
-
-
 def parse_run_def(run_def_fn):
     # todo: this is better done with argparse
     with open(run_def_fn, "r") as f:
@@ -172,11 +145,10 @@ def gen_cleanup_rundef(main_run_dir):
 
     # get the failed and missing job ids
     energize_out_dir = join(main_run_dir, "output", "energize_outputs")
-    failed_jobs = an.check_for_failed_jobs(energize_out_dir)
-    real_failed_jobs = get_real_failed_jobs(failed_jobs, energize_out_dir)
+    failed_log_dirs, failed_jobs = an.check_for_failed_jobs(energize_out_dir)
     missing_jobs = an.check_for_missing_jobs(main_run_dir, energize_out_dir)
+    print("num failed log dirs: {}".format(len(failed_log_dirs)))
     print("num failed jobs: {}".format(len(failed_jobs)))
-    print("num real failed jobs: {}".format(len(real_failed_jobs)))
     print("num missing jobs: {}".format(len(missing_jobs)))
 
     # determine which variants need to be re-run (based on failed+missing jobs) and create a new master variant list
@@ -188,7 +160,7 @@ def gen_cleanup_rundef(main_run_dir):
     subprocess.call(tar_cmd)
     # open up the args file for each failed job and add the variants to a list
     variants = []
-    for job_id in real_failed_jobs + missing_jobs:
+    for job_id in failed_jobs + missing_jobs:
         with open(join(temp_out_dir, "args", "{}.txt".format(job_id)), "r") as f:
             variants = variants + f.read().splitlines()
     # remove temp directory
@@ -222,7 +194,7 @@ def main():
     # path to the parent condor directory for this run
 
     # stats, database, cleanup
-    mode = "database"
+    mode = "stats"
 
     # GB1 runs
     main_dirs = []
@@ -243,6 +215,9 @@ def main():
     gb1_dms_runs = ["output/htcondor_runs/condor_energize_2021-09-30_15-12-57_gb1_dms",
                     "output/htcondor_runs/condor_energize_2021-10-01_12-04-04_gb1_dms_c"]
     main_dirs += gb1_dms_runs
+
+    gb1_variance = ["output/htcondor_runs/condor_energize_2021-10-21_18-15-50_gb1_variance"]
+    main_dirs = gb1_variance
 
     for main_dir in main_dirs:
         print("Processing {}".format(basename(main_dir)))

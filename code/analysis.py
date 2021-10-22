@@ -1,6 +1,7 @@
 """ useful functions for processing and analyzing results of energize/HTCondor runs """
 
 import os
+from collections import defaultdict
 from os.path import isfile, basename, join
 import pandas as pd
 
@@ -32,14 +33,38 @@ def parse_env_vars(env_vars_fn):
 
 def check_for_failed_jobs(energize_out_d):
     """ check for failed jobs on basis of missing energies.csv, return failed job numbers """
-    # check if any jobs failed by looking for energies.csv in the output directory
+
+    # check if any job/LOGDIRS failed by looking for energies.csv in the output directory
     job_out_dirs = [join(energize_out_d, jd) for jd in os.listdir(energize_out_d)]
-    failed_jobs = []
+    failed_log_dirs = []
     for jd in job_out_dirs:
         if not isfile(join(jd, "energies.csv")):
-            failed_jobs.append(int(parse_job_dir_name(basename(jd))["process"]))
+            failed_log_dirs.append(int(parse_job_dir_name(basename(jd))["process"]))
 
-    return failed_jobs
+    # some of the failed jobs/LOGDIRS might actually have succeeded if they got re-scheduled by HTCondor
+    # in those cases, there could be multiple job log directories, and only one of them contains the complete output
+    # create a dictionary of job ids to make these easier to find
+    job_nums = [int(parse_job_dir_name(basename(job_dir))["process"]) for job_dir in job_out_dirs]
+    job_num_dict = defaultdict(list)
+    for job_num, job_out_dir in zip(job_nums, job_out_dirs):
+        job_num_dict[job_num].append(job_out_dir)
+
+    # check if any of the failed jobs have multiple log directories, and if so, did any of them complete successfully
+    failed_jobs = []
+    for fj in failed_log_dirs:
+        if len(job_num_dict[fj]) == 1:
+            # if the failed job only has 1 log directory, it's a real failed job
+            failed_jobs.append(fj)
+        elif len(job_num_dict[fj]) > 1:
+            # if the failed job has multiple log directories, check if any of them succeeded
+            job_succeeded = False
+            for jld in job_num_dict[fj]:
+                if isfile(join(jld, "energies.csv")):
+                    job_succeeded = True
+            if not job_succeeded:
+                failed_jobs.append(fj)
+
+    return failed_log_dirs, failed_jobs
 
 
 def check_for_missing_jobs(main_d, energize_out_d, num_expected_jobs=None):
