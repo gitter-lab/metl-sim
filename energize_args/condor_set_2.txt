@@ -1,0 +1,14 @@
+--rosetta_main_dir
+rosetta_minimal
+--pdb_dir
+prepared_pdb_files
+--mutate_default_max_cycles
+100
+--relax_repeats
+1
+--relax_nstruct
+1
+--relax_distance
+10
+--log_dir_base
+output/energize_outputs
