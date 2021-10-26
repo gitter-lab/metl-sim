@@ -180,14 +180,12 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, stagi
                      rosetta_hparams["relax_distance"], rosetta_hparams["relax_repeats"], overwrite_wd=True)
 
     # run the mutate and relax steps
-    print("Running Rosetta on variant {} {}".format(basename(pdb_fn), variant), flush=True)
     start = time.time()
     variant_has_mutations = False if variant == "_wt" else True
     run_rosetta_pipeline(rosetta_main_dir, working_dir,
                          rosetta_hparams["mutate_default_max_cycles"], rosetta_hparams["relax_nstruct"],
                          rosetta_hparams["relax_repeats"], variant_has_mutations)
     run_time = time.time() - start
-    print("Processing variant {} {} took {}".format(basename(pdb_fn), variant, run_time), flush=True)
 
     # copy over or parse any files we want to keep from the working directory to the output directory
     # the stdout and stderr outputs from rosetta are in the working directory under mutate.out and relax.out
@@ -316,7 +314,7 @@ def main(args):
     # loop through each variant, model it with rosetta, save results
     # individual variant outputs will be placed in the staging directory
     failed = []  # keep track of any variants that file after 3 attempts
-    for pdb_variant in pdbs_variants:
+    for i, pdb_variant in enumerate(pdbs_variants):
         pdb_basename, variant = pdb_variant.split()
         pdb_fn = join(args.pdb_dir, pdb_basename)
 
@@ -326,7 +324,12 @@ def main(args):
         num_attempts_per_variant = 3
         for attempt in range(num_attempts_per_variant):
             try:
-                run_single_variant(args.rosetta_main_dir, pdb_fn, variant, rosetta_hparams, staging_dir, log_dir, args.save_wd)
+                print("Running Rosetta on variant {} {} ({}/{})".format(basename(pdb_fn), variant,
+                                                                        i + 1, len(pdbs_variants)), flush=True)
+                run_time = run_single_variant(args.rosetta_main_dir, pdb_fn, variant, rosetta_hparams, staging_dir,
+                                              log_dir, args.save_wd)
+                print("Processing variant {} {} took {}".format(basename(pdb_fn), variant, run_time), flush=True)
+
             except (RosettaError, FileNotFoundError) as e:
                 print(e, flush=True)
                 print("Encountered error running variant {} {}. "
