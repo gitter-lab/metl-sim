@@ -202,19 +202,30 @@ def main():
     # not using stop codon
     chars = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
 
-    target_num = 3000000
-    num_subs_list = [4, 5]
-    pdb_fn = "prepared_pdb_files/1gfl_cm.pdb"
-    seed = 14
+    target_num = 13000
+    num_subs_list = [1,3,4,5,6]
+    # pdb_fn = "prepared_pdb_files/1gfl_cm.pdb"
+    pdb_fn = "prepared_pdb_files/2qmt_p.pdb"
+    seed = 15
 
     # create a random number generator for this call
     rng = np.random.default_rng(seed=seed)
 
     variants = single_pdb_local_variants(pdb_fn, target_num, num_subs_list, chars, rng)
 
+    # multiply number of variants for variance testing
+    num_replicates = 50
+    variants *= num_replicates
+
     out_dir = "variant_lists"
-    out_fn = "{}_{}_NV-{}_NS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4], time.strftime("%Y-%m-%d_%H-%M-%S"),
-                                                  human_format(target_num), ",".join(map(str, num_subs_list)), seed)
+
+    if num_replicates == 1:
+        out_fn = "{}_{}_NV-{}_NS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4], time.strftime("%Y-%m-%d_%H-%M-%S"),
+                                                      human_format(target_num), ",".join(map(str, num_subs_list)), seed)
+    else:
+        out_fn = "{}_{}_NV-{}_NR-{}_NS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4], time.strftime("%Y-%m-%d_%H-%M-%S"),
+                                                      human_format(target_num), num_replicates,
+                                                            ",".join(map(str, num_subs_list)), seed)
 
     with open(join(out_dir, out_fn), "w") as f:
         for v in variants:
