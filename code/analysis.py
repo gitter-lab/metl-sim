@@ -34,35 +34,47 @@ def parse_env_vars(env_vars_fn):
 def check_for_failed_jobs(energize_out_d):
     """ check for failed jobs on basis of missing energies.csv, return failed job numbers """
 
-    # check if any job/LOGDIRS failed by looking for energies.csv in the output directory
+    # get all the job output directories / log directories
     job_out_dirs = [join(energize_out_d, jd) for jd in os.listdir(energize_out_d)]
-    failed_log_dirs = []
-    for jd in job_out_dirs:
-        if not isfile(join(jd, "energies.csv")):
-            failed_log_dirs.append(int(parse_job_dir_name(basename(jd))["process"]))
 
-    # some of the failed jobs/LOGDIRS might actually have succeeded if they got re-scheduled by HTCondor
-    # in those cases, there could be multiple job log directories, and only one of them contains the complete output
-    # create a dictionary of job ids to make these easier to find
+    # create a dictionary of job ids --> job directories
+    # helps keep track of multiple log directories per job ID, which might occur if jobs get rescheduled
     job_nums = [int(parse_job_dir_name(basename(job_dir))["process"]) for job_dir in job_out_dirs]
     job_num_dict = defaultdict(list)
     for job_num, job_out_dir in zip(job_nums, job_out_dirs):
         job_num_dict[job_num].append(job_out_dir)
 
-    # check if any of the failed jobs have multiple log directories, and if so, did any of them complete successfully
+    # loop through each job ID and check if it has failed or succeeded
+    total_log_dirs = 0
+    failed_log_dirs = []
     failed_jobs = []
-    for fj in failed_log_dirs:
-        if len(job_num_dict[fj]) == 1:
-            # if the failed job only has 1 log directory, it's a real failed job
-            failed_jobs.append(fj)
-        elif len(job_num_dict[fj]) > 1:
-            # if the failed job has multiple log directories, check if any of them succeeded
-            job_succeeded = False
-            for jld in job_num_dict[fj]:
-                if isfile(join(jld, "energies.csv")):
-                    job_succeeded = True
-            if not job_succeeded:
-                failed_jobs.append(fj)
+    success_jobs = []
+    multiple_success_jobs = []
+    for job_id, job_out_dirs in job_num_dict.items():
+        # a job id might have multiple log dirs, categorize them
+        # keep track of how many log directories succeeded for this job ID
+        num_succeeded = 0
+
+        # loop through each log dir for this job ID
+        for jd in job_out_dirs:
+            total_log_dirs += 1
+            # keep track of how many of this job's log dirs succeeded
+            if not isfile(join(jd, "energies.csv")):
+                # this log dir doesn't have energies.csv, so it is a failed log dir
+                failed_log_dirs.append(job_id)
+                # todo: also see if there are any failed variants by checking failed_variants.txt
+                #  and keep track of jobs with failed variants but overall success
+            else:
+                num_succeeded += 1
+
+        # if this job had zero successful log dirs, it is a completely failed job
+        if num_succeeded == 0:
+            failed_jobs.append(job_id)
+        elif num_succeeded == 1:
+            success_jobs.append(job_id)
+        elif num_succeeded > 1:
+            success_jobs.append(job_id)
+            multiple_success_jobs.append(job_id)
 
     return failed_log_dirs, failed_jobs
 
