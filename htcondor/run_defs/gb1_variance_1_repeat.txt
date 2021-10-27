@@ -1,0 +1,10 @@
+--run_name
+gb1_variance_1_repeat
+--energize_args_fn
+energize_args/condor_set_2.txt
+--master_variant_fn
+/Users/sg/PycharmProjects/RosettaTL/output/rosettafy_variant_lists/2qmt_p_2021-10-21_10-55-41_DMS-gb1-variance_NV-10K_NR-50_RS-10.txt
+--variants_per_job
+100
+--github_tag
+v0.6.1
