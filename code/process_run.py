@@ -15,7 +15,7 @@ import database as db
 
 
 def check_for_failed_jobs(main_dir, energize_out_dir, out_dir):
-    failed_log_dirs, failed_jobs = an.check_for_failed_jobs(energize_out_dir)
+    failed_log_dirs, failed_jobs, failed_variants = an.check_for_failed_jobs(energize_out_dir)
     missing_jobs = an.check_for_missing_jobs(main_dir, energize_out_dir)
 
     with open(join(out_dir, "failed_jobs.txt"), "w") as f:
@@ -24,7 +24,8 @@ def check_for_failed_jobs(main_dir, energize_out_dir, out_dir):
         # if missing_jobs is None, we were not able to infer the number of expected jobs (missing env_vars.txt)
         num_missing = len(missing_jobs) if missing_jobs is not None else "<unable to compute>"
         f.write(
-            "Failed log dirs: {}, Failed jobs: {}, Missing jobs: {}\n".format(num_failed_dirs, num_failed, num_missing))
+            "Failed log dirs: {}, Failed jobs: {}, Missing jobs: {}, Failed variants: {}\n".format(
+                num_failed_dirs, num_failed, num_missing, len(failed_variants)))
         f.write("Failed job IDs: {}\n".format(failed_jobs))
         f.write("Missing job IDs: {}\n".format(missing_jobs if missing_jobs is not None else "<unable to compute>"))
 
@@ -145,7 +146,9 @@ def gen_cleanup_rundef(main_run_dir):
 
     # get the failed and missing job ids
     energize_out_dir = join(main_run_dir, "output", "energize_outputs")
-    failed_log_dirs, failed_jobs = an.check_for_failed_jobs(energize_out_dir)
+    # todo: handle failed_variants... those should go into the new run?
+    #  or... set a flag so if any variants fail, the whole job fails
+    failed_log_dirs, failed_jobs, failed_variants = an.check_for_failed_jobs(energize_out_dir)
     missing_jobs = an.check_for_missing_jobs(main_run_dir, energize_out_dir)
     print("num failed log dirs: {}".format(len(failed_log_dirs)))
     print("num failed jobs: {}".format(len(failed_jobs)))
@@ -216,7 +219,8 @@ def main():
                     "output/htcondor_runs/condor_energize_2021-10-01_12-04-04_gb1_dms_c"]
     main_dirs += gb1_dms_runs
 
-    gb1_variance = ["output/htcondor_runs/condor_energize_2021-10-21_18-15-50_gb1_variance"]
+    gb1_variance = ["output/htcondor_runs/condor_energize_2021-10-21_18-15-50_gb1_variance",
+                    "output/htcondor_runs/condor_energize_2021-10-25_10-34-07_gb1_variance_suppl"]
     main_dirs = gb1_variance
 
     for main_dir in main_dirs:

@@ -50,6 +50,7 @@ def check_for_failed_jobs(energize_out_d):
     failed_jobs = []
     success_jobs = []
     multiple_success_jobs = []
+    failed_variants = []
     for job_id, job_out_dirs in job_num_dict.items():
         # a job id might have multiple log dirs, categorize them
         # keep track of how many log directories succeeded for this job ID
@@ -62,10 +63,14 @@ def check_for_failed_jobs(energize_out_d):
             if not isfile(join(jd, "energies.csv")):
                 # this log dir doesn't have energies.csv, so it is a failed log dir
                 failed_log_dirs.append(job_id)
-                # todo: also see if there are any failed variants by checking failed_variants.txt
-                #  and keep track of jobs with failed variants but overall success
             else:
                 num_succeeded += 1
+                # this job has energies.csv, so it succeeded overall, but check for any failed variants
+                fv = []
+                if isfile(join(jd, "failed.txt")):
+                    with open(join(jd, "failed.txt"), "r") as f:
+                        fv = f.read().splitlines()
+                failed_variants += fv
 
         # if this job had zero successful log dirs, it is a completely failed job
         if num_succeeded == 0:
@@ -76,7 +81,7 @@ def check_for_failed_jobs(energize_out_d):
             success_jobs.append(job_id)
             multiple_success_jobs.append(job_id)
 
-    return failed_log_dirs, failed_jobs
+    return failed_log_dirs, failed_jobs, failed_variants
 
 
 def check_for_missing_jobs(main_d, energize_out_d, num_expected_jobs=None):
