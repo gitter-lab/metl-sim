@@ -220,7 +220,9 @@ def main():
     main_dirs += gb1_dms_runs
 
     gb1_variance = ["output/htcondor_runs/condor_energize_2021-10-21_18-15-50_gb1_variance",
-                    "output/htcondor_runs/condor_energize_2021-10-25_10-34-07_gb1_variance_suppl"]
+                    "output/htcondor_runs/condor_energize_2021-10-25_10-34-07_gb1_variance_suppl",
+                    "output/htcondor_runs/condor_energize_2021-10-26_16-23-40_gb1_variance_1_repeat"]
+
     main_dirs = gb1_variance
 
     for main_dir in main_dirs:
