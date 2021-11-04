@@ -136,7 +136,9 @@ def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycle
 
     # this branch logic is just handling the special case of the "_wt" variant (no mutations)
     if variant_has_mutations:
+        mt_start_time = time.time()
         run_mutate_step(relax_bin_fn, database_path, mutate_default_max_cycles, working_dir)
+        print("Mutate step took {:.2f}".format(time.time() - mt_start_time))
     else:
         # variant has no mutations (wild-type), so just rename structure.pdb to structure_0001.pdb
         # which is the expected structure filename for the remaining pipelie steps
@@ -144,9 +146,17 @@ def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycle
 
     # relax also needs to know whether the variant has mutations because it needs to either run relax
     # around just the mutated residues or around the whole structure
+    rx_start_time = time.time()
     run_relax_step(relax_bin_fn, database_path, relax_nstruct, relax_repeats, working_dir, variant_has_mutations)
+    print("Relax step took {:.2f}".format(time.time() - rx_start_time))
+
+    filt_start_time = time.time()
     run_filter_step(rosetta_scripts_bin_fn, database_path, working_dir)
+    print("Filter step took {:.2f}".format(time.time() - filt_start_time))
+
+    cent_start_time = time.time()
     run_centroid_step(score_jd2_bin_fn, database_path, working_dir)
+    print("Centroid step took {:.2f}".format(time.time() - cent_start_time))
 
 
 def parse_score_sc(score_sc_fn, agg_method="avg"):
@@ -341,7 +351,7 @@ def main(args):
                                                                         i + 1, len(pdbs_variants)), flush=True)
                 run_time = run_single_variant(args.rosetta_main_dir, pdb_fn, variant, rosetta_hparams, staging_dir,
                                               log_dir, args.save_wd)
-                print("Processing variant {} {} took {}".format(basename(pdb_fn), variant, run_time), flush=True)
+                print("Processing variant {} {} took {:.2f}".format(basename(pdb_fn), variant, run_time), flush=True)
 
             except (RosettaError, FileNotFoundError) as e:
                 print(e, flush=True)
@@ -374,6 +384,7 @@ def main(args):
     shutil.rmtree(join(log_dir, "staging"))
 
     if len(failed) == len(pdbs_variants):
+        # todo: allow this to be considered a failed run if X% of variants failed
         # all the variants in this run failed... consider this a failed run
         # exit with a failure code
         sys.exit(1)
