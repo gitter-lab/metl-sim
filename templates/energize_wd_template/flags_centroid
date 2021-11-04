@@ -1,4 +1,4 @@
--s structure_0001.pdb
+-s structure_0001_0001.pdb
 -in:file:centroid
 -score:weights score3
 -out:level 100
