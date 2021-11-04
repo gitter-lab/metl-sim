@@ -4,10 +4,12 @@ import argparse
 import subprocess
 import shutil
 import os
+import sys
 from os.path import isdir, join, basename, abspath
 import uuid
 import socket
 import csv
+import platform
 
 import shortuuid
 import numpy as np
@@ -114,9 +116,20 @@ def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycle
                          variant_has_mutations=True):
     # path to rosetta binaries which are used for the various steps
     # subprocess wants a full path... or "./", so let's just add abspath
-    relax_bin_fn = abspath(join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease"))
-    rosetta_scripts_bin_fn = abspath(join(rosetta_main_dir, "source/bin/rosetta_scripts.static.linuxgccrelease"))
-    score_jd2_bin_fn = abspath(join(rosetta_main_dir, "source/bin/score_jd2.static.linuxgccrelease"))
+    if platform.system() == "Linux":
+        relax_bin_fn = "relax.static.linuxgccrelease"
+        rosetta_scripts_bin_fn = "rosetta_scripts.static.linuxgccrelease"
+        score_jd2_bin_fn = "score_jd2.static.linuxgccrelease"
+    elif platform.system() == "Darwin":
+        relax_bin_fn = "relax.static.macosclangrelease"
+        rosetta_scripts_bin_fn = "rosetta_scripts.static.macosclangrelease"
+        score_jd2_bin_fn = "score_jd2.static.macosclangrelease"
+    else:
+        raise ValueError("unsupported platform: {}".format(platform.system()))
+
+    relax_bin_fn = abspath(join(rosetta_main_dir, "source", "bin", relax_bin_fn))
+    rosetta_scripts_bin_fn = abspath(join(rosetta_main_dir, "source", "bin", rosetta_scripts_bin_fn))
+    score_jd2_bin_fn = abspath(join(rosetta_main_dir, "source", "bin", score_jd2_bin_fn))
 
     # path to the rosetta database
     database_path = abspath(join(rosetta_main_dir, "database"))

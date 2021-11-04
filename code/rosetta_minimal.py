@@ -48,7 +48,8 @@ def make_executable(fn):
 
 def gen_minimal_distr(rosetta_main_dir, out_dir):
     """ generates a minimal distribution of just what is needed for rosettafy """
-    # rosettafy was designed to work with Rosetta 2020.50.61505
+    # rosettafy was originally designed to work with Rosetta 2020.50.61505
+    # new version will be using Rosetta 3.13 (2021.16.61629)
     # note the relax/scripts binary paths are symlinks, which is okay, because shutil.copyfile follows them
     # (path, executable) -- note the "executable" is ignored for directories (can't make a dir executable)
     to_copy = [("source/bin/relax.static.linuxgccrelease", True),
