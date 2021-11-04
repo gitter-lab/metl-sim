@@ -8,4 +8,4 @@ Some files in this directory need to be dynamically updated depending on the spe
 For example, [mutation_template.resfile](mutation_template.resfile) is renamed to mutation.resfile and filled in with the amino acid substitutions for the variant that is being processed.
 
 Not all Rosetta hyperparameters are defined via these files. 
-Some are passed directly into the python script [energize.py](../code/energize.py) and forwarded to Rosetta via command line arguments when the script invokes the Rosetta binaries with `subprocess.call()`.
+Some are passed directly into the python script [energize.py](../../code/energize.py) and forwarded to Rosetta via command line arguments when the script invokes the Rosetta binaries with `subprocess.call()`.

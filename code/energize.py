@@ -181,7 +181,7 @@ def parse_score_sc(score_sc_fn, agg_method="avg"):
 
 
 def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, staging_dir, output_dir, save_wd=False):
-    template_dir = "energize_wd_template"
+    template_dir = "templates/energize_wd_template"
     working_dir = "energize_wd"
 
     # if the working directory exists from a previously failed variant, remove it before starting new variant

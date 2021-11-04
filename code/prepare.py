@@ -103,7 +103,7 @@ def transfer_outputs(working_dir, lowest_energy_pdb_fn, original_pdb_fn):
 
 def main(args):
 
-    template_dir = "prepare_wd_template"
+    template_dir = "templates/prepare_wd_template"
     working_dir = "prepare_wd"
 
     # set up the working directory
