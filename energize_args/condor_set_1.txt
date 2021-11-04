@@ -1,7 +1,7 @@
 --rosetta_main_dir
 rosetta_minimal
 --pdb_dir
-prepared_pdb_files
+pdb_files/prepared_pdb_files
 --mutate_default_max_cycles
 100
 --relax_repeats

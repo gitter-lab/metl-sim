@@ -204,8 +204,8 @@ def main():
 
     target_num = 13000
     num_subs_list = [1,3,4,5,6]
-    # pdb_fn = "prepared_pdb_files/1gfl_cm.pdb"
-    pdb_fn = "prepared_pdb_files/2qmt_p.pdb"
+    # pdb_fn = "pdb_files/prepared_pdb_files/1gfl_cm.pdb"
+    pdb_fn = "pdb_files/prepared_pdb_files/2qmt_p.pdb"
     seed = 15
 
     # create a random number generator for this call

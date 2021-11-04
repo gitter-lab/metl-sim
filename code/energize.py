@@ -393,7 +393,7 @@ if __name__ == "__main__":
     parser.add_argument("--pdb_dir",
                         help="directory containing pdb files referenced in variants_fn",
                         type=str,
-                        default="prepared_pdb_files")
+                        default="pdb_files/prepared_pdb_files")
 
     # energize hyperparameters
     parser.add_argument("--mutate_default_max_cycles",
