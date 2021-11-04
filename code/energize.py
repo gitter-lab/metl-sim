@@ -355,10 +355,11 @@ def main(args):
             # add this variant to a failed_variants.txt file and continue with the other variants
             failed.append(pdb_variant)
 
-    # save a txt file with failed variants
-    with open(join(log_dir, "failed.txt"), "w") as f:
-        for fv in failed:
-            f.write("{}\n".format(fv))
+    # save a txt file with failed variants (if there are failed variants)
+    if len(failed) > 0:
+        with open(join(log_dir, "failed.txt"), "w") as f:
+            for fv in failed:
+                f.write("{}\n".format(fv))
 
     # if any variants were successful, concat the outputs into a final energies.csv
     if len(failed) < len(pdbs_variants):
@@ -371,6 +372,11 @@ def main(args):
 
     # compress outputs, delete the output staging directory, etc
     shutil.rmtree(join(log_dir, "staging"))
+
+    if len(failed) == len(pdbs_variants):
+        # all the variants in this run failed... consider this a failed run
+        # exit with a failure code
+        sys.exit(1)
 
 
 if __name__ == "__main__":
