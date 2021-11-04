@@ -124,7 +124,7 @@ if __name__ == "__main__":
                         help="the main directory of the full rosetta distribution containing the binaries and "
                              "other files that are needed for this script",
                         type=str,
-                        default="/home/sg/Desktop/rosetta/rosetta_bin_linux_2020.50.61505_bundle/main")
+                        default="/Users/sg/rosetta_bin_linux_2021.16.61629_bundle/main")
 
     parser.add_argument("--out_dir",
                         help="the output directory where to place the minimal rosetta binaries and scripts",
