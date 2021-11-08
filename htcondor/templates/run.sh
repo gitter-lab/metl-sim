@@ -24,13 +24,6 @@ export HOME=$PWD
 echo "Extracting code.tar.gz"
 tar -xf code.tar.gz --strip-components=1
 
-# download the rosetta distribution from SQUID
-# wget --recursive --no-parent http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta/
-#SQUID_DIR="squid_rosetta_2021-05-11_14-57-25"
-#wget -q http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_min_enc.tar.gz.aa
-#wget -q http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_min_enc.tar.gz.ab
-#wget -q http://proxy.chtc.wisc.edu/SQUID/sgelman2/$SQUID_DIR/rosetta_min_enc.tar.gz.ac
-
 # combine the split database tar files into a single database
 echo "Combining Rosetta split files"
 cat rosetta_min_enc.tar.gz.* > rosetta_min_enc.tar.gz
