@@ -11,7 +11,6 @@ output = output/condor_logs/rosetta_$(Cluster)_$(Process).out
 
 # rosetta provides the precompiled 64bit binaries for linux
 # has_avx is included because I think I ran into avx-related errors in the past
-# todo: update these requirements if any jobs fail, etc
 requirements = (Arch == "X86_64") && (has_avx == true) && (OpSys=="LINUX")
 
 executable = run.sh
@@ -19,9 +18,8 @@ executable = run.sh
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 
-# todo: update input files to whatever the new system will be
-# SQUID_DIR="squid_rosetta_2021-05-11_14-57-25"
-transfer_input_files = run.sh, code.tar.gz, args/$(Process).txt, energize_args.txt, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-05-11_14-57-25/rosetta_min_enc.tar.gz.aa, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-05-11_14-57-25/rosetta_min_enc.tar.gz.ab, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-05-11_14-57-25/rosetta_min_enc.tar.gz.ac, http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosettafy_env_v0.4.tar.gz
+# SQUID_DIR="squid_rosetta_2021-11-04_19-37-44"
+transfer_input_files = run.sh, code.tar.gz, args/$(Process).txt, energize_args.txt, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-04_19-37-44/rosetta_min_enc.tar.gz.aa, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-04_19-37-44/rosetta_min_enc.tar.gz.ab, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-04_19-37-44/rosetta_min_enc.tar.gz.ac, http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosettafy_env_v0.4.tar.gz
 transfer_output_files = output
 
 request_cpus = 1
