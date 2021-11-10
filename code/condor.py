@@ -7,6 +7,8 @@ import shutil
 import subprocess
 import urllib3
 
+from utils import save_argparse_args
+
 
 def get_run_dir_name(run_name="unnamed"):
     dir_name_str = "condor_energize_{}_{}"
@@ -49,18 +51,6 @@ def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False)
 
     # return the number of args files (jobs)
     return len(split_variant_lists)
-
-
-def save_argparse_args(args_dict, out_fn):
-    """ save argparse arguments out to a file """
-    with open(out_fn, "w") as f:
-        for k, v in args_dict.items():
-            # if a flag is set to false, dont include it in the argument file
-            if (not isinstance(v, bool)) or (isinstance(v, bool) and v):
-                f.write("--{}\n".format(k))
-                # if a flag is true, no need to specify the "true" value
-                if not isinstance(v, bool):
-                    f.write("{}\n".format(v))
 
 
 def fetch_repo(github_tag, github_token, out_dir):

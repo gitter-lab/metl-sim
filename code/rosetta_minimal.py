@@ -57,7 +57,9 @@ def gen_minimal_distr(rosetta_main_dir, out_dir):
                ("source/bin/score_jd2.static.linuxgccrelease", True),
                ("database", None),
                ("source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py", True),
-               ("source/src/apps/public/relax_w_allatom_cst/amino_acids.py", True)]
+               ("source/src/apps/public/relax_w_allatom_cst/amino_acids.py", True),
+               ("tools/protein_tools/scripts/clean_pdb.py", True),
+               ("tools/protein_tools/scripts/amino_acids.py", True)]
 
     # create the output directory if it doesn't already exist
     # throw an error if it does exist (want a clean start -- user should delete the dir)

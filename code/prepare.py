@@ -6,8 +6,11 @@ import stat
 from os.path import join, isdir, basename, abspath
 import shutil
 import subprocess
+import platform
 
 import pandas as pd
+
+from utils import save_argparse_args
 
 
 def prep_working_dir(template_dir, working_dir, pdb_fn, overwrite_wd=False):
@@ -37,17 +40,40 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, overwrite_wd=False):
 #     os.chmod(fn, st.st_mode | stat.S_IEXEC)
 
 
-def run_clean_pdb(rosetta_main_dir, working_dir):
+def clean_pdb_wrapper(keep_ligand, rosetta_main_dir, working_dir):
     """ run Rosetta's clean_pdb_keep_ligand.py script. assumes there is a structure.pdb file in the working_dir """
-    clean_pdb_script_fn = abspath(join(rosetta_main_dir,
-                                       "source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py"))
 
-    # make sure the clean pdb python script is executable
-    # this should be done manually or by running rosetta_distr.py
-    # make_executable(clean_pdb_script_fn)
+    if keep_ligand:
+        cleaned_fn = run_clean_pdb_keep_ligand(rosetta_main_dir, working_dir)
+    else:
+        cleaned_fn = run_clean_pdb(rosetta_main_dir, working_dir)
+
+    return cleaned_fn
+
+
+def run_clean_pdb(rosetta_main_dir, working_dir):
+    clean_pdb_script_fn = abspath(join(rosetta_main_dir, "tools/protein_tools/scripts/clean_pdb.py"))
+    clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', 'ignorechain']
 
     # run the clean pdb script
+    return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir)
+    if return_code != 0:
+        raise RuntimeError("Clean PDB did not execute successfully, return code: {}".format(return_code))
+
+    # this script saves the output file in the same directory as the input file
+    cleaned_pdb_fn = "structure_ignorechain.pdb"
+
+    # rename the cleaned pdb to structure_cleaned.pdb
+    # os.rename(join(working_dir, cleaned_pdb_fn), join(working_dir, "structure_cleaned.pdb"))
+
+    return cleaned_pdb_fn
+
+def run_clean_pdb_keep_ligand(rosetta_main_dir, working_dir):
+    clean_pdb_keep_ligand_fn = "source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py"
+    clean_pdb_script_fn = abspath(join(rosetta_main_dir, clean_pdb_keep_ligand_fn))
     clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', '-ignorechain']
+
+    # run the clean pdb script
     return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir)
     if return_code != 0:
         raise RuntimeError("Clean PDB did not execute successfully, return code: {}".format(return_code))
@@ -56,13 +82,29 @@ def run_clean_pdb(rosetta_main_dir, working_dir):
     # the output filename is just the input filename with _00.pdb appended
     cleaned_pdb_fn = "structure.pdb_00.pdb"
 
+    # rename the cleaned pdb to structure_cleaned.pdb
+    # os.rename(join(working_dir, cleaned_pdb_fn), join(working_dir, "structure_cleaned.pdb"))
+
     return cleaned_pdb_fn
 
 
 def run_relax(rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=1):
     """ run relax to prep the cleaned pdb for further use with Rosetta (as recommended by Rosetta docs) """
-    relax_bin_fn = abspath(join(rosetta_main_dir, "source/bin/relax.static.linuxgccrelease"))
-    relax_cmd = [relax_bin_fn, '-s', cleaned_pdb_fn, '-nstruct', str(nstruct), '@flags_prepare_relax']
+
+    if platform.system() == "Linux":
+        relax_bin_fn = "relax.static.linuxgccrelease"
+    elif platform.system() == "Darwin":
+        relax_bin_fn = "relax.static.macosclangrelease"
+    else:
+        raise ValueError("unsupported platform: {}".format(platform.system()))
+
+    relax_bin_fn = abspath(join(rosetta_main_dir, "source", "bin", relax_bin_fn))
+
+    # path to the rosetta database
+    database_path = abspath(join(rosetta_main_dir, "database"))
+
+    relax_cmd = [relax_bin_fn, '-database', database_path, '-s', cleaned_pdb_fn,
+                 '-nstruct', str(nstruct), '@flags_prepare_relax']
     subprocess.call(relax_cmd, cwd=working_dir)
 
 
@@ -86,12 +128,14 @@ def transfer_outputs(working_dir, lowest_energy_pdb_fn, original_pdb_fn):
     # generate the outputs containing the renamed lowest energy pdb and intermediate files
     # grab the first available output directory (increment integer to avoid overwriting a previous run)
     # assuming we won't have more than 100 runs... plus this is going to be different on condor anyway
+    # todo: this can be improved so it's not limited to 100 runs
     for i in range(1, 101):
         output_dir = "output/prepare_outputs/{}_{}".format(basename(original_pdb_fn)[:-4], i)
         if not isdir(output_dir):
             break
 
     os.makedirs(output_dir)
+    print("Output directory is: {}".format(output_dir))
 
     # copy over the lowest energy PDB and rename it to match input filename
     shutil.copyfile(lowest_energy_pdb_fn, join(output_dir, "{}_p.pdb".format(basename(original_pdb_fn)[:-4])))
@@ -110,11 +154,16 @@ def main(args):
     # this also copies over the PDB and renames it structure.pdb for consistency
     prep_working_dir(template_dir, working_dir, args.pdb_fn, overwrite_wd=True)
 
+    # save the args to the working directory (which will be saved to the output dir)
+    # todo: better to figure out the output directory here in main() and save this to output directory
+    args_dict = dict(vars(args))
+    save_argparse_args(args_dict, join(working_dir, "args.txt"))
+
     # run the clean_pdb script
-    cleaned_pdb_fn = run_clean_pdb(args.rosetta_main_dir, working_dir)
+    cleaned_pdb_fn = clean_pdb_wrapper(args.keep_ligand, args.rosetta_main_dir, working_dir)
 
     # relax with all-heavy-atom constraints
-    run_relax(args.rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=10)
+    run_relax(args.rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=args.relax_nstruct)
 
     # get the filename of the lowest scoring structure
     lowest_energy_pdb_fn = parse_scores(working_dir)
@@ -141,6 +190,16 @@ if __name__ == "__main__":
         parser.add_argument("--pdb_fn",
                             help="the PDB file to prepare",
                             type=str)
+
+        parser.add_argument("--keep_ligand",
+                            help="whether to run clean_pdb.py or clean_pdb_keep_ligand.py",
+                            action="store_true",
+                            default=False)
+
+        parser.add_argument("--relax_nstruct",
+                            help="number of structures (restarts) in the relax step",
+                            type=int,
+                            default=1)
 
         main(parser.parse_args())
 
