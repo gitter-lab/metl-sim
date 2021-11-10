@@ -1,2 +1,0 @@
-2qmt_p.pdb A23F
-2qmt_p.pdb G37V,L6E
