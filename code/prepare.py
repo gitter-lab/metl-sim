@@ -199,7 +199,7 @@ if __name__ == "__main__":
         parser.add_argument("--relax_nstruct",
                             help="number of structures (restarts) in the relax step",
                             type=int,
-                            default=1)
+                            default=10)
 
         main(parser.parse_args())
 
