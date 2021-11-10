@@ -5,6 +5,5 @@
 -ex1
 -ex2
 -use_input_sc
--no_his_his_pairE
--no_optH false
 -flip_HNQ
+-no_optH false
