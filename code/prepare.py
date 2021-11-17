@@ -124,18 +124,8 @@ def parse_scores(working_dir):
     return join(working_dir, lowest_energy_df.iloc[0]["description"] + ".pdb")
 
 
-def transfer_outputs(working_dir, lowest_energy_pdb_fn, original_pdb_fn):
+def transfer_outputs(working_dir, output_dir, original_pdb_fn, lowest_energy_pdb_fn):
     # generate the outputs containing the renamed lowest energy pdb and intermediate files
-    # grab the first available output directory (increment integer to avoid overwriting a previous run)
-    # assuming we won't have more than 100 runs... plus this is going to be different on condor anyway
-    # todo: this can be improved so it's not limited to 100 runs
-    for i in range(1, 101):
-        output_dir = "output/prepare_outputs/{}_{}".format(basename(original_pdb_fn)[:-4], i)
-        if not isdir(output_dir):
-            break
-
-    os.makedirs(output_dir)
-    print("Output directory is: {}".format(output_dir))
 
     # copy over the lowest energy PDB and rename it to match input filename
     shutil.copyfile(lowest_energy_pdb_fn, join(output_dir, "{}_p.pdb".format(basename(original_pdb_fn)[:-4])))
@@ -145,19 +135,36 @@ def transfer_outputs(working_dir, lowest_energy_pdb_fn, original_pdb_fn):
     shutil.copytree(working_dir, join(output_dir, "intermediate_files"))
 
 
+def get_output_dir(original_pdb_fn):
+    # grab the first available output directory (increment integer to avoid overwriting a previous run)
+    # assuming we won't have more than 100 runs... plus this is going to be different on condor anyway
+    # todo: this can be improved so it can go past 100 runs (but we should never need to run this that many times...)
+    for i in range(1, 101):
+        output_dir = "output/prepare_outputs/{}_{}".format(basename(original_pdb_fn)[:-4], i)
+        if not isdir(output_dir):
+            break
+
+    return output_dir
+
+
 def main(args):
+
+    output_dir = get_output_dir(args.pdb_fn)
+    os.makedirs(output_dir)
+    print("output directory is: {}".format(output_dir))
 
     template_dir = "templates/prepare_wd_template"
     working_dir = "prepare_wd"
 
     # set up the working directory
     # this also copies over the PDB and renames it structure.pdb for consistency
+    # todo: working directory should go directly into the output directory rather than being
+    #  in the root directory and then being transferred over in transfer_outputs()
     prep_working_dir(template_dir, working_dir, args.pdb_fn, overwrite_wd=True)
 
     # save the args to the working directory (which will be saved to the output dir)
-    # todo: better to figure out the output directory here in main() and save this to output directory
     args_dict = dict(vars(args))
-    save_argparse_args(args_dict, join(working_dir, "args.txt"))
+    save_argparse_args(args_dict, join(output_dir, "args.txt"))
 
     # run the clean_pdb script
     cleaned_pdb_fn = clean_pdb_wrapper(args.keep_ligand, args.rosetta_main_dir, working_dir)
@@ -169,7 +176,7 @@ def main(args):
     lowest_energy_pdb_fn = parse_scores(working_dir)
 
     # generate the outputs containing the renamed lowest energy pdb and intermediate files
-    transfer_outputs(working_dir, lowest_energy_pdb_fn, args.pdb_fn)
+    transfer_outputs(working_dir, output_dir, args.pdb_fn, lowest_energy_pdb_fn)
 
     # delete the working directory
     shutil.rmtree(working_dir)
