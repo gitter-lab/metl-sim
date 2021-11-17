@@ -70,10 +70,6 @@ def run_mutate_step(relax_bin_fn, database_path, mutate_default_max_cycles, work
     if return_code != 0:
         raise RosettaError("Mutate step did not execute successfully. Return code: {}".format(return_code))
 
-    # rename the resulting score.sc to keep the score files from the mutate and relax steps separate
-    # todo: should be a way to do this with rosetta flag rather than renaming afterward
-    # os.rename(join(working_dir, "score.sc"), join(working_dir, "mutate.sc"))
-
 
 def run_relax_step(relax_bin_fn, database_path, relax_nstruct, relax_repeats, working_dir, variant_has_mutations=True):
     # todo: should this use the relax binary or rosetta_scripts binary? both seem to work the same
@@ -114,6 +110,10 @@ def run_centroid_step(score_jd2_bin_fn, database_path, working_dir):
 
 def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycles, relax_nstruct, relax_repeats,
                          variant_has_mutations=True):
+
+    # keep track of how long it takes to run Rosetta
+    all_start = time.time()
+
     # path to rosetta binaries which are used for the various steps
     # subprocess wants a full path... or "./", so let's just add abspath
     if platform.system() == "Linux":
@@ -138,7 +138,8 @@ def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycle
     if variant_has_mutations:
         mt_start_time = time.time()
         run_mutate_step(relax_bin_fn, database_path, mutate_default_max_cycles, working_dir)
-        print("Mutate step took {:.2f}".format(time.time() - mt_start_time))
+        mt_run_time = time.time() - mt_start_time
+        print("Mutate step took {:.2f}".format(mt_run_time))
     else:
         # variant has no mutations (wild-type), so just rename structure.pdb to structure_0001.pdb
         # which is the expected structure filename for the remaining pipelie steps
@@ -148,15 +149,29 @@ def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycle
     # around just the mutated residues or around the whole structure
     rx_start_time = time.time()
     run_relax_step(relax_bin_fn, database_path, relax_nstruct, relax_repeats, working_dir, variant_has_mutations)
-    print("Relax step took {:.2f}".format(time.time() - rx_start_time))
+    rx_run_time = time.time() - rx_start_time
+    print("Relax step took {:.2f}".format(rx_run_time))
 
     filt_start_time = time.time()
     run_filter_step(rosetta_scripts_bin_fn, database_path, working_dir)
-    print("Filter step took {:.2f}".format(time.time() - filt_start_time))
+    filt_run_time = time.time() - filt_start_time
+    print("Filter step took {:.2f}".format(filt_run_time))
 
     cent_start_time = time.time()
     run_centroid_step(score_jd2_bin_fn, database_path, working_dir)
-    print("Centroid step took {:.2f}".format(time.time() - cent_start_time))
+    cent_run_time = time.time() - cent_start_time
+    print("Centroid step took {:.2f}".format(cent_run_time))
+
+    # keep track of how long it takes to run all steps
+    all_run_time = time.time() - all_start
+
+    run_times = {"mutate": mt_run_time,
+                 "relax": rx_run_time,
+                 "filter": filt_run_time,
+                 "centroid": cent_run_time,
+                 "all": all_run_time}
+
+    return run_times
 
 
 def parse_score_sc(score_sc_fn, agg_method="avg"):
@@ -191,6 +206,9 @@ def parse_score_sc(score_sc_fn, agg_method="avg"):
 
 
 def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, staging_dir, output_dir, save_wd=False):
+    # grab the start time for this variant
+    start_time = time.time()
+
     template_dir = "templates/energize_wd_template"
     working_dir = "energize_wd"
 
@@ -203,12 +221,12 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, stagi
                      rosetta_hparams["relax_distance"], rosetta_hparams["relax_repeats"], overwrite_wd=True)
 
     # run the mutate and relax steps
-    start = time.time()
     variant_has_mutations = False if variant == "_wt" else True
-    run_rosetta_pipeline(rosetta_main_dir, working_dir,
-                         rosetta_hparams["mutate_default_max_cycles"], rosetta_hparams["relax_nstruct"],
-                         rosetta_hparams["relax_repeats"], variant_has_mutations)
-    run_time = time.time() - start
+    run_times = run_rosetta_pipeline(rosetta_main_dir, working_dir,
+                                     rosetta_hparams["mutate_default_max_cycles"],
+                                     rosetta_hparams["relax_nstruct"],
+                                     rosetta_hparams["relax_repeats"],
+                                     variant_has_mutations)
 
     # copy over or parse any files we want to keep from the working directory to the output directory
     # the stdout and stderr outputs from rosetta are in the working directory under mutate.out and relax.out
@@ -230,8 +248,13 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, stagi
     # append info about this variant
     full_df.insert(0, "pdb_fn", [basename(pdb_fn)])
     full_df.insert(1, "variant", [variant])
-    full_df.insert(2, "start_time", [time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(start))])
-    full_df.insert(3, "run_time", [int(run_time)])
+    full_df.insert(2, "start_time", [time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(start_time))])
+    full_df.insert(3, "run_time", [int(run_times["all"])])
+    full_df.insert(4, "mutate_run_time", [int(run_times["mutate"])])
+    full_df.insert(5, "relax_run_time", [int(run_times["relax"])])
+    full_df.insert(6, "filter_run_time", [int(run_times["filter"])])
+    full_df.insert(7, "centroid_run_time", [int(run_times["centroid"])])
+
     # note: it's not the best practice to have filenames with periods and commas
     #   could pass in the loop ID for this single variant and use that to save the file
     full_df.to_csv(join(staging_dir, "{}_{}_energies.csv".format(basename(pdb_fn), variant)), index=False)
@@ -244,7 +267,7 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, stagi
     # clean up the working dir in preparation for next variant
     shutil.rmtree(working_dir)
 
-    return run_time
+    return run_times["all"]
 
 
 def get_log_dir_name(args, job_uuid, start_time):
