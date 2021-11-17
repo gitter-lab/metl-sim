@@ -406,10 +406,8 @@ def main(args):
     # compress outputs, delete the output staging directory, etc
     shutil.rmtree(join(log_dir, "staging"))
 
-    if len(failed) == len(pdbs_variants):
-        # todo: allow this to be considered a failed run if X% of variants failed
-        # all the variants in this run failed... consider this a failed run
-        # exit with a failure code
+    if (len(failed) / len(pdbs_variants)) > args.allowable_failure_fraction:
+        # too many variants failed in this job. exit with failure code.
         sys.exit(1)
 
 
@@ -434,6 +432,12 @@ if __name__ == "__main__":
                         help="directory containing pdb files referenced in variants_fn",
                         type=str,
                         default="pdb_files/prepared_pdb_files")
+
+    parser.add_argument("--allowable_failure_fraction",
+                        help="fraction of variants that can fail so that this job is still considered successful",
+                        type=float,
+                        default=0.25)
+
 
     # energize hyperparameters
     parser.add_argument("--mutate_default_max_cycles",
@@ -477,5 +481,6 @@ if __name__ == "__main__":
                         help="the github commit id corresponding to this version of the code",
                         type=str,
                         default="no_commit_id")
+
 
     main(parser.parse_args())
