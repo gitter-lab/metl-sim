@@ -7,6 +7,7 @@ from os.path import join, isdir, basename, abspath
 import shutil
 import subprocess
 import platform
+import time
 
 import pandas as pd
 
@@ -26,7 +27,7 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, overwrite_wd=False):
     # copy over the full template directory as there are no files that need to be modified if it exists
     try:
         shutil.copytree(template_dir, working_dir)
-    except FileExistsError as e:
+    except FileExistsError:
         print("The working directory '{}' already exists. Please delete this directory or specify "
               "a different working directory.".format(working_dir))
         raise
@@ -56,7 +57,9 @@ def run_clean_pdb(rosetta_main_dir, working_dir):
     clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', 'ignorechain']
 
     # run the clean pdb script
-    return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir)
+    clean_out_fn = join(working_dir, "clean_pdb.out")
+    with open(clean_out_fn, "w") as f:
+        return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir, stdout=f, stderr=f)
     if return_code != 0:
         raise RuntimeError("Clean PDB did not execute successfully, return code: {}".format(return_code))
 
@@ -68,13 +71,16 @@ def run_clean_pdb(rosetta_main_dir, working_dir):
 
     return cleaned_pdb_fn
 
+
 def run_clean_pdb_keep_ligand(rosetta_main_dir, working_dir):
     clean_pdb_keep_ligand_fn = "source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py"
     clean_pdb_script_fn = abspath(join(rosetta_main_dir, clean_pdb_keep_ligand_fn))
     clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', '-ignorechain']
 
     # run the clean pdb script
-    return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir)
+    clean_out_fn = join(working_dir, "clean_pdb.out")
+    with open(clean_out_fn, "w") as f:
+        return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir, stdout=f, stderr=f)
     if return_code != 0:
         raise RuntimeError("Clean PDB did not execute successfully, return code: {}".format(return_code))
 
@@ -105,7 +111,9 @@ def run_relax(rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=1):
 
     relax_cmd = [relax_bin_fn, '-database', database_path, '-s', cleaned_pdb_fn,
                  '-nstruct', str(nstruct), '@flags_prepare_relax']
-    subprocess.call(relax_cmd, cwd=working_dir)
+    relax_out_fn = join(working_dir, "relax.out")
+    with open(relax_out_fn, "w") as f:
+        subprocess.call(relax_cmd, cwd=working_dir, stdout=f, stderr=f)
 
 
 def parse_scores(working_dir):
@@ -124,42 +132,25 @@ def parse_scores(working_dir):
     return join(working_dir, lowest_energy_df.iloc[0]["description"] + ".pdb")
 
 
-def transfer_outputs(working_dir, output_dir, original_pdb_fn, lowest_energy_pdb_fn):
-    # generate the outputs containing the renamed lowest energy pdb and intermediate files
+def get_output_dir(original_pdb_fn, out_dir_base):
+    # time zone is UTC (coordinated universal time)
+    output_dir = "{}_{}".format(basename(original_pdb_fn)[:-4],
+                                time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime(time.time())))
 
-    # copy over the lowest energy PDB and rename it to match input filename
-    shutil.copyfile(lowest_energy_pdb_fn, join(output_dir, "{}_p.pdb".format(basename(original_pdb_fn)[:-4])))
-
-    # copy over other intermediate files (found it's just easier to copy over the whole working directory)
-    # these can be compressed or deleted if filesize is a concern
-    shutil.copytree(working_dir, join(output_dir, "intermediate_files"))
-
-
-def get_output_dir(original_pdb_fn):
-    # grab the first available output directory (increment integer to avoid overwriting a previous run)
-    # assuming we won't have more than 100 runs... plus this is going to be different on condor anyway
-    # todo: this can be improved so it can go past 100 runs (but we should never need to run this that many times...)
-    for i in range(1, 101):
-        output_dir = "output/prepare_outputs/{}_{}".format(basename(original_pdb_fn)[:-4], i)
-        if not isdir(output_dir):
-            break
-
-    return output_dir
+    return join(out_dir_base, output_dir)
 
 
 def main(args):
 
-    output_dir = get_output_dir(args.pdb_fn)
+    output_dir = get_output_dir(args.pdb_fn, args.out_dir_base)
     os.makedirs(output_dir)
     print("output directory is: {}".format(output_dir))
 
     template_dir = "templates/prepare_wd_template"
-    working_dir = "prepare_wd"
+    working_dir = join(output_dir, "working_dir")
 
     # set up the working directory
     # this also copies over the PDB and renames it structure.pdb for consistency
-    # todo: working directory should go directly into the output directory rather than being
-    #  in the root directory and then being transferred over in transfer_outputs()
     prep_working_dir(template_dir, working_dir, args.pdb_fn, overwrite_wd=True)
 
     # save the args to the working directory (which will be saved to the output dir)
@@ -175,38 +166,39 @@ def main(args):
     # get the filename of the lowest scoring structure
     lowest_energy_pdb_fn = parse_scores(working_dir)
 
-    # generate the outputs containing the renamed lowest energy pdb and intermediate files
-    transfer_outputs(working_dir, output_dir, args.pdb_fn, lowest_energy_pdb_fn)
-
-    # delete the working directory
-    shutil.rmtree(working_dir)
+    # copy over the lowest energy PDB and rename it to match input filename
+    shutil.copyfile(lowest_energy_pdb_fn, join(output_dir, "{}_p.pdb".format(basename(args.pdb_fn)[:-4])))
 
 
 if __name__ == "__main__":
-    if __name__ == "__main__":
-        parser = argparse.ArgumentParser(
-            description=__doc__,
-            formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
 
-        parser.add_argument("--rosetta_main_dir",
-                            help="The main directory of the rosetta distribution containing the binaries and "
-                                 "other files that are needed for this script (does not have to be full distribution)",
-                            type=str,
-                            default="rosetta_minimal")
+    parser.add_argument("--rosetta_main_dir",
+                        help="The main directory of the rosetta distribution containing the binaries and "
+                             "other files that are needed for this script (does not have to be full distribution)",
+                        type=str,
+                        default="rosetta_minimal")
 
-        parser.add_argument("--pdb_fn",
-                            help="the PDB file to prepare",
-                            type=str)
+    parser.add_argument("--pdb_fn",
+                        help="the PDB file to prepare",
+                        type=str)
 
-        parser.add_argument("--keep_ligand",
-                            help="whether to run clean_pdb.py or clean_pdb_keep_ligand.py",
-                            action="store_true",
-                            default=False)
+    parser.add_argument("--keep_ligand",
+                        help="whether to run clean_pdb.py or clean_pdb_keep_ligand.py",
+                        action="store_true",
+                        default=False)
 
-        parser.add_argument("--relax_nstruct",
-                            help="number of structures (restarts) in the relax step",
-                            type=int,
-                            default=10)
+    parser.add_argument("--relax_nstruct",
+                        help="number of structures (restarts) in the relax step",
+                        type=int,
+                        default=10)
 
-        main(parser.parse_args())
+    parser.add_argument("--out_dir_base",
+                        help="base output directory",
+                        type=str,
+                        default="output/prepare_outputs")
+
+    main(parser.parse_args())
 
