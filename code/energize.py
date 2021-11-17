@@ -210,6 +210,7 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, stagi
     start_time = time.time()
 
     template_dir = "templates/energize_wd_template"
+    # todo: use a variant-specific working directory in the output directory (safer)
     working_dir = "energize_wd"
 
     # if the working directory exists from a previously failed variant, remove it before starting new variant
