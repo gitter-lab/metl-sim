@@ -139,7 +139,7 @@ def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycle
         mt_start_time = time.time()
         run_mutate_step(relax_bin_fn, database_path, mutate_default_max_cycles, working_dir)
         mt_run_time = time.time() - mt_start_time
-        print("Mutate step took {:.2f}".format(mt_run_time))
+        # print("Mutate step took {:.2f}".format(mt_run_time))
     else:
         # variant has no mutations (wild-type), so just rename structure.pdb to structure_0001.pdb
         # which is the expected structure filename for the remaining pipelie steps
@@ -150,17 +150,17 @@ def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycle
     rx_start_time = time.time()
     run_relax_step(relax_bin_fn, database_path, relax_nstruct, relax_repeats, working_dir, variant_has_mutations)
     rx_run_time = time.time() - rx_start_time
-    print("Relax step took {:.2f}".format(rx_run_time))
+    # print("Relax step took {:.2f}".format(rx_run_time))
 
     filt_start_time = time.time()
     run_filter_step(rosetta_scripts_bin_fn, database_path, working_dir)
     filt_run_time = time.time() - filt_start_time
-    print("Filter step took {:.2f}".format(filt_run_time))
+    # print("Filter step took {:.2f}".format(filt_run_time))
 
     cent_start_time = time.time()
     run_centroid_step(score_jd2_bin_fn, database_path, working_dir)
     cent_run_time = time.time() - cent_start_time
-    print("Centroid step took {:.2f}".format(cent_run_time))
+    # print("Centroid step took {:.2f}".format(cent_run_time))
 
     # keep track of how long it takes to run all steps
     all_run_time = time.time() - all_start
