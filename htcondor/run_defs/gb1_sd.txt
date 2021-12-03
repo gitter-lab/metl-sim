@@ -8,4 +8,4 @@ variant_lists/2qmt_p_all_NS-2.txt
 --variants_per_job
 100
 --github_tag
-v0.7
+v0.7.1
