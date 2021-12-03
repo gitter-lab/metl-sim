@@ -1,9 +1,12 @@
 """ generate variants from pdb files """
+import argparse
 import itertools
 import math
 import time
 import os
-from os.path import join, basename
+from os.path import join, basename, isfile
+from collections import Counter
+import random
 
 from Bio.SeqIO.PdbIO import AtomIterator
 from Bio.PDB import PDBParser
@@ -120,38 +123,29 @@ def distribute_into_buckets(n, num_buckets, bucket_sizes):
     return buckets
 
 
-def single_pdb_local_variants(pdb_fn, target_num, num_subs_list, chars, rng):
-    """ generate local variants for a single PDB file.
-        given the target number of variants, and the max number of substitutions,
-        this function tries to generate an equal number of variants for each possible number of substitutions """
-
-    # for multiple pdb files, there are multiple ways to determine the number of variants per pdb file
-    # we can specify a fixed value for number of variants per PDB or we can specify a target total number of
-    # variants and divide the total equally among the PDB files
-    # records = list(SeqIO.parse(pdb_fn, "pdb-atom"))
+def get_seq_from_pdb(pdb_fn):
     # do it the hacky way that avoids parsing the PDB file header which may not be present
     structure = PDBParser().get_structure(None, pdb_fn)
     records = [record for record in AtomIterator(None, structure)]
 
-    # all our FASTAs should have single records only
     if len(records) > 1:
-        print("err: pdb file has more than one record: {}".format(pdb_fn))
-        return
+        # all our FASTAs should have single records only
+        raise ValueError("pdb file has more than one record: {}".format(pdb_fn))
 
     # the base sequence
-    seq = records[0].seq
+    seq = str(records[0].seq)
+
+    return seq
+
+
+def single_pdb_local_variants(seq, target_num, num_subs_list, chars, seq_idxs, rng):
+    """ generate local variants for a single PDB file.
+        given the target number of variants, and the max number of substitutions,
+        this function tries to generate an equal number of variants for each possible number of substitutions """
 
     # print out some info
-    print("parsing {}".format(pdb_fn))
     print("aa sequence: {}".format(seq))
     print("aa seq len: {}".format(len(seq)))
-
-    # does the base sequence start with methionine?
-    if seq[0] == "M":
-        # valid mutation range excludes the starting methionine
-        seq_idxs = np.arange(1, len(seq))
-    else:
-        seq_idxs = np.arange(len(seq))
 
     # want to distribute number of target seqs evenly across range(max_subs)
     # single mutants probably not have enough possible variants
@@ -182,6 +176,52 @@ def single_pdb_local_variants(pdb_fn, target_num, num_subs_list, chars, rng):
     return variants
 
 
+def get_subvariants(variant, num_subs):
+    # num_subs must be less than number of substitutions in the given variant
+    if num_subs >= len(variant.split(",")):
+        raise ValueError("num_subs must be less than the number of substitutions in the given variant ({})".format(
+            len(variant.split(","))))
+
+    return [",".join(muts) for muts in list(itertools.combinations(variant.split(","), num_subs))]
+
+
+def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng):
+    # max_num_subs determines the maximum number of substitutions for the main variants
+    # min_num_subs determines the minimum number of substitutions for subvariants
+    #  so for example, if min_num_subs is 2, then this function won't generate subvariants with 1 substitution
+    # target_num is the number of variants to generate (approximate)
+
+    # using a set and a list to maintain the order
+    # this is slower and uses 2x the memory, but the final variant list will be ordered
+    variants_set = set()
+    variants_list = []
+
+    while len(variants_list) < target_num:
+        # generate a variant with max_num_subs substitutions
+        main_v = gen_sample(seq, num_mutants=1, num_subs=max_num_subs, chars=chars, seq_idxs=seq_idxs, rng=rng)[0]
+
+        # if the variant has already been generated, continue to next one
+        if main_v in variants_set:
+            continue
+
+        # now generate all subvariants for this variant
+        # generating subvariants for all number of substitutions down to single variants
+        sv = []
+        for i in reversed(range(min_num_subs, max_num_subs)):
+            sv += get_subvariants(main_v, i)
+
+        # now add this variant and all subvariants to the main list (as long as they are not already there)
+        # we know the main variant is not already there because we check above before generating subvariants
+        variants_set.add(main_v)
+        variants_list.append(main_v)
+        for v in sv:
+            if v not in variants_set:
+                variants_set.add(v)
+                variants_list.append(v)
+
+    return variants_list
+
+
 def human_format(num):
     """https://stackoverflow.com/questions/579310/formatting-long-numbers-as-strings-in-python"""
     num = float('{:.3g}'.format(num))
@@ -192,18 +232,23 @@ def human_format(num):
     return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 
-def main():
+def get_seq_idxs(seq):
+    """ which sequence indices to mutate """
+    if seq[0] == "M":
+        # valid mutation range excludes the starting methionine
+        seq_idxs = np.arange(1, len(seq))
+    else:
+        seq_idxs = np.arange(len(seq))
+    return seq_idxs
 
-    # todo: convert this to an argparse script so it can be called from the command line easily
-    # todo: figure out what is going on with that distribute_into_buckets function
-    # todo: generally figure out if this is coded optimally
 
+def gen_random_main():
     # the possible amino acid characters
     # not using stop codon
     chars = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
 
     target_num = 13000
-    num_subs_list = [1,3,4,5,6]
+    num_subs_list = [1, 3, 4, 5, 6]
     # pdb_fn = "pdb_files/prepared_pdb_files/1gfl_cm.pdb"
     pdb_fn = "pdb_files/prepared_pdb_files/2qmt_p.pdb"
     seed = 15
@@ -211,10 +256,12 @@ def main():
     # create a random number generator for this call
     rng = np.random.default_rng(seed=seed)
 
-    variants = single_pdb_local_variants(pdb_fn, target_num, num_subs_list, chars, rng)
+    seq = get_seq_from_pdb(pdb_fn)
+    seq_idxs = get_seq_idxs(seq)
+    variants = single_pdb_local_variants(pdb_fn, target_num, num_subs_list, chars, seq_idxs, rng)
 
     # multiply number of variants for variance testing
-    num_replicates = 50
+    num_replicates = 1
     variants *= num_replicates
 
     out_dir = "variant_lists"
@@ -224,7 +271,7 @@ def main():
                                                       human_format(target_num), ",".join(map(str, num_subs_list)), seed)
     else:
         out_fn = "{}_{}_NV-{}_NR-{}_NS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4], time.strftime("%Y-%m-%d_%H-%M-%S"),
-                                                      human_format(target_num), num_replicates,
+                                                            human_format(target_num), num_replicates,
                                                             ",".join(map(str, num_subs_list)), seed)
 
     with open(join(out_dir, out_fn), "w") as f:
@@ -232,5 +279,95 @@ def main():
             f.write("{} {}\n".format(basename(pdb_fn), v))
 
 
+def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs, min_num_subs, seed, out_dir):
+
+    # check if the output file already exists
+    out_fn = "subvariants_{}_TN_{}_MAXS-{}_MINS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
+                                                                    human_format(target_num),
+                                                                    max_num_subs,
+                                                                    min_num_subs,
+                                                                    seed)
+    if isfile(out_fn):
+        raise FileExistsError("Output file already exists, please delete it and run this script again")
+
+    # create a random number generator for this call
+    rng = np.random.default_rng(seed=seed)
+
+    # generate the variants
+    variants = gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng)
+
+    # print out info about the generated variants
+    print("Generated {} variants".format(len(variants)))
+    count = Counter([len(v.split(",")) for v in variants])
+    for k, v in count.items():
+        print("{}-mutants: {}".format(k, v))
+
+    # save output to file
+    with open(join(out_dir, out_fn), "w") as f:
+        for v in variants:
+            f.write("{} {}\n".format(basename(pdb_fn), v))
+
+
+def main(args):
+
+    # todo: convert this to an argparse script so it can be called from the command line easily
+
+    chars = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
+
+    seq = get_seq_from_pdb(args.pdb_fn)
+    seq_idxs = get_seq_idxs(seq)
+
+    # grab a random, random seed
+    seed = args.seed
+    if seed is None:
+        seed = random.randint(100000000, 999999999)
+
+    if args.method == "subvariants":
+        gen_subvariants_main(args.pdb_fn, seq, seq_idxs, chars,
+                             args.target_num, args.max_num_subs, args.min_num_subs, seed, args.out_dir)
+
+    elif args.method == "random":
+        gen_random_main()
+
+
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        fromfile_prefix_chars="@")
+
+    parser.add_argument("method",
+                        help="what method to use to generate variants",
+                        type=str,
+                        choices=["random", "subvariants"])
+
+    parser.add_argument("--pdb_fn",
+                        help="the PDB file from which to generate variants",
+                        type=str)
+
+    parser.add_argument("--target_num",
+                        type=int,
+                        help="target number of variants")
+
+    parser.add_argument("--max_num_subs",
+                        type=int,
+                        help="for subvariants method, the maximum number of substitutions for a variant",
+                        default=5)
+
+    parser.add_argument("--min_num_subs",
+                        type=int,
+                        help="for subvariants method, the minimum number of substitutions for a variant",
+                        default=1)
+
+    parser.add_argument("--seed",
+                        type=int,
+                        help="random seed, None for a random random seed",
+                        default=None)
+
+    parser.add_argument("--out_dir",
+                        type=str,
+                        help="output directory for variant lists",
+                        default="variant_lists")
+
+
+    main(parser.parse_args())
