@@ -238,6 +238,8 @@ def human_format(num):
 
 def get_seq_idxs(seq):
     """ which sequence indices to mutate """
+    return np.arange(len(seq))
+    # todo: figure out whether to ignore starting methionine (for now, include it)
     if seq[0] == "M":
         # valid mutation range excludes the starting methionine
         seq_idxs = np.arange(1, len(seq))
@@ -304,7 +306,6 @@ def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs,
     if isfile(out_fn):
         raise FileExistsError("Output file already exists: {}".format(out_fn))
     print("Output file will be {}".format(out_fn))
-
 
     # create a random number generator for this call
     rng = np.random.default_rng(seed=seed)
