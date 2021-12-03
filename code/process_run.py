@@ -66,19 +66,26 @@ def runtimes_and_energies(energize_out_dir, out_dir):
     job_info.to_csv(join(out_dir, "jobs_df.csv"), index=False)
     hparams.to_csv(join(out_dir, "hparams_df.csv"), index=False)
 
-    fig, ax = plt.subplots(1)
-    sns.histplot(data=energies, x="run_time", ax=ax, bins=30)
-    ax.set(title="Runtimes per variant (mean={:.2f})".format(energies["run_time"].mean()),
-           xlabel="Runtime (seconds)", ylabel="Num jobs")
-    fig.tight_layout()
-    fig.savefig(join(out_dir, "runtimes.png"))
-    plt.close(fig)
+    runtime_vars = ["run_time", "mutate_run_time", "relax_run_time", "filter_run_time", "centroid_run_time"]
+    for runtime_var in runtime_vars:
+        if runtime_var == "run_time":
+            step_name = "total"
+        else:
+            step_name = runtime_var.split("_")[0]
+
+        fig, ax = plt.subplots(1)
+        sns.histplot(data=energies, x=runtime_var, ax=ax, bins=30)
+        ax.set(title="{} runtimes per variant (mean={:.2f})".format(step_name.title(), energies[runtime_var].mean()),
+               xlabel="Runtime (seconds)", ylabel="Num jobs")
+        fig.tight_layout()
+        fig.savefig(join(out_dir, "run_time_{}.png".format(step_name)))
+        plt.close(fig)
 
     # runtimes by number of mutations?
     # print("Avg runtime: {:.2f} seconds".format(energies["run_time"].mean()))
 
     # energies
-    axes = energies.hist(bins=60, figsize=(20, 40), layout=(16, 4))
+    axes = energies.hist(bins=60, figsize=(20, 40), layout=(17, 4))
     fig = axes[0][0].get_figure()
     for i in range(len(energies.columns) - 4):
         ax = axes.flatten()[i]
@@ -199,29 +206,32 @@ def main():
     # stats, database, cleanup
     mode = "stats"
 
-    # GB1 runs
     main_dirs = []
 
-    gb1_runs = ["output/htcondor_runs/condor_energize_2021-03-31_15-29-09_gb1_ut3_1mv",
-                "output/htcondor_runs/condor_energize_2021-04-15_13-46-55_gb1_s45_2mv",
-                "output/htcondor_runs/condor_energize_2021-05-14_12-24-59_gb1_s23_4mv"]
-    main_dirs += gb1_runs
+    # # GB1 runs
+    # gb1_runs = ["output/htcondor_runs/condor_energize_2021-03-31_15-29-09_gb1_ut3_1mv",
+    #             "output/htcondor_runs/condor_energize_2021-04-15_13-46-55_gb1_s45_2mv",
+    #             "output/htcondor_runs/condor_energize_2021-05-14_12-24-59_gb1_s23_4mv"]
+    # main_dirs += gb1_runs
+    #
+    # # avGFP runs
+    # avgfp_runs = ["output/htcondor_runs/condor_energize_2021-05-26_15-03-47_avgfp_s12_200kv",
+    #               "output/htcondor_runs/condor_energize_2021-06-09_16-43-13_avgfp_s12_200kv_c",
+    #               "output/htcondor_runs/condor_energize_2021-06-09_19-08-35_avgfp_s23_3mv",
+    #               "output/htcondor_runs/condor_energize_2021-06-24_11-19-48_avgfp_s23_3mv_c",
+    #               "output/htcondor_runs/condor_energize_2021-06-25_16-46-01_avgfp_s45_3mv"]
+    # main_dirs += avgfp_runs
+    #
+    # gb1_dms_runs = ["output/htcondor_runs/condor_energize_2021-09-30_15-12-57_gb1_dms",
+    #                 "output/htcondor_runs/condor_energize_2021-10-01_12-04-04_gb1_dms_c"]
+    # main_dirs += gb1_dms_runs
+    #
+    # gb1_variance = ["output/htcondor_runs/condor_energize_2021-10-21_18-15-50_gb1_variance",
+    #                 "output/htcondor_runs/condor_energize_2021-10-25_10-34-07_gb1_variance_suppl",
+    #                 "output/htcondor_runs/condor_energize_2021-10-26_16-23-40_gb1_variance_1_repeat"]
 
-    # avGFP runs
-    avgfp_runs = ["output/htcondor_runs/condor_energize_2021-05-26_15-03-47_avgfp_s12_200kv",
-                  "output/htcondor_runs/condor_energize_2021-06-09_16-43-13_avgfp_s12_200kv_c",
-                  "output/htcondor_runs/condor_energize_2021-06-09_19-08-35_avgfp_s23_3mv",
-                  "output/htcondor_runs/condor_energize_2021-06-24_11-19-48_avgfp_s23_3mv_c",
-                  "output/htcondor_runs/condor_energize_2021-06-25_16-46-01_avgfp_s45_3mv"]
-    main_dirs += avgfp_runs
-
-    gb1_dms_runs = ["output/htcondor_runs/condor_energize_2021-09-30_15-12-57_gb1_dms",
-                    "output/htcondor_runs/condor_energize_2021-10-01_12-04-04_gb1_dms_c"]
-    main_dirs += gb1_dms_runs
-
-    gb1_variance = ["output/htcondor_runs/condor_energize_2021-10-21_18-15-50_gb1_variance",
-                    "output/htcondor_runs/condor_energize_2021-10-25_10-34-07_gb1_variance_suppl",
-                    "output/htcondor_runs/condor_energize_2021-10-26_16-23-40_gb1_variance_1_repeat"]
+    gb1_variance = ["output/htcondor_runs/condor_energize_2021-11-17_16-54-34_gb1_variance",
+                    "output/htcondor_runs/condor_energize_2021-11-17_16-54-44_gb1_variance_1_repeat"]
 
     main_dirs = gb1_variance
 
