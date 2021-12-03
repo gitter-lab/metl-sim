@@ -23,9 +23,12 @@ def chunks(lst, n):
 
 def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False):
     """generate arguments files from the master variant list"""
+
     # load the master list of variants
-    with open(master_variant_fn, "r") as f:
-        pdbs_variants = f.read().splitlines()
+    pdbs_variants = []
+    for mv_fn in master_variant_fn:
+        with open(mv_fn, "r") as f:
+            pdbs_variants += f.read().splitlines()
 
     # split the master variant list into separate args files
     split_variant_lists = list(chunks(pdbs_variants, variants_per_job))
@@ -128,7 +131,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--master_variant_fn",
                         type=str,
-                        help="file containing all variants for this run")
+                        nargs="+",
+                        help="file containing all variants for this run. can be a list of files.")
 
     parser.add_argument("--variants_per_job",
                         type=int,

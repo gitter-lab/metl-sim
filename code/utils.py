@@ -7,4 +7,9 @@ def save_argparse_args(args_dict, out_fn):
                 f.write("--{}\n".format(k))
                 # if a flag is true, no need to specify the "true" value
                 if not isinstance(v, bool):
-                    f.write("{}\n".format(v))
+                    # list args should be saved one per line
+                    if isinstance(v, list):
+                        for item in v:
+                            f.write("{}\n".format(item))
+                    else:
+                        f.write("{}\n".format(v))
