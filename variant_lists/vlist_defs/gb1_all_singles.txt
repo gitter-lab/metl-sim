@@ -1,0 +1,6 @@
+all
+--pdb_fn
+pdb_files/prepared_pdb_files/2qmt_p.pdb
+--num_subs_list
+1
+2

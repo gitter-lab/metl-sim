@@ -12,11 +12,15 @@ from Bio.SeqIO.PdbIO import AtomIterator
 from Bio.PDB import PDBParser
 import numpy as np
 
+# silence warnings when reading PDB files generated from Rosetta (which have comments which aren't parsed by my
+# approach for getting sequences from PDB files w/ Bio.SeqIO...
+import warnings
+warnings.filterwarnings("ignore", message="Ignoring unrecognized record ")
+
 
 def gen_all_variants(base_seq, num_subs, chars, seq_idxs):
     """ generates all possible variants of base_seq with the given number of substitutions
         using the given available chars and valid sequence idxs for substitution"""
-
     # positions is a tuple of (pos(1), pos(2), ... pos(num_subs))
     for positions in itertools.combinations(seq_idxs, num_subs):
         # new_aas is a tuple of (aa(1), aa(2), ... aa(num_subs))
@@ -242,37 +246,37 @@ def get_seq_idxs(seq):
     return seq_idxs
 
 
-def gen_random_main():
-    # the possible amino acid characters
-    # not using stop codon
-    chars = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
+def gen_random_main(pdb_fn, seq, seq_idxs, chars, target_num, num_subs_list, num_replicates, seed, out_dir):
 
-    target_num = 13000
-    num_subs_list = [1, 3, 4, 5, 6]
-    # pdb_fn = "pdb_files/prepared_pdb_files/1gfl_cm.pdb"
-    pdb_fn = "pdb_files/prepared_pdb_files/2qmt_p.pdb"
-    seed = 15
+    out_fn = "{}_random_TN-{}_NR-{}_NS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
+                                                            human_format(target_num), num_replicates,
+                                                            ",".join(map(str, num_subs_list)), seed)
+
+    if isfile(out_fn):
+        raise FileExistsError("Output file already exists: {}".format(out_fn))
 
     # create a random number generator for this call
     rng = np.random.default_rng(seed=seed)
 
-    seq = get_seq_from_pdb(pdb_fn)
-    seq_idxs = get_seq_idxs(seq)
-    variants = single_pdb_local_variants(pdb_fn, target_num, num_subs_list, chars, seq_idxs, rng)
-
+    # generate the variants
+    variants = single_pdb_local_variants(seq, target_num, num_subs_list, chars, seq_idxs, rng)
     # multiply number of variants for variance testing
-    num_replicates = 1
     variants *= num_replicates
 
-    out_dir = "variant_lists"
+    with open(join(out_dir, out_fn), "w") as f:
+        for v in variants:
+            f.write("{} {}\n".format(basename(pdb_fn), v))
 
-    if num_replicates == 1:
-        out_fn = "{}_{}_NV-{}_NS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4], time.strftime("%Y-%m-%d_%H-%M-%S"),
-                                                      human_format(target_num), ",".join(map(str, num_subs_list)), seed)
-    else:
-        out_fn = "{}_{}_NV-{}_NR-{}_NS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4], time.strftime("%Y-%m-%d_%H-%M-%S"),
-                                                            human_format(target_num), num_replicates,
-                                                            ",".join(map(str, num_subs_list)), seed)
+
+def gen_all_main(pdb_fn, seq, seq_idxs, chars, num_subs_list, out_dir):
+
+    out_fn = "{}_all_NS-{}.txt".format(basename(pdb_fn)[:-4], ",".join(map(str, num_subs_list)))
+    if isfile(out_fn):
+        raise FileExistsError("Output file already exists: {}".format(out_fn))
+
+    variants = []
+    for i in num_subs_list:
+        variants += list(gen_all_variants(seq, i, chars, seq_idxs))
 
     with open(join(out_dir, out_fn), "w") as f:
         for v in variants:
@@ -282,13 +286,13 @@ def gen_random_main():
 def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs, min_num_subs, seed, out_dir):
 
     # check if the output file already exists
-    out_fn = "subvariants_{}_TN_{}_MAXS-{}_MINS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
+    out_fn = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
                                                                     human_format(target_num),
                                                                     max_num_subs,
                                                                     min_num_subs,
                                                                     seed)
     if isfile(out_fn):
-        raise FileExistsError("Output file already exists, please delete it and run this script again")
+        raise FileExistsError("Output file already exists: {}".format(out_fn))
 
     # create a random number generator for this call
     rng = np.random.default_rng(seed=seed)
@@ -310,8 +314,6 @@ def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs,
 
 def main(args):
 
-    # todo: convert this to an argparse script so it can be called from the command line easily
-
     chars = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
 
     seq = get_seq_from_pdb(args.pdb_fn)
@@ -327,7 +329,11 @@ def main(args):
                              args.target_num, args.max_num_subs, args.min_num_subs, seed, args.out_dir)
 
     elif args.method == "random":
-        gen_random_main()
+        gen_random_main(args.pdb_fn, seq, seq_idxs, chars,
+                        args.target_num, args.num_subs_list, args.num_replicates, seed, args.out_dir)
+
+    elif args.method == "all":
+        gen_all_main(args.pdb_fn, seq, seq_idxs, chars, args.num_subs_list, args.out_dir)
 
 
 if __name__ == "__main__":
@@ -339,35 +345,45 @@ if __name__ == "__main__":
     parser.add_argument("method",
                         help="what method to use to generate variants",
                         type=str,
-                        choices=["random", "subvariants"])
+                        choices=["all", "random", "subvariants"])
 
+    # common args
     parser.add_argument("--pdb_fn",
                         help="the PDB file from which to generate variants",
                         type=str)
-
     parser.add_argument("--target_num",
                         type=int,
                         help="target number of variants")
+    parser.add_argument("--seed",
+                        type=int,
+                        help="random seed, None for a random random seed",
+                        default=None)
+    parser.add_argument("--out_dir",
+                        type=str,
+                        help="output directory for variant lists",
+                        default="variant_lists")
+    # random args
+    parser.add_argument("--num_subs_list",
+                        type=int,
+                        help="for random and 'all' method, numbers of substitutions for variants",
+                        nargs="+",
+                        default=[1, 2])
+    parser.add_argument("--num_replicates",
+                        type=int,
+                        help="for random method, the maximum number of replicates of each variant",
+                        default=1)
 
+    # subvariants args
     parser.add_argument("--max_num_subs",
                         type=int,
                         help="for subvariants method, the maximum number of substitutions for a variant",
                         default=5)
-
     parser.add_argument("--min_num_subs",
                         type=int,
                         help="for subvariants method, the minimum number of substitutions for a variant",
                         default=1)
 
-    parser.add_argument("--seed",
-                        type=int,
-                        help="random seed, None for a random random seed",
-                        default=None)
 
-    parser.add_argument("--out_dir",
-                        type=str,
-                        help="output directory for variant lists",
-                        default="variant_lists")
 
 
     main(parser.parse_args())
