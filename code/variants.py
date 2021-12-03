@@ -251,9 +251,10 @@ def gen_random_main(pdb_fn, seq, seq_idxs, chars, target_num, num_subs_list, num
     out_fn = "{}_random_TN-{}_NR-{}_NS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
                                                             human_format(target_num), num_replicates,
                                                             ",".join(map(str, num_subs_list)), seed)
-
+    out_fn = join(out_dir, out_fn)
     if isfile(out_fn):
         raise FileExistsError("Output file already exists: {}".format(out_fn))
+    print("Output file will be {}".format(out_fn))
 
     # create a random number generator for this call
     rng = np.random.default_rng(seed=seed)
@@ -262,8 +263,9 @@ def gen_random_main(pdb_fn, seq, seq_idxs, chars, target_num, num_subs_list, num
     variants = single_pdb_local_variants(seq, target_num, num_subs_list, chars, seq_idxs, rng)
     # multiply number of variants for variance testing
     variants *= num_replicates
+    print_variant_info(variants)
 
-    with open(join(out_dir, out_fn), "w") as f:
+    with open(out_fn, "w") as f:
         for v in variants:
             f.write("{} {}\n".format(basename(pdb_fn), v))
 
@@ -271,14 +273,21 @@ def gen_random_main(pdb_fn, seq, seq_idxs, chars, target_num, num_subs_list, num
 def gen_all_main(pdb_fn, seq, seq_idxs, chars, num_subs_list, out_dir):
 
     out_fn = "{}_all_NS-{}.txt".format(basename(pdb_fn)[:-4], ",".join(map(str, num_subs_list)))
+    out_fn = join(out_dir, out_fn)
     if isfile(out_fn):
         raise FileExistsError("Output file already exists: {}".format(out_fn))
+    print("Output file will be {}".format(out_fn))
+
+    # for i in num_subs_list:
+    #     mp = max_possible_variants(len(seq_idxs), i, len(chars))
+    #     print("Generating {} {}-mutation variants".format(mp, i))
 
     variants = []
     for i in num_subs_list:
         variants += list(gen_all_variants(seq, i, chars, seq_idxs))
+    print_variant_info(variants)
 
-    with open(join(out_dir, out_fn), "w") as f:
+    with open(out_fn, "w") as f:
         for v in variants:
             f.write("{} {}\n".format(basename(pdb_fn), v))
 
@@ -287,29 +296,35 @@ def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs,
 
     # check if the output file already exists
     out_fn = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
-                                                                    human_format(target_num),
-                                                                    max_num_subs,
-                                                                    min_num_subs,
-                                                                    seed)
+                                                                     human_format(target_num),
+                                                                     max_num_subs,
+                                                                     min_num_subs,
+                                                                     seed)
+    out_fn = join(out_dir, out_fn)
     if isfile(out_fn):
         raise FileExistsError("Output file already exists: {}".format(out_fn))
+    print("Output file will be {}".format(out_fn))
+
 
     # create a random number generator for this call
     rng = np.random.default_rng(seed=seed)
 
     # generate the variants
     variants = gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng)
+    print_variant_info(variants)
 
+    # save output to file
+    with open(out_fn, "w") as f:
+        for v in variants:
+            f.write("{} {}\n".format(basename(pdb_fn), v))
+
+
+def print_variant_info(variants):
     # print out info about the generated variants
     print("Generated {} variants".format(len(variants)))
     count = Counter([len(v.split(",")) for v in variants])
     for k, v in count.items():
         print("{}-mutants: {}".format(k, v))
-
-    # save output to file
-    with open(join(out_dir, out_fn), "w") as f:
-        for v in variants:
-            f.write("{} {}\n".format(basename(pdb_fn), v))
 
 
 def main(args):
