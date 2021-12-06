@@ -4,6 +4,10 @@ CREATE TABLE IF NOT EXISTS  `variant` (
     `job_uuid` TEXT NOT NULL,
     `start_time` TEXT,
     `run_time` INTEGER,
+    `mutate_run_time` INTEGER,
+    `relax_run_time` INTEGER,
+    `filter_run_time` INTEGER,
+    `centroid_run_time` INTEGER,
 
     `total_score` REAL,
     `dslf_fa13` REAL,
