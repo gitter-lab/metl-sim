@@ -1,5 +1,6 @@
 """ generate variants from pdb files """
 import argparse
+import hashlib
 import itertools
 import math
 import sqlite3
@@ -8,10 +9,12 @@ import os
 from os.path import join, basename, isfile
 from collections import Counter
 import random
+import zlib
 
 from Bio.SeqIO.PdbIO import AtomIterator
 from Bio.PDB import PDBParser
 import numpy as np
+
 
 # silence warnings when reading PDB files generated from Rosetta (which have comments which aren't parsed by my
 # approach for getting sequences from PDB files w/ Bio.SeqIO...
@@ -314,9 +317,9 @@ def gen_all_main(pdb_fn, seq, seq_idxs, chars, num_subs_list, out_dir):
         raise FileExistsError("Output file already exists: {}".format(out_fn))
     print("Output file will be {}".format(out_fn))
 
-    # for i in num_subs_list:
-    #     mp = max_possible_variants(len(seq_idxs), i, len(chars))
-    #     print("Generating {} {}-mutation variants".format(mp, i))
+    for i in num_subs_list:
+        mp = max_possible_variants(len(seq_idxs), i, len(chars))
+        print("Generating {} {}-mutation variants".format(mp, i))
 
     variants = []
     for i in num_subs_list:
@@ -331,10 +334,22 @@ def gen_all_main(pdb_fn, seq, seq_idxs, chars, num_subs_list, out_dir):
 def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs, min_num_subs, seed, db_fn, out_dir):
 
     # check if the output file already exists
-    out_fn = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
+    # if db_fn is specified, we need to have a hash of the database in the filename
+    if db_fn is None:
+        db_hash = 0
+    else:
+        hash_obj = hashlib.shake_128()
+        with open(db_fn, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                hash_obj.update(byte_block)
+        db_hash = hash_obj.hexdigest(8)
+        print(db_hash)
+
+    out_fn = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_DB-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
                                                                      human_format(target_num),
                                                                      max_num_subs,
                                                                      min_num_subs,
+                                                                     db_hash,
                                                                      seed)
     out_fn = join(out_dir, out_fn)
     if isfile(out_fn):
