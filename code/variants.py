@@ -265,8 +265,9 @@ def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, se
                 variants_list.append(v)
 
     # close sqlite handles
-    cur.close()
-    con.close()
+    if db_fn is not None:
+        cur.close()
+        con.close()
 
     return variants_list
 
