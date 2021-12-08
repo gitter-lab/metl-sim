@@ -19,7 +19,7 @@ def sort_variant_mutations(variants):
     """ put variant mutations in sorted order by position """
     # this function is also duplicated in RosettaTL utils
     converted_to_list = False
-    if not isinstance(variants, list) or not isinstance(variants, tuple):
+    if not isinstance(variants, list) and not isinstance(variants, tuple):
         variants = [variants]
         converted_to_list = True
 
