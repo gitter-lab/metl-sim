@@ -214,8 +214,16 @@ def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, se
     # If db_fn is specified, this function will check to see if the generated variants exists in the DB already,
     # and if so, it won't return them from this function. note it only some of the subvariants are in the db,
     # then this will still return the ones that aren't in the DB.
-    con = sqlite3.connect(db_fn)
-    cur = con.cursor()
+    if db_fn is not None:
+        # load DB into memory
+        source = sqlite3.connect(db_fn)
+        con = sqlite3.connect(':memory:')
+        source.backup(con)
+        source.close()
+        cur = con.cursor()
+
+        # con = sqlite3.connect(db_fn)
+        # cur = con.cursor()
 
     # using a set and a list to maintain the order
     # this is slower and uses 2x the memory, but the final variant list will be ordered
@@ -342,8 +350,7 @@ def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs,
         with open(db_fn, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
                 hash_obj.update(byte_block)
-        db_hash = hash_obj.hexdigest(8)
-        print(db_hash)
+        db_hash = hash_obj.hexdigest(4)
 
     out_fn = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_DB-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
                                                                      human_format(target_num),
