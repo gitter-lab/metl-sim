@@ -13,3 +13,25 @@ def save_argparse_args(args_dict, out_fn):
                             f.write("{}\n".format(item))
                     else:
                         f.write("{}\n".format(v))
+
+
+def sort_variant_mutations(variants):
+    """ put variant mutations in sorted order by position """
+    # this function is also duplicated in RosettaTL utils
+    converted_to_list = False
+    if not isinstance(variants, list) or not isinstance(variants, tuple):
+        variants = [variants]
+        converted_to_list = True
+
+    sorted_variants = []
+    for variant in variants:
+        muts = variant.split(",")
+        positions = [int(mut[1:-1]) for mut in muts]
+        # now sort muts by positions index, then join on "," to recreate variant
+        sorted_muts = [x for x, _ in sorted(zip(muts, positions), key=lambda pair: pair[1])]
+        sorted_variants.append(",".join(sorted_muts))
+
+    if converted_to_list:
+        sorted_variants = sorted_variants[0]
+
+    return sorted_variants

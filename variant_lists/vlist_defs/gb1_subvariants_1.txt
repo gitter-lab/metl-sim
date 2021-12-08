@@ -7,3 +7,5 @@ pdb_files/prepared_pdb_files/2qmt_p.pdb
 5
 --min_num_subs
 3
+--db_fn
+variant_database/database.db

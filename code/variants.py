@@ -2,6 +2,7 @@
 import argparse
 import itertools
 import math
+import sqlite3
 import time
 import os
 from os.path import join, basename, isfile
@@ -15,6 +16,9 @@ import numpy as np
 # silence warnings when reading PDB files generated from Rosetta (which have comments which aren't parsed by my
 # approach for getting sequences from PDB files w/ Bio.SeqIO...
 import warnings
+
+import utils
+
 warnings.filterwarnings("ignore", message="Ignoring unrecognized record ")
 
 
@@ -27,7 +31,10 @@ def gen_all_variants(base_seq, num_subs, chars, seq_idxs):
         for new_aas in itertools.product(chars, repeat=num_subs):
             if np.all([base_seq[pos] != new_aa for pos, new_aa in zip(positions, new_aas)]):
                 # note the pos+1 for 1-based indexing
-                yield ",".join(["{}{}{}".format(base_seq[pos], pos+1, new_aa) for pos, new_aa in zip(positions, new_aas)])
+                variant = ",".join(["{}{}{}".format(base_seq[pos], pos+1, new_aa) for pos, new_aa in zip(positions, new_aas)])
+                # should be in sorted order already, but just in case, sort it here again
+                variant = utils.sort_variant_mutations(variant)
+                yield variant
 
 
 def gen_sample(base_seq, num_mutants, num_subs, chars, seq_idxs, rng):
@@ -64,7 +71,10 @@ def gen_sample(base_seq, num_mutants, num_subs, chars, seq_idxs, rng):
                 mutants.add(mutant)
                 mutant_list.append(mutant)
 
-    # sort by avg position across all mutations
+    # this variant list should already be in sorted order (we sort the positions above)
+    # but just in case, sort it again here. we need variants in sorted order to avoid accidental dupes.
+    mutant_list = utils.sort_variant_mutations(mutant_list)
+
     return mutant_list
 
 
@@ -186,14 +196,23 @@ def get_subvariants(variant, num_subs):
         raise ValueError("num_subs must be less than the number of substitutions in the given variant ({})".format(
             len(variant.split(","))))
 
-    return [",".join(muts) for muts in list(itertools.combinations(variant.split(","), num_subs))]
+    sv = [",".join(muts) for muts in list(itertools.combinations(variant.split(","), num_subs))]
+    # should be in sorted order if the given main variant is in sorted order, but sort here just in case
+    sv = utils.sort_variant_mutations(sv)
+    return sv
 
 
-def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng):
+def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng, db_fn=None):
     # max_num_subs determines the maximum number of substitutions for the main variants
     # min_num_subs determines the minimum number of substitutions for subvariants
     #  so for example, if min_num_subs is 2, then this function won't generate subvariants with 1 substitution
     # target_num is the number of variants to generate (approximate)
+
+    # If db_fn is specified, this function will check to see if the generated variants exists in the DB already,
+    # and if so, it won't return them from this function. note it only some of the subvariants are in the db,
+    # then this will still return the ones that aren't in the DB.
+    con = sqlite3.connect(db_fn)
+    cur = con.cursor()
 
     # using a set and a list to maintain the order
     # this is slower and uses 2x the memory, but the final variant list will be ordered
@@ -210,18 +229,33 @@ def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, se
 
         # now generate all subvariants for this variant
         # generating subvariants for all number of substitutions down to single variants
-        sv = []
+        av = [main_v]
         for i in reversed(range(min_num_subs, max_num_subs)):
-            sv += get_subvariants(main_v, i)
+            av += get_subvariants(main_v, i)
 
         # now add this variant and all subvariants to the main list (as long as they are not already there)
-        # we know the main variant is not already there because we check above before generating subvariants
-        variants_set.add(main_v)
-        variants_list.append(main_v)
-        for v in sv:
-            if v not in variants_set:
+        for v in av:
+            # check if the variant is already in the set or already in the DB
+            variant_in_set = v in variants_set
+            if variant_in_set:
+                print("Generated variant already in set: {}".format(v))
+
+            variant_in_db = False
+            if db_fn is not None:
+                query = "SELECT * FROM `variant` WHERE `mutations`==\"{}\"".format(v)
+                result = cur.execute(query).fetchall()
+                if len(result) >= 1:
+                    variant_in_db = True
+                    print("Generated variant already in database: {}".format(v))
+
+            if not variant_in_set and not variant_in_db:
+                # only add variant to master list if it's not already in the set and it's not in the db
                 variants_set.add(v)
                 variants_list.append(v)
+
+    # close sqlite handles
+    cur.close()
+    con.close()
 
     return variants_list
 
@@ -294,7 +328,7 @@ def gen_all_main(pdb_fn, seq, seq_idxs, chars, num_subs_list, out_dir):
             f.write("{} {}\n".format(basename(pdb_fn), v))
 
 
-def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs, min_num_subs, seed, out_dir):
+def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs, min_num_subs, seed, db_fn, out_dir):
 
     # check if the output file already exists
     out_fn = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
@@ -311,7 +345,7 @@ def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs,
     rng = np.random.default_rng(seed=seed)
 
     # generate the variants
-    variants = gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng)
+    variants = gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng, db_fn)
     print_variant_info(variants)
 
     # save output to file
@@ -342,7 +376,7 @@ def main(args):
 
     if args.method == "subvariants":
         gen_subvariants_main(args.pdb_fn, seq, seq_idxs, chars,
-                             args.target_num, args.max_num_subs, args.min_num_subs, seed, args.out_dir)
+                             args.target_num, args.max_num_subs, args.min_num_subs, seed, args.db_fn, args.out_dir)
 
     elif args.method == "random":
         gen_random_main(args.pdb_fn, seq, seq_idxs, chars,
@@ -378,6 +412,10 @@ if __name__ == "__main__":
                         type=str,
                         help="output directory for variant lists",
                         default="variant_lists")
+    parser.add_argument("--db_fn",
+                        type=str,
+                        help="database filename, if specified, will not generate variants already in database",
+                        default=None)
     # random args
     parser.add_argument("--num_subs_list",
                         type=int,

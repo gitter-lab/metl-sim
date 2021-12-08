@@ -3,10 +3,11 @@ https://www.sqlitetutorial.net/sqlite-python/creating-database/"""
 
 from os.path import isfile
 import sqlite3
-import sys
 import argparse
 
 import pandas as pd
+
+from utils import sort_variant_mutations
 
 
 def create_tables(con):
@@ -22,19 +23,6 @@ def create_tables(con):
     # run the table creation commands
     for command in sql_commands:
         cur.execute(command)
-
-
-def sort_variant_mutations(variants):
-    """ put variant mutations in sorted order by position """
-    # this function is also duplicated in RosettaTL utils
-    sorted_variants = []
-    for variant in variants:
-        muts = variant.split(",")
-        positions = [int(mut[1:-1]) for mut in muts]
-        # now sort muts by positions index, then join on "," to recreate variant
-        sorted_muts = [x for x, _ in sorted(zip(muts, positions), key=lambda pair: pair[1])]
-        sorted_variants.append(",".join(sorted_muts))
-    return sorted_variants
 
 
 def add_energies(db_fn, energies_df):
