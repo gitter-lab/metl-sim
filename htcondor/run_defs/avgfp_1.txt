@@ -1,0 +1,11 @@
+--run_name
+avgfp_1
+--energize_args_fn
+energize_args/condor_set_2.txt
+--master_variant_fn
+variant_lists/1gfl_cm_all_NS-1.txt
+variant_lists/1gfl_cm_subvariants_TN-10M_MAXS-5_MINS-2_DB-0_RS-498701957.txt
+--variants_per_job
+300
+--github_tag
+v0.7.1
