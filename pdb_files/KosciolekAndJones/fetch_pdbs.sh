@@ -8,26 +8,26 @@ MISSING_AA_DIR="missing_aa"
 ## Link for the table, it Supplementary Table 1: https://doi.org/10.1371/journal.pone.0092197.s002. 
 ## Copied the list of PDBs to pdb_list.txt
 
-## Step 2: Downloading the PDB files from RCSB website.
-### The following command is reading the pdb_list file and separating the PDB & chain id, and then downloading the PDB files in the directory.
-#mkdir -p $RAW_DIR
-#for i in $(cat "pdb_list.txt");
-#do
-#  j=$(echo "$i" | cut -c1-4);
-#  wget "https://files.rcsb.org/download/$j.pdb" --directory-prefix $RAW_DIR;
-#done
+# Step 2: Downloading the PDB files from RCSB website.
+## The following command is reading the pdb_list file and separating the PDB & chain id, and then downloading the PDB files in the directory.
+mkdir -p $RAW_DIR
+for i in $(cat "pdb_list.txt");
+do
+  j=$(echo "$i" | cut -c1-4);
+  wget "https://files.rcsb.org/download/$j.pdb" --directory-prefix $RAW_DIR;
+done
 
-##Step 3: Extracting the chains of interest from the PDB files.
-###Just grepping the ATOM lines from the .pdb files that have the chain_id of our interest. Column 22 represents the chain_id.
-### todo: the default grep on macOS doesn't support full regex and has a problem with this regex string, so the solution
-###    is to either install GNU grep (brew install grep) or change the regex to support macOS
-#mkdir -p $CHAINS_DIR
-#for i in $(cat "pdb_list.txt");
-#do
-#  pdb=$(echo "$i" | cut -c1-4);
-#  chain=$(echo "$i" | cut -c5);
-#  grep "^ATOM.\{16\}* ${chain} .*" "$RAW_DIR/${pdb}.pdb" > "$CHAINS_DIR/${pdb}_${chain}.pdb";
-#done
+#Step 3: Extracting the chains of interest from the PDB files.
+##Just grepping the ATOM lines from the .pdb files that have the chain_id of our interest. Column 22 represents the chain_id.
+## todo: the default grep on macOS doesn't support full regex and has a problem with this regex string, so the solution
+##    is to either install GNU grep (brew install grep) or change the regex to support macOS
+mkdir -p $CHAINS_DIR
+for i in $(cat "pdb_list.txt");
+do
+  pdb=$(echo "$i" | cut -c1-4);
+  chain=$(echo "$i" | cut -c5);
+  grep "^ATOM.\{16\}* ${chain} .*" "$RAW_DIR/${pdb}.pdb" > "$CHAINS_DIR/${pdb}_${chain}.pdb";
+done
 
 
 # Step 4: Getting a list of Missing AAs for these PDBs.

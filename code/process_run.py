@@ -206,34 +206,10 @@ def main():
     # stats, database, cleanup
     mode = "stats"
 
-    main_dirs = []
-
-    # # GB1 runs
-    # gb1_runs = ["output/htcondor_runs/condor_energize_2021-03-31_15-29-09_gb1_ut3_1mv",
-    #             "output/htcondor_runs/condor_energize_2021-04-15_13-46-55_gb1_s45_2mv",
-    #             "output/htcondor_runs/condor_energize_2021-05-14_12-24-59_gb1_s23_4mv"]
-    # main_dirs += gb1_runs
-    #
-    # # avGFP runs
-    # avgfp_runs = ["output/htcondor_runs/condor_energize_2021-05-26_15-03-47_avgfp_s12_200kv",
-    #               "output/htcondor_runs/condor_energize_2021-06-09_16-43-13_avgfp_s12_200kv_c",
-    #               "output/htcondor_runs/condor_energize_2021-06-09_19-08-35_avgfp_s23_3mv",
-    #               "output/htcondor_runs/condor_energize_2021-06-24_11-19-48_avgfp_s23_3mv_c",
-    #               "output/htcondor_runs/condor_energize_2021-06-25_16-46-01_avgfp_s45_3mv"]
-    # main_dirs += avgfp_runs
-    #
-    # gb1_dms_runs = ["output/htcondor_runs/condor_energize_2021-09-30_15-12-57_gb1_dms",
-    #                 "output/htcondor_runs/condor_energize_2021-10-01_12-04-04_gb1_dms_c"]
-    # main_dirs += gb1_dms_runs
-    #
-    # gb1_variance = ["output/htcondor_runs/condor_energize_2021-10-21_18-15-50_gb1_variance",
-    #                 "output/htcondor_runs/condor_energize_2021-10-25_10-34-07_gb1_variance_suppl",
-    #                 "output/htcondor_runs/condor_energize_2021-10-26_16-23-40_gb1_variance_1_repeat"]
-
-    gb1_variance = ["output/htcondor_runs/condor_energize_2021-11-17_16-54-34_gb1_variance",
-                    "output/htcondor_runs/condor_energize_2021-11-17_16-54-44_gb1_variance_1_repeat"]
-
-    main_dirs = gb1_variance
+    main_dirs = ["output/htcondor_runs/condor_energize_2021-12-03_15-51-12_gb1_sd",
+                 "output/htcondor_runs/condor_energize_2021-12-03_15-54-27_gb1_subvariants_1",
+                 "output/htcondor_runs/condor_energize_2021-12-08_14-07-21_gb1_subvariants_2",
+                 "output/htcondor_runs/condor_energize_2021-12-08_14-06-08_avgfp_1"]
 
     for main_dir in main_dirs:
         print("Processing {}".format(basename(main_dir)))
