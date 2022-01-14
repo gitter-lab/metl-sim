@@ -47,8 +47,9 @@ def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False)
             pdbs_variants += f.read().splitlines()
 
     if variants_per_job == -1:
-        # todo: implement auto load balancing based on expected runtimes
 
+        # compute the total expected runtime for all variants
+        # will be used to determine how many jobs there should be
         total_expected_time = 0
         seq_len_dict = {}
         for pdb_v in pdbs_variants:
