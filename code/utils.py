@@ -1,3 +1,5 @@
+from Bio import SeqIO
+
 def save_argparse_args(args_dict, out_fn):
     """ save argparse arguments out to a file """
     with open(out_fn, "w") as f:
@@ -35,3 +37,14 @@ def sort_variant_mutations(variants):
         sorted_variants = sorted_variants[0]
 
     return sorted_variants
+
+
+def get_seq_from_pdb(pdb_fn):
+    """ uses atom iterator method """
+    seq_records = list(SeqIO.parse(pdb_fn, "pdb-atom"))
+
+    # found more than one chain
+    if len(seq_records) > 1:
+        raise ValueError("pdb contains more than one chain: {}".format(pdb_fn))
+
+    return str(seq_records[0].seq)

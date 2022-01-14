@@ -1,4 +1,6 @@
 """ prepare and package HTCondor runs """
+import itertools
+import math
 import time
 import os
 from os.path import join
@@ -6,8 +8,17 @@ import argparse
 import shutil
 import subprocess
 import urllib3
+# todo: tqdm is only on the local environment, not on condor environment
+#  shouldn't be a problem since this file isn't run during a condor run... but maybe specify separate env files for each
+from tqdm import tqdm
 
-from utils import save_argparse_args
+from utils import save_argparse_args, get_seq_from_pdb
+
+# todo: find a better way to handle reading PDBs with Rosetta's pose_energy_table at the end
+#   or remove the pose energy table from all the PDBs
+import warnings
+warnings.filterwarnings("ignore", message="Ignoring unrecognized record ")
+warnings.filterwarnings("ignore", message="'HEADER' line not found; can't determine PDB ID.")
 
 
 def get_run_dir_name(run_name="unnamed"):
@@ -21,6 +32,11 @@ def chunks(lst, n):
         yield lst[i:i + n]
 
 
+def expected_runtime(seq_len):
+    # estimate the total expected runtime for a variant with given seq len, in seconds
+    return (0.66 * seq_len) + 42
+
+
 def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False):
     """generate arguments files from the master variant list"""
 
@@ -30,8 +46,61 @@ def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False)
         with open(mv_fn, "r") as f:
             pdbs_variants += f.read().splitlines()
 
-    # split the master variant list into separate args files
-    split_variant_lists = list(chunks(pdbs_variants, variants_per_job))
+    if variants_per_job == -1:
+        # todo: implement auto load balancing based on expected runtimes
+
+        total_expected_time = 0
+        seq_len_dict = {}
+        for pdb_v in pdbs_variants:
+            base_pdb_fn = pdb_v.split()[0]
+            pdb_fn = "pdb_files/prepared_pdb_files/{}".format(base_pdb_fn)
+
+            if base_pdb_fn not in seq_len_dict:
+                seq_len_dict[base_pdb_fn] = len(get_seq_from_pdb(pdb_fn))
+
+            total_expected_time += seq_len_dict[base_pdb_fn]
+
+        print("total expected time: {}".format(total_expected_time))
+
+        time_per_job = 5 * 60 * 60  # each job should take 5 hours (5 * 60 * 60 seconds)
+        num_chunks = math.ceil(total_expected_time / time_per_job)
+        print("num chunks: {}".format(num_chunks))
+
+        # sort the PDBs and variants into descending order
+        sorted_pdbs_variants = sorted(pdbs_variants, key=lambda x: seq_len_dict[x.split()[0]], reverse=True)
+
+        # too slow
+        # # now greedily distribute the variants into num_chunks chunks so each has roughly the same runtime
+        # split_variant_lists = [[] for _ in range(num_chunks)]
+        # split_variant_times = [0] * num_chunks
+        #
+        # # simple greedy algorithm
+        # # add items one at a time to the group with the smallest total time
+        # for p_v in tqdm(sorted_pdbs_variants):
+        #     t = seq_len_dict[p_v.split()[0]]
+        #     i = split_variant_times.index(min(split_variant_times))
+        #
+        #     split_variant_lists[i].append(p_v)
+        #     split_variant_times[i] += t
+
+        # different idea: round robin (probably good enough)
+        split_variant_lists = [[] for _ in range(num_chunks)]
+        svl_cycle = itertools.cycle(split_variant_lists)
+        for p_v in tqdm(sorted_pdbs_variants):
+            next(svl_cycle).append(p_v)
+
+        # check runtimes of final splits
+        rts = []
+        for svl in split_variant_lists:
+            rt = sum([seq_len_dict[x.split()[0]] for x in svl])
+            rts.append(rt)
+        print("min RT: {}".format(min(rts)))
+        print("max RT: {}".format(max(rts)))
+
+    else:
+        # split the master variant list into separate args files
+        split_variant_lists = list(chunks(pdbs_variants, variants_per_job))
+
     args_dir = join(out_dir, "args")
     os.makedirs(args_dir)
     for job_num, svl in enumerate(split_variant_lists):

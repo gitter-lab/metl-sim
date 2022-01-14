@@ -389,24 +389,26 @@ def main(args):
 
     chars = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
 
-    seq = get_seq_from_pdb(args.pdb_fn)
-    seq_idxs = get_seq_idxs(seq)
+    for pdb_fn in args.pdb_fn:
+        print("Generating variant list for {}".format(pdb_fn))
+        seq = get_seq_from_pdb(pdb_fn)
+        seq_idxs = get_seq_idxs(seq)
 
-    # grab a random, random seed
-    seed = args.seed
-    if seed is None:
-        seed = random.randint(100000000, 999999999)
+        # grab a random, random seed
+        seed = args.seed
+        if seed is None:
+            seed = random.randint(100000000, 999999999)
 
-    if args.method == "subvariants":
-        gen_subvariants_main(args.pdb_fn, seq, seq_idxs, chars,
-                             args.target_num, args.max_num_subs, args.min_num_subs, seed, args.db_fn, args.out_dir)
+        if args.method == "subvariants":
+            gen_subvariants_main(pdb_fn, seq, seq_idxs, chars,
+                                 args.target_num, args.max_num_subs, args.min_num_subs, seed, args.db_fn, args.out_dir)
 
-    elif args.method == "random":
-        gen_random_main(args.pdb_fn, seq, seq_idxs, chars,
-                        args.target_num, args.num_subs_list, args.num_replicates, seed, args.out_dir)
+        elif args.method == "random":
+            gen_random_main(pdb_fn, seq, seq_idxs, chars,
+                            args.target_num, args.num_subs_list, args.num_replicates, seed, args.out_dir)
 
-    elif args.method == "all":
-        gen_all_main(args.pdb_fn, seq, seq_idxs, chars, args.num_subs_list, args.out_dir)
+        elif args.method == "all":
+            gen_all_main(pdb_fn, seq, seq_idxs, chars, args.num_subs_list, args.out_dir)
 
 
 if __name__ == "__main__":
@@ -422,11 +424,12 @@ if __name__ == "__main__":
 
     # common args
     parser.add_argument("--pdb_fn",
-                        help="the PDB file from which to generate variants",
-                        type=str)
+                        help="the PDB file from which to generate variants. can specify multiple.",
+                        type=str,
+                        nargs="+")
     parser.add_argument("--target_num",
                         type=int,
-                        help="target number of variants")
+                        help="target number of variants per pdb_fn")
     parser.add_argument("--seed",
                         type=int,
                         help="random seed, None for a random random seed",
