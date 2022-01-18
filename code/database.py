@@ -1,12 +1,13 @@
 """creating, storing, and accessing variant database
 https://www.sqlitetutorial.net/sqlite-python/creating-database/"""
-
-from os.path import isfile
+import os
+from os.path import isfile, basename, join
 import sqlite3
 import argparse
 
 import pandas as pd
 
+import utils
 from utils import sort_variant_mutations
 
 
@@ -65,6 +66,22 @@ def add_meta(db_fn, hparams_df, jobs_df):
     con.close()
 
 
+def add_pdb(db_fn, pdb_fn):
+    """ add PDB file to database """
+
+    seq = utils.get_seq_from_pdb(pdb_fn)
+
+    # todo: check if pdb file already exists in database and if so don't add it
+    #  or handle the exception that occurs when you try to add it anyway (sqlite3.IntegrityError)
+    sql = "INSERT INTO pdb_file(pdb_fn, aa_sequence, seq_len) VALUES(?,?,?)"
+    con = sqlite3.connect(db_fn)
+    cur = con.cursor()
+    cur.execute(sql, (basename(pdb_fn), seq, len(seq)))
+    con.commit()
+    cur.close()
+    con.close()
+
+
 def main(args):
 
     if args.mode == "create":
@@ -77,9 +94,11 @@ def main(args):
             con.commit()
             con.close()
 
-    elif args.mode == "add":
-        # adding to database is done in process_run instead of here
-        pass
+    elif args.mode == "add_pdbs":
+        pdb_dir = "pdb_files/prepared_pdb_files"
+        pdb_fns = [join(pdb_dir, x) for x in os.listdir(pdb_dir) if x.endswith(".pdb")]
+        for pdb_fn in pdb_fns:
+            add_pdb(args.db_fn, pdb_fn)
 
 
 if __name__ == "__main__":
@@ -91,7 +110,7 @@ if __name__ == "__main__":
     parser.add_argument("mode",
                         help="run mode",
                         type=str,
-                        choices=["create", "add"])
+                        choices=["create", "add_pdbs"])
 
     parser.add_argument("--db_fn",
                         help="path to database file",
