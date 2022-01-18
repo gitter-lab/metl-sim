@@ -409,6 +409,12 @@ def main(args):
 
     if (len(failed) / len(pdbs_variants)) > args.allowable_failure_fraction:
         # too many variants failed in this job. exit with failure code.
+        # todo: this exit code will put the job on hold, but the log directory will still be present with
+        #  energies.csv, causing there to be duplicates for the variants that succeeded in this run and the
+        #  variants that get run in the new run. one option is to just not save energies.csv when too many variants
+        #  fail. the job will get rescheduled anyway and the variants will run on a new machine.
+        #  but if we're going to run again, might as well keep the duplicate variants anyway? they get filtered out
+        #  later...
         sys.exit(1)
 
 
