@@ -36,7 +36,7 @@ def add_energies(db_fn, energies_df):
     # of sequence position. variants generated via rosettafy *should* already be in this order
     # however, there was the whole gb1_dms_cov dataset which used the order from the dms dataset
     # also, just in case rosettafy generates variants in the wrong order, this is the backup
-    energies_db_ready["mutations"] = sort_variant_mutations(energies_db_ready["mutations"])
+    energies_db_ready["mutations"] = sort_variant_mutations(energies_db_ready["mutations"].tolist())
 
     try:
         energies_db_ready.to_sql("variant", con, if_exists="append", chunksize=3000, index=False, method="multi")

@@ -205,7 +205,7 @@ def get_subvariants(variant, num_subs):
     return sv
 
 
-def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng, db_fn=None):
+def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng, pdb_fn, db_fn=None):
     # max_num_subs determines the maximum number of substitutions for the main variants
     # min_num_subs determines the minimum number of substitutions for subvariants
     #  so for example, if min_num_subs is 2, then this function won't generate subvariants with 1 substitution
@@ -253,8 +253,8 @@ def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, se
 
             variant_in_db = False
             if db_fn is not None:
-                query = "SELECT * FROM `variant` WHERE `mutations`==\"{}\"".format(v)
-                result = cur.execute(query).fetchall()
+                query = "SELECT * FROM `variant` WHERE `pdb_fn`==? AND `mutations`==?"
+                result = cur.execute(query, (basename(pdb_fn), v)).fetchall()
                 if len(result) >= 1:
                     variant_in_db = True
                     print("Generated variant already in database: {}".format(v))
@@ -368,7 +368,7 @@ def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs,
     rng = np.random.default_rng(seed=seed)
 
     # generate the variants
-    variants = gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng, db_fn)
+    variants = gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng, pdb_fn, db_fn)
     print_variant_info(variants)
 
     # save output to file
