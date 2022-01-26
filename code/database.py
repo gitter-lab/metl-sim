@@ -40,8 +40,9 @@ def add_energies(db_fn, energies_df):
 
     try:
         energies_db_ready.to_sql("variant", con, if_exists="append", chunksize=3000, index=False, method="multi")
-    except sqlite3.IntegrityError:
-        pass
+    except sqlite3.IntegrityError as e:
+        print("Encountered sqlite3.IntegrityError, data already exists in database?")
+        print(e)
 
     con.close()
 
