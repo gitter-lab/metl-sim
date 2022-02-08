@@ -30,21 +30,21 @@ do
 done
 
 
-# Step 4: Getting a list of Missing AAs for these PDBs.
-## The .pdb files have REMARK lines stating the missing AAs and Atoms, REMARK 465 for Missing AA & REMARK 470 for Missing Atoms.
-## In the following command, I'm just extracting these REMARK lines for each of the pdb files and the chain of interest and writing them in a separate .txt file. (Make the Missing_AA directory here using command: 'mkdir Missing_AA', if the directory isn't made earlier on)
-mkdir -p $MISSING_AA_DIR
-for i in $(cat pdb_list.txt);
-do
-  pdb=$(echo "$i" | cut -c1-4);
-  chain=$(echo $i | cut -c5);
-  grep "^REMARK 465 .* $chain " "$RAW_DIR/$pdb.pdb" > "$MISSING_AA_DIR/${pdb}_${chain}".txt;
-done
-## Not all PDBs have missing AAs, so we will only keep .txt files that have them i.e., the ones that are not empty, using the following command:
-for i in $(ls ${MISSING_AA_DIR}/*.txt);
-do
-  [ -s "$i" ] || rm "$i";
-done
+## Step 4: Getting a list of Missing AAs for these PDBs.
+### The .pdb files have REMARK lines stating the missing AAs and Atoms, REMARK 465 for Missing AA & REMARK 470 for Missing Atoms.
+### In the following command, I'm just extracting these REMARK lines for each of the pdb files and the chain of interest and writing them in a separate .txt file. (Make the Missing_AA directory here using command: 'mkdir Missing_AA', if the directory isn't made earlier on)
+#mkdir -p $MISSING_AA_DIR
+#for i in $(cat pdb_list.txt);
+#do
+#  pdb=$(echo "$i" | cut -c1-4);
+#  chain=$(echo $i | cut -c5);
+#  grep "^REMARK 465 .* $chain " "$RAW_DIR/$pdb.pdb" > "$MISSING_AA_DIR/${pdb}_${chain}".txt;
+#done
+### Not all PDBs have missing AAs, so we will only keep .txt files that have them i.e., the ones that are not empty, using the following command:
+#for i in $(ls ${MISSING_AA_DIR}/*.txt);
+#do
+#  [ -s "$i" ] || rm "$i";
+#done
 
 ##Step 5: Making the .remodel files for the missing AAs PDBs
 ### Going to the directory
