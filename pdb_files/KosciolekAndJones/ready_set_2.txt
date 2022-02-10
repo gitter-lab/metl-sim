@@ -1,0 +1,8 @@
+pdb_files/KosciolekAndJones/pdbs_raw/1bsg.pdb
+pdb_files/KosciolekAndJones/pdbs_raw/1dix.pdb
+pdb_files/KosciolekAndJones/pdbs_raw/1ek0.pdb
+pdb_files/KosciolekAndJones/pdbs_raw/1gmx.pdb
+pdb_files/KosciolekAndJones/pdbs_raw/1i4j.pdb
+pdb_files/KosciolekAndJones/pdbs_raw/1k7j.pdb
+pdb_files/KosciolekAndJones/pdbs_raw/1rw1.pdb
+pdb_files/KosciolekAndJones/pdbs_raw/5ptp.pdb
