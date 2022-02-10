@@ -29,3 +29,9 @@ Now, we must deal with the PDB files that have missing or modified residues.
 7. Run [parse_KosciolekAndJones.ipynb](../../notebooks/parse_KosciolekAndJones.ipynb) section 8 to create ready_set_3.txt, containing remodeled PDBs
 
 Once we have the three sets, they need to be run through the [prepare.py](../../code/prepare.py) pipeline. 
+
+### Future pipeline
+To make the above more easily reproducible. 
+1. Download raw PDB files by running fetch_pdbs.sh
+2. Run a single script that will filter PDBs and perform loop modeling where appropriate
+3. Run the final PDB files through the prepare pipeline
