@@ -41,20 +41,20 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, overwrite_wd=False):
 #     os.chmod(fn, st.st_mode | stat.S_IEXEC)
 
 
-def clean_pdb_wrapper(keep_ligand, rosetta_main_dir, working_dir):
+def clean_pdb_wrapper(keep_ligand, rosetta_main_dir, working_dir, chain):
     """ run Rosetta's clean_pdb_keep_ligand.py script. assumes there is a structure.pdb file in the working_dir """
 
     if keep_ligand:
         cleaned_fn = run_clean_pdb_keep_ligand(rosetta_main_dir, working_dir)
     else:
-        cleaned_fn = run_clean_pdb(rosetta_main_dir, working_dir)
+        cleaned_fn = run_clean_pdb(rosetta_main_dir, working_dir, chain)
 
     return cleaned_fn
 
 
-def run_clean_pdb(rosetta_main_dir, working_dir):
+def run_clean_pdb(rosetta_main_dir, working_dir, chain):
     clean_pdb_script_fn = abspath(join(rosetta_main_dir, "tools/protein_tools/scripts/clean_pdb.py"))
-    clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', 'ignorechain']
+    clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', chain]
 
     # run the clean pdb script
     clean_out_fn = join(working_dir, "clean_pdb.out")
@@ -64,7 +64,7 @@ def run_clean_pdb(rosetta_main_dir, working_dir):
         raise RuntimeError("Clean PDB did not execute successfully, return code: {}".format(return_code))
 
     # this script saves the output file in the same directory as the input file
-    cleaned_pdb_fn = "structure_ignorechain.pdb"
+    cleaned_pdb_fn = "structure_{}.pdb".format(chain)
 
     # rename the cleaned pdb to structure_cleaned.pdb
     # os.rename(join(working_dir, cleaned_pdb_fn), join(working_dir, "structure_cleaned.pdb"))
@@ -158,16 +158,17 @@ def main(args):
     save_argparse_args(args_dict, join(output_dir, "args.txt"))
 
     # run the clean_pdb script
-    cleaned_pdb_fn = clean_pdb_wrapper(args.keep_ligand, args.rosetta_main_dir, working_dir)
+    cleaned_pdb_fn = clean_pdb_wrapper(args.keep_ligand, args.rosetta_main_dir, working_dir, args.chain)
 
     # relax with all-heavy-atom constraints
-    run_relax(args.rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=args.relax_nstruct)
+    if args.relax_nstruct > 0:
+        run_relax(args.rosetta_main_dir, working_dir, cleaned_pdb_fn, nstruct=args.relax_nstruct)
 
-    # get the filename of the lowest scoring structure
-    lowest_energy_pdb_fn = parse_scores(working_dir)
+        # get the filename of the lowest scoring structure
+        lowest_energy_pdb_fn = parse_scores(working_dir)
 
-    # copy over the lowest energy PDB and rename it to match input filename
-    shutil.copyfile(lowest_energy_pdb_fn, join(output_dir, "{}_p.pdb".format(basename(args.pdb_fn)[:-4])))
+        # copy over the lowest energy PDB and rename it to match input filename
+        shutil.copyfile(lowest_energy_pdb_fn, join(output_dir, "{}_p.pdb".format(basename(args.pdb_fn)[:-4])))
 
 
 if __name__ == "__main__":
@@ -189,6 +190,11 @@ if __name__ == "__main__":
                         help="whether to run clean_pdb.py or clean_pdb_keep_ligand.py",
                         action="store_true",
                         default=False)
+
+    parser.add_argument("--chain",
+                        help="if using clean_pdb with keep_ligand==False, specify which chain to grab from "
+                             "the raw PDB. ignorechain will grab all the chain",
+                        type=str, default="ignorechain")
 
     parser.add_argument("--relax_nstruct",
                         help="number of structures (restarts) in the relax step",
