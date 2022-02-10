@@ -126,7 +126,7 @@ def parse_scores(working_dir):
     # get all structures with lowest energy (there may be multiple structures with same lowest energy)
     lowest_energy_df = df[df.total_score == df.total_score.min()]
     print("Found {} structures with lowest energy ({}).".format(len(lowest_energy_df),
-                                                                lowest_energy_df.iloc[0]["total_score"]))
+                                                                lowest_energy_df.iloc[0]["total_score"]), flush=True)
 
     # return the *first* structure with the lowest energy
     return join(working_dir, lowest_energy_df.iloc[0]["description"] + ".pdb")
@@ -144,7 +144,7 @@ def main(args):
 
     output_dir = get_output_dir(args.pdb_fn, args.out_dir_base)
     os.makedirs(output_dir)
-    print("output directory is: {}".format(output_dir))
+    print("output directory is: {}".format(output_dir), flush=True)
 
     template_dir = "templates/prepare_wd_template"
     working_dir = join(output_dir, "working_dir")
