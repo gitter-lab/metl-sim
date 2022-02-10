@@ -1,0 +1,39 @@
+universe = vanilla
++WantFlocking = true
+
+log = output/condor_logs/rosetta_$(Cluster)_$(Process).log
+error = output/condor_logs/rosetta_$(Cluster)_$(Process).err
+output = output/condor_logs/rosetta_$(Cluster)_$(Process).out
+
+# rosetta provides the precompiled 64bit binaries for linux
+# has_avx is included because I think I ran into avx-related errors in the past
+requirements = (Arch == "X86_64") && (has_avx == true) && (OpSys=="LINUX")
+
+executable = run_prepare.sh
+
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+
+# SQUID_DIR="squid_rosetta_2021-11-10_18-16-26"
+transfer_input_files = run_prepare.sh, code.tar.gz, kj.tar.gz, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.aa, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ab, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ac, http://proxy.chtc.wisc.edu/SQUID/sgelman2/Miniconda3-py38_4.9.2-Linux-x86_64.sh
+transfer_output_files = output
+
+request_cpus = 1
+request_memory = 2GB
+request_disk = 20GB
+
+environment = "CLUSTER=$(Cluster) PROCESS=$(Process) RUNNINGON=$$(Name) GITHUB_TAG=$ENV(GITHUB_TAG) PDB=$(pdb)"
+
+# when submitting more than 10k jobs this will prevent the scheduler from getting overloaded
+max_idle = 1000
+
+# set it so jobs that fail will go on hold
+on_exit_hold = (ExitCode =!= 0)
+on_exit_hold_subcode = 1
+on_exit_hold_reason = "Nonzero exit-code"
+
+# periodically release failed jobs up to 5 times the hold reason code will be 3, and the subcode (set above) will be 1
+# auto release jobs that fail to transfer files from squid (hold reason code 12, subcode 0)
+periodic_release = ((NumJobStarts < 5) && (HoldReasonCode == 12) && (HoldReasonSubCode == 0) && ( (CurrentTime - EnteredCurrentStatus) > 600)) || ((NumJobStarts < 5) && (HoldReasonCode == 3) && (HoldReasonSubCode == 1) && ( (CurrentTime - EnteredCurrentStatus) > 600))
+
+queue pdb from pdb_list.txt

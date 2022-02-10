@@ -6,6 +6,7 @@ pdb_files/KosciolekAndJones/pdbs_remodel/1avs_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1beb_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1beh_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1bkr_remod.pdb
+pdb_files/KosciolekAndJones/pdbs_remodel/1c52_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1cc8_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1chd_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1cke_remod.pdb
@@ -23,6 +24,7 @@ pdb_files/KosciolekAndJones/pdbs_remodel/1fl0_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1fqt_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1fvg_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1fvk_remod.pdb
+pdb_files/KosciolekAndJones/pdbs_remodel/1fx2_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1g2r_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1gmi_remod.pdb
 pdb_files/KosciolekAndJones/pdbs_remodel/1guu_remod.pdb

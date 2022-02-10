@@ -26,6 +26,11 @@ def get_run_dir_name(run_name="unnamed"):
     return dir_name_str.format(time.strftime("%Y-%m-%d_%H-%M-%S"), run_name)
 
 
+def get_prepare_run_dir_name(run_name="unnamed"):
+    dir_name_str = "condor_prepare_{}_{}"
+    return dir_name_str.format(time.strftime("%Y-%m-%d_%H-%M-%S"), run_name)
+
+
 def chunks(lst, n):
     """https://stackoverflow.com/questions/312443/how-do-you-split-a-list-into-evenly-sized-chunks"""
     for i in range(0, len(lst), n):
@@ -59,7 +64,7 @@ def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False)
             if base_pdb_fn not in seq_len_dict:
                 seq_len_dict[base_pdb_fn] = len(get_seq_from_pdb(pdb_fn))
 
-            total_expected_time += seq_len_dict[base_pdb_fn]
+            total_expected_time += expected_runtime(seq_len_dict[base_pdb_fn])
 
         print("total expected time: {}".format(total_expected_time))
 
@@ -149,7 +154,7 @@ def fetch_repo(github_tag, github_token, out_dir):
     response.close()
 
 
-def main(args):
+def prep_energize(args):
 
     out_dir = join("output", "htcondor_runs", get_run_dir_name(args.run_name))
     os.makedirs(out_dir)
@@ -184,11 +189,54 @@ def main(args):
     os.makedirs(join(out_dir, "output/energize_outputs"))
 
 
+def prep_prepare(args):
+    out_dir = join("output", "htcondor_runs", get_prepare_run_dir_name(args.run_name))
+    os.makedirs(out_dir)
+
+    # save the arguments for this condor run as run_def.txt in the log directory
+    # remove the github authorization token to avoid storing it in a file
+    args_dict = dict(vars(args))
+    del args_dict["github_token"]
+    save_argparse_args(args_dict, join(out_dir, "run_def.txt"))
+
+    # download the repository
+    fetch_repo(args.github_tag, args.github_token, out_dir)
+
+    # copy over energize.sub and run.sh
+    shutil.copy("htcondor/templates/prepare.sub", out_dir)
+    shutil.copy("htcondor/templates/run_prepare.sh", out_dir)
+
+    # copy over the pdb list (passed in as master_variant_fn)
+    shutil.copyfile(args.master_variant_fn[0], join(out_dir, "pdb_list.txt"))
+
+    # tar and copy over the KJ directory
+    tar_fn = join(out_dir, "kj.tar.gz")
+    cmd = ["tar", "-czf", tar_fn, "pdb_files/KosciolekAndJones"]
+    subprocess.call(cmd)
+
+    # create output directories where jobs will place their outputs
+    os.makedirs(join(out_dir, "output/condor_logs"))
+    os.makedirs(join(out_dir, "output/prepare_outputs"))
+
+
+def main(args):
+    if args.run_type == "energize":
+        prep_energize(args)
+    elif args.run_type == "prepare":
+        prep_prepare(args)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
         fromfile_prefix_chars="@")
+
+    parser.add_argument("--run_type",
+                        help="prepare or energize",
+                        type=str,
+                        default="energize",
+                        choices=["prepare", "energize"])
 
     parser.add_argument("--run_name",
                         help="name for this condor run, used for log directory",
@@ -197,7 +245,8 @@ if __name__ == "__main__":
 
     parser.add_argument("--energize_args_fn",
                         type=str,
-                        help="argparse params file for energize.py that will be used with all jobs")
+                        help="argparse params file for energize.py that will be used with all jobs",
+                        default=None)
 
     parser.add_argument("--master_variant_fn",
                         type=str,

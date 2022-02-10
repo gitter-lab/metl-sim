@@ -1,0 +1,8 @@
+--run_type
+prepare
+--run_name
+rs3
+--master_variant_fn
+pdb_files/KosciolekAndJones/ready_set_3.txt
+--github_tag
+master
