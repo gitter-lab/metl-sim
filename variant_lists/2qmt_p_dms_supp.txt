@@ -1,0 +1,12 @@
+2qmt_p.pdb A23C,A26W
+2qmt_p.pdb Q2I,A26W
+2qmt_p.pdb A23T,A26W
+2qmt_p.pdb A26W,G41K
+2qmt_p.pdb A26W,T55P
+2qmt_p.pdb A23V,A26W
+2qmt_p.pdb Y3E,A20W
+2qmt_p.pdb Q2L,A26W
+2qmt_p.pdb Y3R,A20W
+2qmt_p.pdb A26W,Y33W
+2qmt_p.pdb Q2E,A26W
+2qmt_p.pdb A20M,A26R

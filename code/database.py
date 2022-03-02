@@ -28,6 +28,10 @@ def create_tables(con):
 
 def add_energies(db_fn, energies_df):
     """ add new variant records into database """
+
+    # todo: memory usage for this is absurd (75+gb for a 9gb dataset)
+    #   figure out why and fix
+
     con = sqlite3.connect(db_fn)
 
     energies_db_ready = energies_df.rename(columns={"variant": "mutations"})

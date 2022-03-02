@@ -39,7 +39,7 @@ def chunks(lst, n):
 
 def expected_runtime(seq_len):
     # estimate the total expected runtime for a variant with given seq len, in seconds
-    return (0.66 * seq_len) + 42
+    return (0.52 * seq_len) + 28.50
 
 
 def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False):
@@ -66,9 +66,10 @@ def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False)
 
             total_expected_time += expected_runtime(seq_len_dict[base_pdb_fn])
 
+        print("average sequence length: {}".format(sum(seq_len_dict.values()) / len(seq_len_dict.values())))
         print("total expected time: {}".format(total_expected_time))
 
-        time_per_job = 5 * 60 * 60  # each job should take 5 hours (5 * 60 * 60 seconds)
+        time_per_job = 7 * 60 * 60  # each job should take 7 hours (7 * 60 * 60 seconds)
         num_chunks = math.ceil(total_expected_time / time_per_job)
         print("num chunks: {}".format(num_chunks))
 
@@ -98,7 +99,7 @@ def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False)
         # check runtimes of final splits
         rts = []
         for svl in split_variant_lists:
-            rt = sum([seq_len_dict[x.split()[0]] for x in svl])
+            rt = sum([expected_runtime(seq_len_dict[x.split()[0]]) for x in svl])
             rts.append(rt)
         print("min RT: {}".format(min(rts)))
         print("max RT: {}".format(max(rts)))
