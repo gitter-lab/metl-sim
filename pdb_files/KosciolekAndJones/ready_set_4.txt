@@ -1,0 +1,4 @@
+pdb_files/KosciolekAndJones/pdbs_remodel_2/1gz2_remod.pdb
+pdb_files/KosciolekAndJones/pdbs_remodel_2/1hdo_remod.pdb
+pdb_files/KosciolekAndJones/pdbs_remodel_2/1i1n_remod.pdb
+pdb_files/KosciolekAndJones/pdbs_remodel_2/1lm4_remod.pdb
