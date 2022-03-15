@@ -1,0 +1,15 @@
+--run_type
+energize
+--run_name
+KJ_set_4
+--energize_args_fn
+energize_args/condor_set_2.txt
+--master_variant_fn
+variant_lists/1gz2_remod_p_subvariants_TN-200K_MAXS-5_MINS-1_DB-0_RS-184063779.txt
+variant_lists/1hdo_remod_p_subvariants_TN-200K_MAXS-5_MINS-1_DB-0_RS-916173055.txt
+variant_lists/1i1n_remod_p_subvariants_TN-200K_MAXS-5_MINS-1_DB-0_RS-251498353.txt
+variant_lists/1lm4_remod_p_subvariants_TN-200K_MAXS-5_MINS-1_DB-0_RS-753334219.txt
+--variants_per_job
+-1
+--github_tag
+v0.7.4
