@@ -78,7 +78,7 @@ def add_pdb(db_fn, pdb_fn):
 
     # todo: check if pdb file already exists in database and if so don't add it
     #  or handle the exception that occurs when you try to add it anyway (sqlite3.IntegrityError)
-    sql = "INSERT INTO pdb_file(pdb_fn, aa_sequence, seq_len) VALUES(?,?,?)"
+    sql = "INSERT OR IGNORE INTO pdb_file(pdb_fn, aa_sequence, seq_len) VALUES(?,?,?)"
     con = sqlite3.connect(db_fn)
     cur = con.cursor()
     cur.execute(sql, (basename(pdb_fn), seq, len(seq)))
@@ -105,6 +105,17 @@ def main(args):
         for pdb_fn in pdb_fns:
             add_pdb(args.db_fn, pdb_fn)
 
+    elif args.mode == "pdb_index":
+        # create a PDB file index, similar to the database table from "add_pdbs" above
+        # todo: better file for this code? it's similar to add_pdbs so keeping it here for now
+        pdb_dir = "pdb_files/prepared_pdb_files"
+        pdb_fns = [join(pdb_dir, x) for x in os.listdir(pdb_dir) if x.endswith(".pdb")]
+        with open(join(pdb_dir, "index.csv"), "w") as f:
+            f.write("pdb_fn,aa_sequence,seq_len\n")
+            for pdb_fn in pdb_fns:
+                seq = utils.get_seq_from_pdb(pdb_fn)
+                f.write("{},{},{}\n".format(basename(pdb_fn), seq, len(seq)))
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -115,7 +126,7 @@ if __name__ == "__main__":
     parser.add_argument("mode",
                         help="run mode",
                         type=str,
-                        choices=["create", "add_pdbs"])
+                        choices=["create", "add_pdbs", "pdb_index"])
 
     parser.add_argument("--db_fn",
                         help="path to database file",
