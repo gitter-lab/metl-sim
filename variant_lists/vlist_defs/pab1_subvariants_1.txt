@@ -1,0 +1,9 @@
+subvariants
+--pdb_fn
+pdb_files/prepared_pdb_files/pab1_cm.pdb
+--target_num
+5000000
+--max_num_subs
+5
+--min_num_subs
+2
