@@ -219,7 +219,8 @@ def main():
 
     # main_dirs = ["output/htcondor_runs/condor_energize_2022-02-14_10-31-50_gb1_dms_supp"]
 
-    main_dirs = ["output/htcondor_runs/condor_energize_2022-02-10_20-40-07_KJ_sets_23"]
+    # main_dirs = ["output/htcondor_runs/condor_energize_2022-02-10_20-40-07_KJ_sets_23"]
+    main_dirs = ["output/htcondor_runs/condor_energize_2022-03-15_07-48-16_KJ_set_4"]
 
     for main_dir in main_dirs:
         print("Processing {}".format(basename(main_dir)))
