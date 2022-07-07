@@ -223,6 +223,7 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, stagi
 
     # run the mutate and relax steps
     variant_has_mutations = False if variant == "_wt" else True
+
     run_times = run_rosetta_pipeline(rosetta_main_dir, working_dir,
                                      rosetta_hparams["mutate_default_max_cycles"],
                                      rosetta_hparams["relax_nstruct"],
@@ -382,7 +383,18 @@ def main(args):
                 print("Encountered error running variant {} {}. "
                       "Attempts remaining: {}".format(pdb_basename, variant, num_attempts_per_variant - attempt - 1),
                       flush=True)
+
+                # if we are supposed to save the working directory, save it now
+                # the run_single_variant() function doesn't take care of this when there's an exception
+                # todo: if we end up using variant-specific working dir, update here
+                working_dir = "energize_wd"
+                if args.save_wd:
+                    shutil.copytree(working_dir, join(log_dir, "wd_{}_{}_{}".format(basename(pdb_fn), variant, attempt)))
+
+                # clean up the working dir in preparation for next variant
+                shutil.rmtree(working_dir)
             else:
+                # successful variant run, so break out of the attempt loop
                 break
         else:
             # else clause of the for loop triggers if we burned through all attempts without success
