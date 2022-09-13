@@ -4,11 +4,15 @@
 
     the only file that doesn't have a chain ID is the bgl3 pdb file. """
 
+import os
+from os.path import join
 
 def main():
 
-    pdb_fn = "rosetta/rosetta_energy/pdb_files/bgl3_clean_0008.pdb"
-    output_fn = "rosetta/rosetta_energy/pdb_files/bgl3_clean_0008_with_chain_id.pdb"
+    pdb_fn = "pdb_files/raw_pdb_files/bgl3_cm.pdb"
+    out_dir = "output/prepare_outputs/bgl3_add_chain_id"
+    os.makedirs(out_dir, exist_ok=True)
+    output_fn = join(out_dir, "bgl3_cm_p.pdb")
 
     # load the data
     with open(pdb_fn, "r") as f:

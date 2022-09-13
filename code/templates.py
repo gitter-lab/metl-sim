@@ -34,7 +34,7 @@ def gen_relax_xml_str(template_dir, variant, relax_distance, relax_repeats):
     return formatted
 
 
-def gen_resfile_str(template_dir, variant, index_type="1-based"):
+def gen_resfile_str(template_dir, chain, variant, index_type="1-based"):
     """residue_number chain PIKAA replacement_AA"""
 
     mutation_strs = []
@@ -48,7 +48,7 @@ def gen_resfile_str(template_dir, variant, index_type="1-based"):
             raise ValueError("unrecognized index_type {}".format(index_type))
         new_aa = mutation[-1]
 
-        mutation_strs.append("{} A PIKAA {}".format(resnum_1_index, new_aa))
+        mutation_strs.append("{} {} PIKAA {}".format(resnum_1_index, chain, new_aa))
 
     # add new lines between mutation strs
     mutation_strs = "\n".join(mutation_strs)
@@ -63,7 +63,7 @@ def gen_resfile_str(template_dir, variant, index_type="1-based"):
     return formatted_template
 
 
-def fill_templates(template_dir, variant, relax_distance, relax_repeats, out_dir):
+def fill_templates(template_dir, chain, variant, relax_distance, relax_repeats, out_dir):
 
     # the mutate xml no longer has any argument that need to be filled in, so just copy the template
     # todo: this could be done in prep_working_dir in energize.py instead, that's where other files
@@ -74,7 +74,7 @@ def fill_templates(template_dir, variant, relax_distance, relax_repeats, out_dir
     with open(join(out_dir, "relax.xml"), "w") as f:
         f.write(relax_xml_str)
 
-    resfile_str = gen_resfile_str(template_dir, variant)
+    resfile_str = gen_resfile_str(template_dir, chain, variant)
     with open(join(out_dir, "mutation.resfile"), "w") as f:
         f.write(resfile_str)
 

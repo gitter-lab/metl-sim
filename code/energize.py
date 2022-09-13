@@ -24,7 +24,8 @@ class RosettaError(Exception):
     pass
 
 
-def prep_working_dir(template_dir, working_dir, pdb_fn, variant, relax_distance, relax_repeats, overwrite_wd=False):
+def prep_working_dir(template_dir, working_dir, pdb_fn, chain, variant,
+                     relax_distance, relax_repeats, overwrite_wd=False):
     """ prep the working directory by copying over files from the template directory, modifying as needed """
     # delete the current working directory if one exists
     if overwrite_wd:
@@ -48,7 +49,7 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, variant, relax_distance,
     # fill the template rosetta arguments (Rosetta scripts XML files and resfile) for this variant
     # note that if the variant is the wild-type (no mutations), then there is no need to fill these in (wont be used)
     if variant != "_wt":
-        fill_templates(template_dir, variant, relax_distance, relax_repeats, working_dir)
+        fill_templates(template_dir, chain, variant, relax_distance, relax_repeats, working_dir)
 
     # copy over files from the template dir that don't need to be changed
     files_to_copy = ["flags_mutate", "flags_relax", "flags_relax_all", "flags_filter", "flags_centroid",
@@ -205,7 +206,8 @@ def parse_score_sc(score_sc_fn, agg_method="avg"):
     return parsed_df
 
 
-def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, staging_dir, output_dir, save_wd=False):
+def run_single_variant(rosetta_main_dir, pdb_fn, chain, variant, rosetta_hparams,
+                       staging_dir, output_dir, save_wd=False):
     # grab the start time for this variant
     start_time = time.time()
 
@@ -218,7 +220,7 @@ def run_single_variant(rosetta_main_dir, pdb_fn, variant, rosetta_hparams, stagi
         shutil.rmtree(working_dir)
 
     # set up the working directory (copies the pdb file, sets up the rosetta scripts, etc)
-    prep_working_dir(template_dir, working_dir, pdb_fn, variant,
+    prep_working_dir(template_dir, working_dir, pdb_fn, chain, variant,
                      rosetta_hparams["relax_distance"], rosetta_hparams["relax_repeats"], overwrite_wd=True)
 
     # run the mutate and relax steps
@@ -374,7 +376,7 @@ def main(args):
             try:
                 print("Running Rosetta on variant {} {} ({}/{})".format(basename(pdb_fn), variant,
                                                                         i + 1, len(pdbs_variants)), flush=True)
-                run_time = run_single_variant(args.rosetta_main_dir, pdb_fn, variant, rosetta_hparams, staging_dir,
+                run_time = run_single_variant(args.rosetta_main_dir, pdb_fn, args.chain, variant, rosetta_hparams, staging_dir,
                                               log_dir, args.save_wd)
                 print("Processing variant {} {} took {:.2f}".format(basename(pdb_fn), variant, run_time), flush=True)
 
@@ -446,6 +448,12 @@ if __name__ == "__main__":
     parser.add_argument("--variants_fn",
                         help="the file containing the variants",
                         type=str)
+
+    parser.add_argument("--chain",
+                        help="the chain (from the PDB file) of the variant. ideally, this would be defined as part"
+                             " of the variant in variants_fn, so we could support different chains in one run.",
+                        type=str,
+                        default="A")
 
     parser.add_argument("--pdb_dir",
                         help="directory containing pdb files referenced in variants_fn",

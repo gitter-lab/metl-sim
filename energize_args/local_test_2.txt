@@ -1,0 +1,15 @@
+--rosetta_main_dir
+/Users/sg/rosetta_bin_mac_2021.16.61629_bundle/main
+--variants_fn
+variant_lists/bgl3_test_variants.txt
+--mutate_default_max_cycles
+100
+--relax_repeats
+1
+--relax_nstruct
+1
+--relax_distance
+10
+--save_wd
+--log_dir_base
+output/energize_outputs
