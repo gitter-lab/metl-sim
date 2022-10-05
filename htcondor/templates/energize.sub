@@ -11,8 +11,7 @@ output = output/condor_logs/rosetta_$(Cluster)_$(Process).out
 
 # rosetta provides the precompiled 64bit binaries for linux
 # has_avx is included because I think I ran into avx-related errors in the past
-requirements = (Arch == "X86_64") && (has_avx == true) && (OpSys=="LINUX")
-
+requirements = (Arch == "X86_64") && (has_avx == true) && (OpSys=="LINUX") && (GlideIN_Site != "FNAL")
 executable = run.sh
 
 should_transfer_files = YES
