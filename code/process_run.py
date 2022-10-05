@@ -204,7 +204,7 @@ def main():
     # path to the parent condor directory for this run
 
     # stats, database, cleanup
-    mode = "stats"
+    mode = "database"
     print("Running mode: {}".format(mode))
 
     # main_dirs = ["output/htcondor_runs/condor_energize_2021-12-03_15-51-12_gb1_sd",

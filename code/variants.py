@@ -285,13 +285,6 @@ def human_format(num):
 def get_seq_idxs(seq):
     """ which sequence indices to mutate """
     return np.arange(len(seq))
-    # todo: figure out whether to ignore starting methionine (for now, include it)
-    if seq[0] == "M":
-        # valid mutation range excludes the starting methionine
-        seq_idxs = np.arange(1, len(seq))
-    else:
-        seq_idxs = np.arange(len(seq))
-    return seq_idxs
 
 
 def gen_random_main(pdb_fn, seq, seq_idxs, chars, target_num, num_subs_list, num_replicates, seed, out_dir):
@@ -462,8 +455,5 @@ if __name__ == "__main__":
                         type=int,
                         help="for subvariants method, the minimum number of substitutions for a variant",
                         default=1)
-
-
-
 
     main(parser.parse_args())

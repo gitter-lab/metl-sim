@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS  `variant` (
 
 CREATE INDEX mutations_index ON variant(mutations);
 CREATE INDEX pdb_fn_index ON variant(pdb_fn);
+CREATE INDEX job_uuid_index ON variant(job_uuid);
 
 CREATE TABLE IF NOT EXISTS  `pdb_file` (
     `pdb_fn` TEXT,
@@ -85,9 +86,10 @@ CREATE TABLE IF NOT EXISTS  `pdb_file` (
     `seq_len` INTEGER,
     PRIMARY KEY (`pdb_fn`));
 
+CREATE INDEX  pdb_file_pdb_fn_index ON pdb_file(pdb_fn);
+
 CREATE TABLE IF NOT EXISTS  `job` (
     `uuid` TEXT,
---     `hparam_set_id` VARCHAR,
     `cluster` TEXT,
     `process` TEXT,
     `hostname` TEXT,
@@ -98,12 +100,9 @@ CREATE TABLE IF NOT EXISTS  `job` (
     `hp_relax_nstruct` INTEGER,
     `hp_relax_distance` REAL,
     PRIMARY KEY (`uuid`));
---     FOREIGN KEY (`hparam_set_id`) REFERENCES rosetta_hparam_set(`id`));
 
--- CREATE TABLE IF NOT EXISTS  `rosetta_hparam_set` (
---     `id` INT unsigned AUTO_INCREMENT,
---     `mutate_default_max_cycles` INT unsigned,
---     `relax_repeats` INT unsigned,
---     `relax_nstruct` INT unsigned,
---     `relax_distance` DECIMAL,
---     PRIMARY KEY (`id`));
+
+CREATE INDEX job_job_uuid_index ON job(uuid);
+CREATE INDEX job_cluster_index ON job(cluster);
+CREATE INDEX job_process_index ON job(process);
+CREATE INDEX job_cluster_process_index ON job(cluster, process)
