@@ -1,5 +1,6 @@
 from Bio import SeqIO
 
+
 def save_argparse_args(args_dict, out_fn):
     """ save argparse arguments out to a file """
     with open(out_fn, "w") as f:

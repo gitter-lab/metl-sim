@@ -152,7 +152,20 @@ def resource_usage(condor_log_d):
 
 def load_multi_job_results(energize_out_d):
     """ loads energy terms, job info, and hyperparameters from a multi-job run (htcondor run) """
-    job_out_dirs = [join(energize_out_d, jd) for jd in os.listdir(energize_out_d)]
+
+    # filter out these job directories due to errors
+    # todo: can generalize this by checking for any column names that are not in the expected list of column names
+    rem = [
+        # this had one variant w/ a recorded energy of fa_intrq_sol_xover4 when it should have been fa_intra_sol_xover4
+        "energize_16623622_38607_2022-09-18_02-26-04_Z8g2utQLWbeb"
+    ]
+
+    job_out_dirs = []
+    for jd in os.listdir(energize_out_d):
+        if jd in rem:
+            print("Skipping because it is in the exclusion list: {}".format(jd))
+            continue
+        job_out_dirs.append(join(energize_out_d, jd))
 
     # load the energies dataframes for each job separately, then concatenate
     energies, job_info, hparams, skipped = [], [], [], []
