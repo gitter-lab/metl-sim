@@ -19,7 +19,7 @@ should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 
 # SQUID_DIR="squid_rosetta_2021-11-10_18-16-26"
-transfer_input_files = run.sh, code.tar.gz, args/$(Process).txt, energize_args.txt, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.aa, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ab, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ac, http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosettafy_env_v0.4.tar.gz
+transfer_input_files = run.sh, pass.txt, code.tar.gz, args/$(Process).txt, energize_args.txt, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.aa, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ab, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ac, http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosettafy_env_v0.4.tar.gz
 transfer_output_files = output
 
 request_cpus = 1

@@ -178,9 +178,10 @@ def prep_energize(args):
         f.write("export GITHUB_TAG={}\n".format(args.github_tag))
         f.write("export NUM_JOBS={}\n".format(num_jobs))
 
-    # copy over energize.sub and run.sh
+    # copy over energize.sub and run.sh and the pass.txt
     shutil.copy("htcondor/templates/energize.sub", out_dir)
     shutil.copy("htcondor/templates/run.sh", out_dir)
+    shutil.copy("htcondor/templates/pass.txt", out_dir)
 
     # copy over the energize args and rename to standard filename
     shutil.copyfile(args.energize_args_fn, join(out_dir, "energize_args.txt"))
