@@ -282,11 +282,6 @@ def human_format(num):
     return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 
-def get_seq_idxs(seq):
-    """ which sequence indices to mutate """
-    return np.arange(len(seq))
-
-
 def gen_random_main(pdb_fn, seq, seq_idxs, chars, target_num, num_subs_list, num_replicates, seed, out_dir):
 
     out_fn = "{}_random_TN-{}_NR-{}_NS-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
@@ -378,6 +373,20 @@ def print_variant_info(variants):
         print("{}-mutants: {}".format(k, v))
 
 
+def get_seq_idxs(seq, seq_idxs_range_start, seq_idxs_range_end):
+    range_start = seq_idxs_range_start
+    if range_start is None:
+        range_start = 0
+
+    range_end = seq_idxs_range_end
+    if range_end is None:
+        range_end = len(seq)
+
+    seq_idxs = np.arange(range_start, range_end)
+
+    return seq_idxs
+
+
 def main(args):
 
     chars = ["A", "C", "D", "E", "F", "G", "H", "I", "K", "L", "M", "N", "P", "Q", "R", "S", "T", "V", "W", "Y"]
@@ -385,7 +394,7 @@ def main(args):
     for pdb_fn in args.pdb_fn:
         print("Generating variant list for {}".format(pdb_fn))
         seq = get_seq_from_pdb(pdb_fn)
-        seq_idxs = get_seq_idxs(seq)
+        seq_idxs = get_seq_idxs(seq, args.seq_idxs_range_start, args.seq_idxs_range_end)
 
         # grab a random, random seed
         seed = args.seed
@@ -420,6 +429,14 @@ if __name__ == "__main__":
                         help="the PDB file from which to generate variants. can specify multiple.",
                         type=str,
                         nargs="+")
+    parser.add_argument("--seq_idxs_range_start",
+                        help="the start of the range where to mutate the pdb_fn sequence. 0-based indexing.",
+                        type=int,
+                        default=None)
+    parser.add_argument("--seq_idxs_range_end",
+                        help="the end of the range where to mutate the pdb_fn sequence, EXCLUSIVE. 0-based indexing",
+                        type=int,
+                        default=None)
     parser.add_argument("--target_num",
                         type=int,
                         help="target number of variants per pdb_fn")
