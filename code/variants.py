@@ -11,9 +11,12 @@ from collections import Counter
 import random
 import zlib
 
+import pandas as pd
 from Bio.SeqIO.PdbIO import AtomIterator
 from Bio.PDB import PDBParser
 import numpy as np
+# import connectorx
+import sqlalchemy as sqla
 
 
 # silence warnings when reading PDB files generated from Rosetta (which have comments which aren't parsed by my
@@ -215,15 +218,32 @@ def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, se
     # and if so, it won't return them from this function. note it only some of the subvariants are in the db,
     # then this will still return the ones that aren't in the DB.
     if db_fn is not None:
-        # load DB into memory
-        source = sqlite3.connect(db_fn)
-        con = sqlite3.connect(':memory:')
-        source.backup(con)
-        source.close()
-        cur = con.cursor()
-
-        # con = sqlite3.connect(db_fn)
+        # # load DB into memory
+        # source = sqlite3.connect(db_fn)
+        # con = sqlite3.connect(':memory:')
+        # source.backup(con)
+        # source.close()
         # cur = con.cursor()
+        #
+        # # con = sqlite3.connect(db_fn)
+        # # cur = con.cursor()
+
+        # # load dataframe w/ variants w/ the same pdb_fn into dataframe for quick lookups
+        # # connectorx will parallelize all the queries and join at the end
+        # query = "SELECT * FROM variant WHERE `pdb_fn` == \"{}\"".format(pdb_fn)
+        # db = connectorx.read_sql(f"sqlite://{db_fn}", query, return_type="pandas")
+        # print("loaded DB into dataframe")
+
+        # access the full database from rosettafy
+        print("Loading existing database variants for pdb file: {}...".format(basename(pdb_fn)))
+        start = time.time()
+        engine = sqla.create_engine('sqlite:///{}'.format(db_fn))
+        conn = engine.connect().execution_options(stream_results=True)
+        query = "SELECT mutations FROM variant WHERE `pdb_fn` == \"{}\"".format(basename(pdb_fn))
+        db = set(pd.read_sql_query(query, conn, coerce_float=False)["mutations"])
+        conn.close()
+        engine.dispose()
+        print("Loaded existing database variants in {}".format(time.time() - start))
 
     # using a set and a list to maintain the order
     # this is slower and uses 2x the memory, but the final variant list will be ordered
@@ -253,9 +273,10 @@ def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, se
 
             variant_in_db = False
             if db_fn is not None:
-                query = "SELECT * FROM `variant` WHERE `pdb_fn`==? AND `mutations`==?"
-                result = cur.execute(query, (basename(pdb_fn), v)).fetchall()
-                if len(result) >= 1:
+                # query = "SELECT * FROM `variant` WHERE `pdb_fn`==? AND `mutations`==?"
+                # result = cur.execute(query, (basename(pdb_fn), v)).fetchall()
+                # if len(result) >= 1:
+                if v in db:
                     variant_in_db = True
                     print("Generated variant already in database: {}".format(v))
 
@@ -265,9 +286,9 @@ def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, se
                 variants_list.append(v)
 
     # close sqlite handles
-    if db_fn is not None:
-        cur.close()
-        con.close()
+    # if db_fn is not None:
+    #     cur.close()
+    #     con.close()
 
     return variants_list
 
@@ -332,14 +353,16 @@ def gen_subvariants_main(pdb_fn, seq, seq_idxs, chars, target_num, max_num_subs,
 
     # check if the output file already exists
     # if db_fn is specified, we need to have a hash of the database in the filename
-    if db_fn is None:
-        db_hash = 0
-    else:
+    db_hash = 0
+    if db_fn is not None:
+        print("Hashing database...")
+        start = time.time()
         hash_obj = hashlib.shake_128()
         with open(db_fn, "rb") as f:
             for byte_block in iter(lambda: f.read(4096), b""):
                 hash_obj.update(byte_block)
         db_hash = hash_obj.hexdigest(4)
+        print("Hashing database finished in {}".format(time.time() - start))
 
     out_fn = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_DB-{}_RS-{}.txt".format(basename(pdb_fn)[:-4],
                                                                      human_format(target_num),
