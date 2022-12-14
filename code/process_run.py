@@ -153,13 +153,14 @@ def gen_cleanup_rundef(main_run_dir):
 
     # get the failed and missing job ids
     energize_out_dir = join(main_run_dir, "output", "energize_outputs")
-    # todo: handle failed_variants... those should go into the new run?
-    #  or... set a flag so if any variants fail, the whole job fails
-    failed_log_dirs, failed_jobs, failed_variants = an.check_for_failed_jobs(energize_out_dir)
-    missing_jobs = an.check_for_missing_jobs(main_run_dir, energize_out_dir)
-    print("num failed log dirs: {}".format(len(failed_log_dirs)))
-    print("num failed jobs: {}".format(len(failed_jobs)))
-    print("num missing jobs: {}".format(len(missing_jobs)))
+
+    # failed_log_dirs, failed_jobs, failed_variants = an.check_for_failed_jobs(energize_out_dir)
+    # missing_jobs = an.check_for_missing_jobs(main_run_dir, energize_out_dir)
+    # print("num failed variants: {}".format(len(failed_variants)))
+
+    failed_variants = an.get_failed_variants(main_run_dir)
+    print(len(failed_variants))
+    quit()
 
     # determine which variants need to be re-run (based on failed+missing jobs) and create a new master variant list
     # need access to the args folder, so uncompress it into a temp directory
@@ -204,7 +205,7 @@ def main():
     # path to the parent condor directory for this run
 
     # stats, database, cleanup
-    mode = "database"
+    mode = "stats"
     print("Running mode: {}".format(mode))
 
     # main_dirs = ["output/htcondor_runs/condor_energize_2021-12-03_15-51-12_gb1_sd",
@@ -222,7 +223,14 @@ def main():
     # main_dirs = ["output/htcondor_runs/condor_energize_2022-02-10_20-40-07_KJ_sets_23"]
     # main_dirs = ["output/htcondor_runs/condor_energize_2022-03-15_07-48-16_KJ_set_4"]
     # main_dirs = ["output/htcondor_runs/condor_energize_2021-12-08_14-06-08_avgfp_1"]
-    main_dirs = ["output/htcondor_runs/condor_energize_2022-09-13_14-30-07_avgfp_2"]
+    # main_dirs = ["output/htcondor_runs/condor_energize_2022-09-13_14-30-07_avgfp_2"]
+    # main_dirs = ["output/htcondor_runs/condor_energize_2022-10-05_18-21-19_dlg4_1"]
+    # main_dirs = ["output/htcondor_runs/condor_energize_2022-05-05_19-03-00_pab1_1"]
+    # main_dirs = ["output/htcondor_runs/condor_energize_2022-05-10_14-46-24_ube4b_1"]
+
+    main_dirs = ["output/htcondor_runs/condor_energize_2022-12-13_10-59-55_avgfp_dms_cov",
+                 "output/htcondor_runs/condor_energize_2022-12-13_11-36-14_pab1_dms_cov",
+                 "output/htcondor_runs/condor_energize_2022-12-13_11-39-05_ube4b_dms_cov"]
 
     for main_dir in main_dirs:
         print("Processing {}".format(basename(main_dir)))

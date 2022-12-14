@@ -1,6 +1,9 @@
 """ useful functions for processing and analyzing results of energize/HTCondor runs """
 
 import os
+import shutil
+import subprocess
+import time
 from collections import defaultdict
 from os.path import isfile, basename, join
 import pandas as pd
@@ -29,6 +32,49 @@ def parse_env_vars(env_vars_fn):
         env_vars[tokens[0]] = tokens[1]
 
     return env_vars
+
+
+def get_failed_variants(main_d):
+    """ get failed variants only... don't care about which job they came from
+        want an accurate list of which variants failed """
+
+    # get list of all variants we are SUPPOSED to have, based on the args files
+    # need to untar the args files into a temporary directoy
+    # determine which variants need to be re-run (based on failed+missing jobs) and create a new master variant list
+
+    # need access to the args folder, so uncompress it into a temp directory
+    temp_out_dir = join("output", "temp_{}".format(time.strftime("%Y-%m-%d_%H-%M-%S")))
+    os.makedirs(temp_out_dir)
+    args_tar_fn = join(main_d, "args.tar.gz")
+    tar_cmd = ["tar", "-C", temp_out_dir, "-xf", args_tar_fn]
+    subprocess.call(tar_cmd)
+    temp_args_dir = join(temp_out_dir, "args")
+
+    # open up every single args file and get the list of variants
+    print("generating list of expected variants")
+    expected_variants = ""
+    for fn in [join(temp_args_dir, x) for x in os.listdir(temp_args_dir) if x.endswith(".txt")]:
+        with open(fn, "r") as f:
+            expected_variants += f.read()
+    expected_variants = expected_variants.splitlines()
+
+    # remove temp directory
+    shutil.rmtree(temp_out_dir)
+
+    # now get the list of variants we actually managed to compute Rosetta scores for
+    # assume the run has already been processed, we don't want to run all through all the output files
+    processed_run_dir = join(main_d, "processed_run")
+    energies_cache_fn = "energies_df.csv"
+    print("loading energies_df from cache")
+    energies_df = pd.read_csv(join(processed_run_dir, energies_cache_fn))
+
+    # now we just need the set difference between the expected variants (expected_variants)
+    # and the variants we actually successfully ran (successful_variants)
+    successful_variants = energies_df["pdb_fn"] + " " + energies_df["variant"]
+    print(expected_variants[1:5])
+    print(successful_variants.tolist()[1:5])
+    failed_variants = set(expected_variants) - set(successful_variants.tolist())
+    return failed_variants
 
 
 def check_for_failed_jobs(energize_out_d):
