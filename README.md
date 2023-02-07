@@ -94,10 +94,10 @@ The [rosetta_minimal.py](code/rosetta_minimal.py) script can be used to:
 - Encrypt the `.tar.gz` file with a password using the `openssl` library
 - Split the encrypted `.tar.gz` file into multiple ~700mb files to adhere to SQUID guidelines for file size
 
-> **Note**
+> **Note**  
 > You need to package the Linux version of Rosetta for running on Linux servers like those available from CHTC and OSG
 
-> **Note**
+> **Note**  
 > If you add custom Rosetta code to compute new energy terms, you will need to modify the [rosetta_minimal.py](code/rosetta_minimal.py) script to include your code dependencies in the minimal distribution 
 
 To create the minimal distribution of Rosetta, call the following command from the root directory of this repository.
