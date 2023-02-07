@@ -52,8 +52,9 @@ Then, call the following command from the root directory of this repository.
 python code/prepare.py --rosetta_main_dir=<path_to_rosetta_main_dir> --pdb_fn=pdb_files/raw_pdb_files/2qmt.pdb --relax_nstruct=10 --out_dir_base=output/prepare_outputs 
 ```
 
-_Note: you will need to specify the path to your Rosetta installation's `main` folder. On macOS, it may look similar to:  
-`/Users/<username>/rosetta_bin_mac_2021.16.61629_bundle/main`._ 
+>**Note**  
+> You need to specify the path to your Rosetta installation's `main` folder. It may look similar to:  
+`/Users/<username>/rosetta_bin_mac_2021.16.61629_bundle/main` 
 
 Additional arguments specified in this example: 
 
@@ -86,6 +87,7 @@ The main steps for setting up a Rosettafy HTCondor run are:
 1. Package a minimal distribution of Rosetta and upload it to SQUID 
 2. Prepare a PDB file for use with Rosetta
 3. Generate a list of variants for which you want to compute energies
+4. 
 
 ### Packaging a minimal distribution of Rosetta
 The [rosetta_minimal.py](code/rosetta_minimal.py) script can be used to:
@@ -107,6 +109,21 @@ python code/rosetta_minimal.py --gen_distribution --rosetta_main_dir=<path_to_ro
 ```
 where `<path_to_rosetta_main_dir>` is the path to full Rosetta distribution.
 It may look similar to: `/Users/<username>/rosetta_bin_linux_2021.16.61629_bundle/main`.
+The minimal distribution will be created in the `rosetta_minimal` directory.
+
+To package the Rosetta distribution for SQUID:
+
+```commandline
+python code/rosetta_minimal.py --prep_for_squid --out_dir=rosetta_minimal --squid_dir=output/squid_rosetta --encryption_password=password
+```
+The packaged distribution will be created in the `output/squid_rosetta` directory.
+
+### Prepare a PDB file for use with Rosetta
+See the above section on [Preparing PDB files for Rosetta](#preparing-pdb-files-for-rosetta).
+
+If preparing your PDB file(s) locally is too slow, you can create an HTCondor run to do it.
+
+_Todo: add instructions for this_
 
 ### Generating variant lists
 The [variants.py](code/variants.py) script can be used to generate variant lists.
@@ -114,7 +131,7 @@ It has three modes of operation: `all`, `random`, `subvariants`.
 
 #### Generating all possible variants
 For small proteins with a small number of mutations, it may be feasible to generate all possible variants.
-Here is how to generate all possible single amino acid substitution variants for the protein [2qmt.pdb](pdb_files/raw_pdb_files/2qmt.pdb).
+Here is how to generate all possible single amino acid substitution variants for the PDB file [2qmt_p.pdb](pdb_files/prepared_pdb_files/2qmt_p.pdb) we prepared in the previous section.
 
 ```commandline
 python code/variants.py all --pdb_fn=pdb_files/prepared_pdb_files/2qmt_p.pdb --num_subs_list 1
