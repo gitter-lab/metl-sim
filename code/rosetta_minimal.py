@@ -10,7 +10,7 @@ import subprocess
 import time
 
 
-def prep_for_squid(rosetta_minimal_dir, squid_dir):
+def prep_for_squid(rosetta_minimal_dir, squid_dir, encryption_password):
     """ prepares the distribution for SQUID by compressing and splitting it """
     # could probably do this in pure python using tarfile package and
     # https://stackoverflow.com/questions/45250329/split-equivalent-of-gzip-files-in-python
@@ -32,7 +32,7 @@ def prep_for_squid(rosetta_minimal_dir, squid_dir):
     # encrypt the tar file for extra security against public distribution
     tar_fn_encrypted = join(squid_dir_with_datetime, "rosetta_min_enc.tar.gz")
     encrypt_cmd = ["openssl", "enc", "-e", "-aes256",
-                   "-in", tar_fn, "-out", tar_fn_encrypted, "-pass", "pass:R0S3774123"]
+                   "-in", tar_fn, "-out", tar_fn_encrypted, "-pass", "pass:{}".format(encryption_password)]
     subprocess.call(encrypt_cmd)
 
     # split into files less than 1gb (let's go with 700mb just because)
@@ -110,7 +110,7 @@ def main(args):
         gen_minimal_distr(args.rosetta_main_dir, args.out_dir)
 
     if args.prep_for_squid:
-        prep_for_squid(args.out_dir, args.squid_dir)
+        prep_for_squid(args.out_dir, args.squid_dir, args.encryption_password)
 
 
 if __name__ == "__main__":
@@ -142,5 +142,10 @@ if __name__ == "__main__":
                              "a timestamp will be appended to this directory name",
                         type=str,
                         default="output/squid_rosetta")
+
+    parser.add_argument("--encryption_password",
+                        help="the password to use for encrypting the Rosetta tar file",
+                        type=str,
+                        default="R0S3774123")
 
     main(parser.parse_args())
