@@ -82,14 +82,34 @@ This pipeline computes Rosetta energies for specified variants and consists of t
 
 ## Running with HTCondor
 
-### Overview
 The main steps for setting up a Rosettafy HTCondor run are:
-1. Prepare a PDB file for use with Rosetta
-2. Generate a list of variants for which you want to compute energies
-3. 
+1. Package a minimal distribution of Rosetta and upload it to SQUID 
+2. Prepare a PDB file for use with Rosetta
+3. Generate a list of variants for which you want to compute energies
+
+### Packaging a minimal distribution of Rosetta
+The [rosetta_minimal.py](code/rosetta_minimal.py) script can be used to:
+- Create a minimal distribution of Rosetta
+- Compress it into a single `.tar.gz` file
+- Encrypt the `.tar.gz` file with a password using the `openssl` library
+- Split the encrypted `.tar.gz` file into multiple ~700mb files to adhere to SQUID guidelines for file size
+
+> **Note**
+> You need to package the Linux version of Rosetta for running on Linux servers like those available from CHTC and OSG
+
+> **Note**
+> If you add custom Rosetta code to compute new energy terms, you will need to modify the [rosetta_minimal.py](code/rosetta_minimal.py) script to include your code dependencies in the minimal distribution 
+
+To create the minimal distribution of Rosetta, call the following command from the root directory of this repository.
+
+```commandline
+python code/rosetta_minimal.py --gen_distribution --rosetta_main_dir=<path_to_rosetta_main_dir> --out_dir=rosetta_minimal
+```
+where `<path_to_rosetta_main_dir>` is the path to full Rosetta distribution.
+It may look similar to: `/Users/<username>/rosetta_bin_linux_2021.16.61629_bundle/main`.
 
 ### Generating variant lists
-The script [variants.py](../code/variants.py) can be used to generate variant lists.
+The [variants.py](code/variants.py) script can be used to generate variant lists.
 It has three modes of operation: `all`, `random`, `subvariants`.
 
 #### Generating all possible variants
