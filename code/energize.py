@@ -440,31 +440,29 @@ if __name__ == "__main__":
 
     # main input files
     parser.add_argument("--rosetta_main_dir",
-                        help="The main directory of the rosetta distribution containing the binaries and "
-                             "other files that are needed for this script (does not have to be full distribution)",
+                        help="path to the main directory of the rosetta distribution",
                         type=str,
                         default="rosetta_minimal")
 
     parser.add_argument("--variants_fn",
-                        help="the file containing the variants",
+                        help="path to text file containing protein variants",
                         type=str)
 
+    # todo: change to specifying the chain in the variants_fn file to support different chains in a single run
     parser.add_argument("--chain",
-                        help="the chain (from the PDB file) of the variant. ideally, this would be defined as part"
-                             " of the variant in variants_fn, so we could support different chains in one run.",
+                        help="the chain to use from the pdb file",
                         type=str,
                         default="A")
 
     parser.add_argument("--pdb_dir",
-                        help="directory containing pdb files referenced in variants_fn",
+                        help="directory containing the pdb files referenced in variants_fn",
                         type=str,
                         default="pdb_files/prepared_pdb_files")
 
     parser.add_argument("--allowable_failure_fraction",
-                        help="fraction of variants that can fail so that this job is still considered successful",
+                        help="fraction of variants that can fail but still consider this job successful",
                         type=float,
                         default=0.25)
-
 
     # energize hyperparameters
     parser.add_argument("--mutate_default_max_cycles",
@@ -486,7 +484,7 @@ if __name__ == "__main__":
 
     # logging and output options
     parser.add_argument("--save_wd",
-                        help="set this to save the full working directory for each variant",
+                        help="set this flag to save the full working directory for each variant",
                         action="store_true")
 
     parser.add_argument("--log_dir_base",
@@ -508,6 +506,5 @@ if __name__ == "__main__":
                         help="the github commit id corresponding to this version of the code",
                         type=str,
                         default="no_commit_id")
-
 
     main(parser.parse_args())
