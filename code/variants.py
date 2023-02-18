@@ -3,19 +3,15 @@ import argparse
 import hashlib
 import itertools
 import math
-import sqlite3
 import time
-import os
 from os.path import join, basename, isfile
 from collections import Counter
 import random
-import zlib
 
 import pandas as pd
 from Bio.SeqIO.PdbIO import AtomIterator
 from Bio.PDB import PDBParser
 import numpy as np
-# import connectorx
 import sqlalchemy as sqla
 
 
