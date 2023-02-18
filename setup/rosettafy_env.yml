@@ -1,10 +1,14 @@
 name: rosettafy
+channels:
+  - defaults
+  - conda-forge
 dependencies:
   - python=3.9.1
   - numpy=1.19.2
   - pandas=1.2.1
   - seaborn=0.11.1
-  - conda-forge::matplotlib=3.3.4
-  - conda-forge::shortuuid=1.0.1
-  - conda-forge::biopython=1.78
-  - conda-forge::jupyterlab=3.0.12
+  - matplotlib=3.3.4
+  - shortuuid=1.0.1
+  - biopython=1.78
+  - jupyterlab=3.0.12
+  - sqlalchemy=1.4.39
