@@ -175,6 +175,34 @@ python code/variants.py subvariants --pdb_fn=pdb_files/prepared_pdb_files/2qmt_p
 
 By default, the output will be written to the `variant_lists` directory.
 
-#### Prepare an HTCondor run
+### Prepare an HTCondor run
 
-The script [condor.py](code/condor.py) can be used to prepare an HTCondor run.
+The [condor.py](code/condor.py) script can be used to prepare an HTCondor run.
+You can specify arguments to this script directly on the command line, or you can specify them in arguments files stored in the [run_defs](htcondor/run_defs) directory.
+I prefer to create an argument file for every condor run for record-keeping and reproducibility.
+
+Here is how you would create an argument file for a condor run to compute energy terms for the single substitution variants we generated in the previous section.
+Note each command line argument is specified on a separate line.
+
+Contents of `htcondor/run_defs/gb1_example_run.txt`
+```text
+--run_type
+energize
+--run_name
+gb1_example_run
+--energize_args_fn
+energize_args/condor_set_2.txt
+--master_variant_fn
+variant_lists/2qmt_p_all_NS-1.txt
+--variants_per_job
+-1
+--github_tag
+v0.7.8
+```
+
+You can then generate the HTCondor run using the following command:
+```commandline
+python code/condor.py @htcondor/run_defs/gb1_example_run.txt
+```
+
+
