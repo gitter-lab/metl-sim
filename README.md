@@ -2,6 +2,25 @@
 
 This repository facilitates high-throughput Rosetta runs to compute energy terms for protein variants.
 
+
+## Table of Contents
+- [Rosettafy](#rosettafy)
+  * [Setup](#setup)
+  * [Preparing PDB files for Rosetta](#preparing-pdb-files-for-rosetta)
+    + [Example](#example)
+  * [Computing Rosetta energy terms for protein variants](#computing-rosetta-energy-terms-for-protein-variants)
+    + [Example](#example-1)
+  * [Running with HTCondor](#running-with-htcondor)
+    + [Packaging a minimal distribution of Rosetta](#packaging-a-minimal-distribution-of-rosetta)
+    + [Packaging the Python environment](#packaging-the-python-environment)
+    + [Prepare a PDB file for use with Rosetta](#prepare-a-pdb-file-for-use-with-rosetta)
+    + [Generating variant lists](#generating-variant-lists)
+      - [Generating all possible variants](#generating-all-possible-variants)
+      - [Generating variants using the subvariants algorithm](#generating-variants-using-the-subvariants-algorithm)
+    + [Prepare an HTCondor run](#prepare-an-htcondor-run)
+    + [Processing results](#processing-results)
+
+
 ## Setup
 
 Install Rosetta v3.13 from [rosettacommons.org](https://www.rosettacommons.org). 
