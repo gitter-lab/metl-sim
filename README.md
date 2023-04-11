@@ -262,6 +262,10 @@ You can then generate the HTCondor run using the following command:
 python code/condor.py @htcondor/run_defs/gb1_example_run.txt
 ```
 
+The script will generate a run directory and place it in `output/htcondor_runs`.
+From there, you can upload the run directory to your CHTC submit node. 
+You can then submit the run using `submit.sh`, which should be located in the run directory.
+
 ### Processing results
 
 
