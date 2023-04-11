@@ -78,18 +78,41 @@ When you call this command, the [prepare.py](code/prepare.py) script will:
 
 The [energize.py](code/energize.py) script can be used to compute Rosetta energy terms for protein variants.
 
+This script runs our full Rosetta pipeline, consisting of multiple steps to:
+1. Introduce the variant's mutations to the base structure using a resfile \[[1](templates/energize_wd_template/mutate_template.xml)\] \[[2](templates/energize_wd_template/mutation_template.resfile)\]
+2. Relax the updated structure to compute the main energy terms \[[1](templates/energize_wd_template/relax_template.xml)\] \[[2](templates/energize_wd_template/flags_relax)\] \[[3](templates/energize_wd_template/flags_relax_all)\]
+3. Compute custom filter-based energy terms \[[1](templates/energize_wd_template/filter_3rd.xml)\] \[[2](templates/energize_wd_template/flags_filter)\]
+4. Compute centroid energy terms \[[1](templates/energize_wd_template/flags_centroid)\]
+
 This script calls Rosetta binaries using the `subprocess` library. 
-It processes the results into a single dataframe. 
+Some hyperparameters for Rosetta can be specified as arguments to this script.
+This script will either pass those hyperparameters along to Rosetta as command line arguments, or it will modify the templates in the [templates](templates) directory to account for the hyperparameters.
+Other hyperparameters are hardcoded in various files in the [templates](templates) directory.
+For ease of use and reproducibility, arguments to this script can be stored in text files in the [energize_args](energize_args) directory.
+The arguments used to generate Rosetta data for our manuscript are in [condor_set_2.txt](energize_args/condor_set_2.txt) 
 
-Hyperparameters for Rosetta can be specified as arguments to this script. 
-The hyperparameters are either filled into various files in the [templates](templates) directory or passed to Rosetta binaries as command line arguments.
-Some hyperparameters are hardcoded in the [templates](templates) directory. 
+This script processes the results from all of these steps into a single dataframe.
 
-This pipeline computes Rosetta energies for specified variants and consists of two steps: mutate and relax.
 
-1. Mutate performs the amino acid substitutions and optimizes rotamers at the mutated residues
-2. Relax optimizes the structure at and around the mutated residues and computes the energies for the final structure
+### Example
 
+Let's compute Rosetta energy terms for a variant of the PDB file we prepared in the previous step, [2qmt_p.pdb](pdb_files/prepared_pdb_files/2qmt_p.pdb).
+The [energize.py](code/energize.py) script accepts variants in a text file.
+I explain how to generate variant lists in the next section.
+For now, I created a sample text file with two variants, [2qmt_p_example.txt](variant_lists/2qmt_p_example.txt).
+
+Make sure the `rosettafy` conda environment is active. 
+Then, call the following command from the root directory of this repository.
+
+```commandline
+python code/energize.py @energize_args/example.txt --rosetta_main_dir=<path_to_rosetta_main_dir>  --variants_fn=variant_lists/2qmt_p_example.txt --save_wd
+```
+
+Note we are using the `@energize_args/example.txt` argument to insert arguments from that file.
+Additionally, we are specifying the path to the Rosetta installation, the file containing the variants to run, and an additional flag `--save_wd` to save the working directory for each variant.
+For condor runs, there is no need to specify the `--save_wd` flag, as it will generate too much output.
+
+By default, the output will be placed in the `output/energize_outputs` directory.
 
 ## Running with HTCondor
 

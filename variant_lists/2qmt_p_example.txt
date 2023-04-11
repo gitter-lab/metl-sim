@@ -1,0 +1,2 @@
+2qmt_p.pdb A23C,A26W
+2qmt_p.pdb Q2I,A26W
