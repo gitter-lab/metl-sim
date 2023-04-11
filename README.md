@@ -95,9 +95,10 @@ This pipeline computes Rosetta energies for specified variants and consists of t
 
 The main steps for setting up a Rosettafy HTCondor run are:
 1. Package a minimal distribution of Rosetta and upload it to SQUID ([rosetta_minimal.py](code/rosetta_minimal.py))
-2. Prepare a PDB file for use with Rosetta ([prepare.py](code/prepare.py))
-3. Generate a list of variants for which you want to compute energies ([variants.py](code/variants.py))
-4. Prepare an HTCondor run ([condor.py](code/condor.py))
+2. Package the Python environment and upload it to SQUID
+3. Prepare a PDB file for use with Rosetta ([prepare.py](code/prepare.py))
+4. Generate a list of variants for which you want to compute energies ([variants.py](code/variants.py))
+5. Prepare an HTCondor run ([condor.py](code/condor.py))
 
 ### Packaging a minimal distribution of Rosetta
 The [rosetta_minimal.py](code/rosetta_minimal.py) script can be used to:
@@ -127,6 +128,20 @@ To package the Rosetta distribution for SQUID:
 python code/rosetta_minimal.py --prep_for_squid --out_dir=rosetta_minimal --squid_dir=output/squid_rosetta --encryption_password=password
 ```
 The packaged distribution will be created in the `output/squid_rosetta` directory.
+
+### Packaging the Python environment
+
+You must package the Python environment and upload it to SQUID.
+CHTC has instructions on how to do this [here](https://chtc.cs.wisc.edu/uw-research-computing/conda-installation.html).
+To make this process easier, I created a helper script, [package_env.sh](htcondor/package_env.sh). 
+
+To package the Python environment, perform the following steps:
+1. Create a working directory on the submit node named `environment`
+2. Upload [htcondor/package_env.sh](htcondor/package_env.sh) and [setup/rosettafy_env.yml](setup/rosettafy_env.yml) to the `environment` directory
+3. CD into the `environment` directory on the submit node
+4. Run `package_env.sh` and wait for it to finish
+5. Transfer the resulting `rosettafy_env.tar.gz` file to SQUID
+
 
 ### Prepare a PDB file for use with Rosetta
 See the above section on [Preparing PDB files for Rosetta](#preparing-pdb-files-for-rosetta).
@@ -204,5 +219,8 @@ You can then generate the HTCondor run using the following command:
 ```commandline
 python code/condor.py @htcondor/run_defs/gb1_example_run.txt
 ```
+
+### Processing results
+
 
 
