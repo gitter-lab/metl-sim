@@ -205,7 +205,7 @@ def main():
     # path to the parent condor directory for this run
 
     # stats, database, cleanup
-    mode = "stats"
+    mode = "database"
     print("Running mode: {}".format(mode))
 
     # main_dirs = ["output/htcondor_runs/condor_energize_2021-12-03_15-51-12_gb1_sd",
@@ -228,9 +228,15 @@ def main():
     # main_dirs = ["output/htcondor_runs/condor_energize_2022-05-05_19-03-00_pab1_1"]
     # main_dirs = ["output/htcondor_runs/condor_energize_2022-05-10_14-46-24_ube4b_1"]
 
-    main_dirs = ["output/htcondor_runs/condor_energize_2022-12-13_10-59-55_avgfp_dms_cov",
-                 "output/htcondor_runs/condor_energize_2022-12-13_11-36-14_pab1_dms_cov",
-                 "output/htcondor_runs/condor_energize_2022-12-13_11-39-05_ube4b_dms_cov"]
+    # main_dirs = ["output/htcondor_runs/condor_energize_2022-12-13_10-59-55_avgfp_dms_cov",
+    #              "output/htcondor_runs/condor_energize_2022-12-13_11-36-14_pab1_dms_cov",
+    #              "output/htcondor_runs/condor_energize_2022-12-13_11-39-05_ube4b_dms_cov"]
+
+    # main_dirs = ["output/htcondor_runs/condor_energize_2022-12-14_16-17-39_pab1_2"]
+    # main_dirs = ["output/htcondor_runs/condor_energize_2022-12-14_16-19-10_ube4b_2"]
+    # main_dirs = ["output/htcondor_runs/condor_energize_2022-12-14_16-19-18_dlg4_2"]
+
+    main_dirs = ["output/htcondor_runs/condor_energize_2023-01-12_13-03-12_ube4b_dms_cov_supplemental"]
 
     for main_dir in main_dirs:
         print("Processing {}".format(basename(main_dir)))

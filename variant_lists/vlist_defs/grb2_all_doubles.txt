@@ -1,0 +1,5 @@
+all
+--pdb_fn
+pdb_files/prepared_pdb_files/AF-P62993-F1-model_v4_trunc_p.pdb
+--num_subs_list
+2
