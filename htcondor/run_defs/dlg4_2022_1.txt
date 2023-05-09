@@ -1,0 +1,14 @@
+--run_type
+energize
+--run_name
+dlg4_2022_1
+--energize_args_fn
+energize_args/condor_set_2.txt
+--master_variant_fn
+variant_lists/6qji_p_subvariants_TN-1.5M_MAXS-5_MINS-3_DB-615ed6c1_RS-256865406.txt
+variant_lists/6qji_p_all_NS-2_DB-615ed6c1.txt
+variant_lists/6qji_p_all_NS-1_DB-615ed6c1.txt
+--variants_per_job
+-1
+--github_tag
+v0.7.9

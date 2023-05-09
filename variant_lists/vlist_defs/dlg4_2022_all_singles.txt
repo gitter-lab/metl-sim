@@ -1,0 +1,12 @@
+all
+--pdb_fn
+pdb_files/prepared_pdb_files/6qji_p.pdb
+--seq_idxs_range_start
+0
+--seq_idxs_range_end
+84
+--num_subs_list
+1
+--ignore_existing_out_file
+--db_fn
+variant_database/database.db
