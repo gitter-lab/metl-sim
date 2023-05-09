@@ -11,4 +11,4 @@ variant_lists/AF-P62993-F1-model_v4_trunc_p_subvariants_TN-20M_MAXS-5_MINS-3_DB-
 --variants_per_job
 -1
 --github_tag
-v0.7.8
+v0.7.9
