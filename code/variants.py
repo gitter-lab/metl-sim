@@ -7,6 +7,7 @@ import time
 from os.path import join, basename, isfile
 from collections import Counter
 import random
+from typing import Optional, Sequence
 
 import pandas as pd
 from Bio.SeqIO.PdbIO import AtomIterator
@@ -323,12 +324,44 @@ def gen_random_main(pdb_fn, seq, seq_idxs, chars, target_num, num_subs_list, num
             f.write("{} {}\n".format(basename(pdb_fn), v))
 
 
-def gen_all_main(pdb_fn, seq, seq_idxs, chars, num_subs_list, out_dir):
+def gen_all_main(pdb_fn: str,
+                 seq: str,
+                 seq_idxs: Sequence[int],
+                 chars: list[str],
+                 num_subs_list: list[int],
+                 out_dir: Optional[str],
+                 db_fn: Optional[str] = None,
+                 ignore_existing_out_file: bool = False):
 
-    out_fn = "{}_all_NS-{}.txt".format(basename(pdb_fn)[:-4], ",".join(map(str, num_subs_list)))
+    # if db_fn is specified, we need to have a hash of the database in the filename
+    db_hash = 0
+    if db_fn is not None:
+        print("Hashing database...")
+        start = time.time()
+        hash_obj = hashlib.shake_128()
+        with open(db_fn, "rb") as f:
+            for byte_block in iter(lambda: f.read(4096), b""):
+                hash_obj.update(byte_block)
+        db_hash = hash_obj.hexdigest(4)
+        print("Hashing database finished in {}".format(time.time() - start))
+
+    if db_hash != 0:
+        out_fn = "{}_all_NS-{}_DB-{}.txt".format(basename(pdb_fn)[:-4], ",".join(map(str, num_subs_list)), db_hash)
+    else:
+        out_fn = "{}_all_NS-{}.txt".format(basename(pdb_fn)[:-4], ",".join(map(str, num_subs_list)))
+
     out_fn = join(out_dir, out_fn)
+    # output file already exists
     if isfile(out_fn):
-        raise FileExistsError("Output file already exists: {}".format(out_fn))
+        if ignore_existing_out_file:
+            new_out_fn = out_fn
+            i = 1
+            while isfile(new_out_fn):
+                new_out_fn = "{}_{}.txt".format(out_fn[:-4], i)
+                i += 1
+            out_fn = new_out_fn
+        else:
+            raise FileExistsError("Output file already exists: {}".format(out_fn))
     print("Output file will be {}".format(out_fn))
 
     for i in num_subs_list:
@@ -338,6 +371,28 @@ def gen_all_main(pdb_fn, seq, seq_idxs, chars, num_subs_list, out_dir):
     variants = []
     for i in num_subs_list:
         variants += list(gen_all_variants(seq, i, chars, seq_idxs))
+
+    # filter out variants already in the database if one is provided
+    if db_fn is not None:
+        variants_new = []
+        print("Loading existing database variants for pdb file: {}...".format(basename(pdb_fn)))
+        start = time.time()
+        engine = sqla.create_engine('sqlite:///{}'.format(db_fn))
+        conn = engine.connect().execution_options(stream_results=True)
+        query = "SELECT mutations FROM variant WHERE `pdb_fn` == \"{}\"".format(basename(pdb_fn))
+        db = set(pd.read_sql_query(query, conn, coerce_float=False)["mutations"])
+        conn.close()
+        engine.dispose()
+        print("Loaded existing database variants in {}".format(time.time() - start))
+
+        for v in variants:
+            if v in db:
+                print("Generated variant already in database: {}".format(v))
+            else:
+                variants_new.append(v)
+
+        variants = variants_new
+
     print_variant_info(variants)
 
     with open(out_fn, "w") as f:
@@ -392,7 +447,10 @@ def print_variant_info(variants):
         print("{}-mutants: {}".format(k, v))
 
 
-def get_seq_idxs(seq, seq_idxs_range_start, seq_idxs_range_end):
+def get_seq_idxs(seq: str,
+                 seq_idxs_range_start: Optional[int],
+                 seq_idxs_range_end: Optional[int]) -> np.ndarray:
+
     range_start = seq_idxs_range_start
     if range_start is None:
         range_start = 0
@@ -429,7 +487,8 @@ def main(args):
                             args.target_num, args.num_subs_list, args.num_replicates, seed, args.out_dir)
 
         elif args.method == "all":
-            gen_all_main(pdb_fn, seq, seq_idxs, chars, args.num_subs_list, args.out_dir)
+            gen_all_main(pdb_fn, seq, seq_idxs, chars, args.num_subs_list,
+                         args.out_dir, args.db_fn, args.ignore_existing_out_file)
 
 
 if __name__ == "__main__":
@@ -471,6 +530,10 @@ if __name__ == "__main__":
                         type=str,
                         help="database filename, if specified, will not generate variants already in database",
                         default=None)
+    parser.add_argument("--ignore_existing_out_file",
+                        action="store_true",
+                        default=False,
+                        help="ignore existing filename, create a new one with appended number")
     # random args
     parser.add_argument("--num_subs_list",
                         type=int,
