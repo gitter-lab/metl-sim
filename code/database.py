@@ -6,6 +6,8 @@ import sqlite3
 import argparse
 
 import pandas as pd
+from pandas.io.sql import SQLiteDatabase, SQLiteTable
+from tqdm import tqdm
 
 import utils
 from utils import sort_variant_mutations
@@ -26,13 +28,33 @@ def create_tables(con):
         cur.execute(command)
 
 
+def df_to_sqlite(df: pd.DataFrame, db_file_name: str, table_name: str, chunk_size=1000000):
+    # https://stackoverflow.com/a/70488765/227755
+    # https://stackoverflow.com/questions/56369565/large-6-million-rows-pandas-df-causes-memory-error-with-to-sql-when-chunksi
+    con = sqlite3.connect(db_file_name)
+    db = SQLiteDatabase(con=con)
+    table = SQLiteTable(table_name, db, df, index=False, if_exists="append", dtype=None)
+    table.create()
+    insert = table.insert_statement(num_rows=1)  # single insert statement
+    it = df.itertuples(index=False, name=None)  # just regular tuples
+    pb = tqdm(it, total=len(df))  # not needed but nice to have
+    with con:
+        while True:
+            con.execute("begin")
+            try:
+                for c in range(0, chunk_size):
+                    row = next(it, None)
+                    if row is None:
+                        pb.update(c)
+                        return
+                    con.execute(insert, row)
+                pb.update(chunk_size)
+            finally:
+                con.execute("commit")
+
+
 def add_energies(db_fn, energies_df):
     """ add new variant records into database """
-
-    # todo: memory usage for this is absurd (75+gb for a 9gb dataset)
-    #   figure out why and fix
-
-    con = sqlite3.connect(db_fn)
 
     energies_db_ready = energies_df.rename(columns={"variant": "mutations"})
 
@@ -43,12 +65,10 @@ def add_energies(db_fn, energies_df):
     energies_db_ready["mutations"] = sort_variant_mutations(energies_db_ready["mutations"].tolist())
 
     try:
-        energies_db_ready.to_sql("variant", con, if_exists="append", chunksize=3000, index=False, method="multi")
+        df_to_sqlite(energies_db_ready, db_fn, "variant")
     except sqlite3.IntegrityError as e:
         print("Encountered sqlite3.IntegrityError, data already exists in database?")
         print(e)
-
-    con.close()
 
 
 def add_meta(db_fn, hparams_df, jobs_df):
@@ -113,6 +133,7 @@ def main(args):
         with open(join(pdb_dir, "index.csv"), "w") as f:
             f.write("pdb_fn,aa_sequence,seq_len\n")
             for pdb_fn in pdb_fns:
+                print("Processing {}".format(pdb_fn))
                 seq = utils.get_seq_from_pdb(pdb_fn)
                 f.write("{},{},{}\n".format(basename(pdb_fn), seq, len(seq)))
 
