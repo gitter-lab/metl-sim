@@ -1,0 +1,5 @@
+all
+--pdb_fn
+pdb_files/prepared_pdb_files/AF-Q6SJ61-F1-model_v4_p.pdb
+--num_subs_list
+2
