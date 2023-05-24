@@ -1,3 +1,5 @@
+from io import StringIO
+
 from Bio import SeqIO
 
 
@@ -42,7 +44,23 @@ def sort_variant_mutations(variants):
 
 def get_seq_from_pdb(pdb_fn):
     """ uses atom iterator method """
-    seq_records = list(SeqIO.parse(pdb_fn, "pdb-atom"))
+
+    # load the text of the PDB
+    with open(pdb_fn, "r") as f:
+        pdb_lines = f.readlines()
+
+    # remove everything after the "TER" line
+    filtered_pdb_lines = []
+    for line in pdb_lines:
+        if line.strip() == "TER":
+            break
+        filtered_pdb_lines.append(line)
+
+    filtered_pdb_text = "".join(filtered_pdb_lines)
+
+    # load the seq records from pdb_text
+    # seq_records = list(SeqIO.parse(pdb_fn, "pdb-atom"))
+    seq_records = list(SeqIO.parse(StringIO(filtered_pdb_text), "pdb-atom"))
 
     # found more than one chain
     if len(seq_records) > 1:
