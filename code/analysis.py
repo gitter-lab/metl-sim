@@ -178,11 +178,11 @@ def resource_usage(condor_log_d):
         memory = None
         for line in lines:
             line = line.strip()
-            if line.startswith("Cpus"):
+            if line.startswith("Cpus") and ":" in line:
                 cpus = float(line.split(":")[1].split()[0])
-            if line.startswith("Disk"):
+            if line.startswith("Disk") and ":" in line:
                 disk = int(line.split(":")[1].split()[0])
-            if line.startswith("Memory"):
+            if line.startswith("Memory") and ":" in line:
                 memory = int(line.split(":")[1].split()[0])
 
         if cpus is None or disk is None or memory is None:

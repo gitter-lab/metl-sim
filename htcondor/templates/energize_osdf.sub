@@ -15,7 +15,7 @@ executable = run.sh
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 
-transfer_input_files = run.sh, pass.txt, code.tar.gz, args/$(Process).txt, energize_args.txt, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.aa, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ab, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ac, http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosettafy_env_v0.4.tar.gz
+transfer_input_files = run.sh, pass.txt, code.tar.gz, args/$(Process).txt, energize_args.txt, osdf:///chtc/staging/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.aa, osdf:///chtc/staging/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ab, osdf:///chtc/staging/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ac, osdf:///chtc/staging/sgelman2/rosettafy_env_v0.4.tar.gz
 transfer_output_files = output
 
 request_cpus = 1
@@ -34,6 +34,6 @@ on_exit_hold_reason = "Nonzero exit-code"
 
 # periodically release failed jobs up to 5 times the hold reason code will be 3, and the subcode (set above) will be 1
 # auto release jobs that fail to transfer files from squid (hold reason code 12, subcode 0)
-periodic_release = ((NumJobStarts < 5) && (HoldReasonCode == 13) && ((CurrentTime - EnteredCurrentStatus) > 600)) || ((NumJobStarts < 5) && (HoldReasonCode == 3) && (HoldReasonSubCode == 1) && ( (CurrentTime - EnteredCurrentStatus) > 600))
+periodic_release = ((NumJobStarts < 5) && (HoldReasonCode == 12) && (HoldReasonSubCode == 0) && ( (CurrentTime - EnteredCurrentStatus) > 600)) || ((NumJobStarts < 5) && (HoldReasonCode == 3) && (HoldReasonSubCode == 1) && ( (CurrentTime - EnteredCurrentStatus) > 600))
 
 queue $ENV(NUM_JOBS)

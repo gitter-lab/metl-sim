@@ -7,6 +7,7 @@
 import os
 from os.path import join
 
+
 def main():
 
     pdb_fn = "pdb_files/raw_pdb_files/bgl3_cm.pdb"

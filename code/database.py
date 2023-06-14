@@ -28,7 +28,7 @@ def create_tables(con):
         cur.execute(command)
 
 
-def df_to_sqlite(df: pd.DataFrame, db_file_name: str, table_name: str, chunk_size=1000000):
+def df_to_sqlite(df: pd.DataFrame, db_file_name: str, table_name: str, chunk_size: int = 1000000):
     # https://stackoverflow.com/a/70488765/227755
     # https://stackoverflow.com/questions/56369565/large-6-million-rows-pandas-df-causes-memory-error-with-to-sql-when-chunksi
     con = sqlite3.connect(db_file_name)

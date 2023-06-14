@@ -139,10 +139,10 @@ def parse_run_def(run_def_fn):
     return run_def
 
 
-def gen_cleanup_rundef(main_run_dir):
+def gen_cleanup_run_def(main_run_dir):
     """ create an HTCondor run_def to re-process failed or missing jobs from a different run """
 
-    # load the previous rundef to match parameters with this new run
+    # load the previous run def to match parameters with this new run
     run_def_fn = join(main_run_dir, "run_def.txt")
     run_def = parse_run_def(run_def_fn)
     print("new run is based on existing run {}".format(run_def["run_name"]))
@@ -159,6 +159,7 @@ def gen_cleanup_rundef(main_run_dir):
     # print("num failed variants: {}".format(len(failed_variants)))
 
     failed_variants = an.get_failed_variants(main_run_dir)
+    print(failed_variants)
     print(len(failed_variants))
     quit()
 
@@ -236,7 +237,17 @@ def main():
     # main_dirs = ["output/htcondor_runs/condor_energize_2022-12-14_16-19-10_ube4b_2"]
     # main_dirs = ["output/htcondor_runs/condor_energize_2022-12-14_16-19-18_dlg4_2"]
 
-    main_dirs = ["output/htcondor_runs/condor_energize_2023-01-12_13-03-12_ube4b_dms_cov_supplemental"]
+    # main_dirs = ["output/htcondor_runs/condor_energize_2023-01-12_13-03-12_ube4b_dms_cov_supplemental"]
+
+    # main_dirs = ["output/htcondor_runs/condor_energize_2023-04-29_15-08-28_grb2_1"]
+
+    # main_dirs = ["output/htcondor_runs/condor_energize_2023-05-09_16-21-14_dlg4_2022_1"]
+
+    # main_dirs = ["output/htcondor_runs/condor_energize_2022-10-05_18-21-19_dlg4_1",
+    #              "output/htcondor_runs/condor_energize_2022-12-14_16-19-18_dlg4_2",
+    #              "output/htcondor_runs/condor_energize_2023-05-09_16-21-14_dlg4_2022_1"]
+
+    main_dirs = ["output/htcondor_runs/condor_energize_2023-05-24_23-13-10_tem-1_1"]
 
     for main_dir in main_dirs:
         print("Processing {}".format(basename(main_dir)))
@@ -260,12 +271,15 @@ def main():
             energize_out_dir = join(main_dir, "output", "energize_outputs")
 
             # add to database
-            database_fn = "variant_database/database.db"
+            # database_fn = "variant_database/database.db"
+            # database_fn = "variant_database/grb2.db"
+            # database_fn = "variant_database/dlg4.db"
+            database_fn = "variant_database/tem-1.db"
             add_to_database(database_fn, processed_run_dir, energize_out_dir)
 
         elif mode == "cleanup":
             # create a new condor run definition file to re-run failed jobs
-            gen_cleanup_rundef(main_dir)
+            gen_cleanup_run_def(main_dir)
 
 
 if __name__ == "__main__":
