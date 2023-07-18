@@ -32,13 +32,13 @@ rm rosetta_min_enc.tar.gz.*
 # set up the python environment (from packaged version)
 # https://chtc.cs.wisc.edu/conda-installation.shtml
 
-# this is the version of the rosettafy environment in repo version 0.4
+# this is the version of the rosettafy environment in repo version 0.7.11 (pinned openssl)
 # simply a convenient way to keep track of versioning for this package which was created by hand
 # these lines handle setting up the environment
 echo "Setting up Python environment"
 export PATH
 mkdir rosettafy_env
-tar -xzf rosettafy_env_v0.4.tar.gz -C rosettafy_env
+tar -xzf rosettafy_env_v0.7.11.tar.gz -C rosettafy_env
 . rosettafy_env/bin/activate
 
 # decrypt
