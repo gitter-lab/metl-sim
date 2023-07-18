@@ -136,6 +136,7 @@ def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycle
     database_path = abspath(join(rosetta_main_dir, "database"))
 
     # this branch logic is just handling the special case of the "_wt" variant (no mutations)
+    mt_run_time = 0
     if variant_has_mutations:
         mt_start_time = time.time()
         run_mutate_step(relax_bin_fn, database_path, mutate_default_max_cycles, working_dir)
