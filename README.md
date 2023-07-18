@@ -171,6 +171,10 @@ python code/rosetta_minimal.py --prep_for_squid --out_dir=rosetta_minimal --squi
 ```
 The packaged distribution will be created in the `output/squid_rosetta` directory.
 
+> **Note**  
+> You must specify an encryption password to prevent unauthorized access to the Rosetta distribution. Make sure to update [pass.txt](htcondor/templates/pass.txt) with the password you choose. The password contained in [pass.txt](htcondor/templates/pass.txt) is what will be used to decrypt Rosetta later on and must match the encryption password.   
+
+
 ### Packaging the Python environment
 
 You must package the Python environment and upload it to SQUID.
