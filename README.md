@@ -185,8 +185,9 @@ To package the Python environment, perform the following steps:
 1. Create a working directory on the submit node named `environment`
 2. Upload [htcondor/package_env.sh](htcondor/package_env.sh) and [setup/rosettafy_env.yml](setup/rosettafy_env.yml) to the `environment` directory
 3. CD into the `environment` directory on the submit node
-4. Run `package_env.sh` and wait for it to finish
-5. Transfer the resulting `rosettafy_env.tar.gz` file to SQUID
+4. Rename rosettafy_env.yml to environment.yml (this is what package_env.sh expects)
+5. Run `package_env.sh` and wait for it to finish
+6. Transfer the resulting `rosettafy_env.tar.gz` file to SQUID
 
 
 ### Prepare a PDB file for use with Rosetta
