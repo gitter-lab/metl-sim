@@ -31,7 +31,7 @@ def prep_for_squid(rosetta_minimal_dir, squid_dir, encryption_password):
 
     # encrypt the tar file for extra security against public distribution
     tar_fn_encrypted = join(squid_dir_with_datetime, "rosetta_min_enc.tar.gz")
-    encrypt_cmd = ["openssl", "enc", "-e", "-aes256",
+    encrypt_cmd = ["conda", "run", "-n", "rosettafy", "openssl", "enc", "-e", "-aes256", "-pbkdf2",
                    "-in", tar_fn, "-out", tar_fn_encrypted, "-pass", "pass:{}".format(encryption_password)]
     subprocess.call(encrypt_cmd)
 

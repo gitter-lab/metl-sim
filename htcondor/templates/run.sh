@@ -29,20 +29,6 @@ echo "Combining Rosetta split files"
 cat rosetta_min_enc.tar.gz.* > rosetta_min_enc.tar.gz
 rm rosetta_min_enc.tar.gz.*
 
-# decrypt
-echo "Decrypting Rosetta"
-openssl version # echo the version for my knowledge
-# this was encrypted w/ openssl v > 1.1.0, which uses default digest sha256
-# include "-md sha256" for decrypt compatibility with older versions that used md5
-openssl enc -d -aes256 -md sha256 -in rosetta_min_enc.tar.gz -out rosetta_min.tar.gz -pass file:pass.txt
-
-rm rosetta_min_enc.tar.gz
-
-# extract
-echo "Extracting Rosetta"
-tar -xf rosetta_min.tar.gz
-rm rosetta_min.tar.gz
-
 # set up the python environment (from packaged version)
 # https://chtc.cs.wisc.edu/conda-installation.shtml
 
@@ -54,6 +40,19 @@ export PATH
 mkdir rosettafy_env
 tar -xzf rosettafy_env_v0.4.tar.gz -C rosettafy_env
 . rosettafy_env/bin/activate
+
+# decrypt
+# note this is done AFTER setting up the Python environment because it requires
+# the openssl version inside the environment
+echo "Decrypting Rosetta"
+openssl version # echo the version for my knowledge
+openssl enc -d -aes256 -pbkdf2 -in rosetta_min_enc.tar.gz -out rosetta_min.tar.gz -pass file:pass.txt
+rm rosetta_min_enc.tar.gz
+
+# extract
+echo "Extracting Rosetta"
+tar -xf rosetta_min.tar.gz
+rm rosetta_min.tar.gz
 
 # launch our python run script with argument file number
 echo "Launching energize.py"

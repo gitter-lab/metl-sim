@@ -11,3 +11,4 @@ dependencies:
   - biopython=1.78
   - jupyterlab=3.0.12
   - sqlalchemy=1.4.39
+  - openssl=3.1.1
