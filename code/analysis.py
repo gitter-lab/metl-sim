@@ -5,7 +5,7 @@ import shutil
 import subprocess
 import time
 from collections import defaultdict
-from os.path import isfile, basename, join
+from os.path import isfile, basename, join, isdir
 import pandas as pd
 
 
@@ -81,7 +81,7 @@ def check_for_failed_jobs(energize_out_d):
     """ check for failed jobs on basis of missing energies.csv, return failed job numbers """
 
     # get all the job output directories / log directories
-    job_out_dirs = [join(energize_out_d, jd) for jd in os.listdir(energize_out_d)]
+    job_out_dirs = [join(energize_out_d, jd) for jd in os.listdir(energize_out_d) if isdir(join(energize_out_d, jd))]
 
     # create a dictionary of job ids --> job directories
     # helps keep track of multiple log directories per job ID, which might occur if jobs get rescheduled
@@ -132,7 +132,7 @@ def check_for_failed_jobs(energize_out_d):
 
 def check_for_missing_jobs(main_d, energize_out_d, num_expected_jobs=None):
     """ check for missing jobs on basis of no job folder in the energize output directory """
-    job_out_dirs = [join(energize_out_d, jd) for jd in os.listdir(energize_out_d)]
+    job_out_dirs = [join(energize_out_d, jd) for jd in os.listdir(energize_out_d) if isdir(join(energize_out_d, jd))]
     # check if any job output folders are missing by looking at the job nums
     job_nums = [int(parse_job_dir_name(basename(job_dir))["process"]) for job_dir in job_out_dirs]
 
