@@ -16,7 +16,7 @@ should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 
 # TODO: update to use new version of rosettafy environment rosettafy_env_v0.7.11.tar.gz
-transfer_input_files = run.sh, pass.txt, code.tar.gz, args/$(Process).txt, energize_args.txt, osdf:///chtc/staging/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.aa, osdf:///chtc/staging/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ab, osdf:///chtc/staging/sgelman2/squid_rosetta_2021-11-10_18-16-26/rosetta_min_enc.tar.gz.ac, osdf:///chtc/staging/sgelman2/rosettafy_env_v0.4.tar.gz
+transfer_input_files = run.sh, pass.txt, code.tar.gz, args/$(Process).txt, energize_args.txt, osdf:///chtc/staging/sgelman2/squid_rosetta_2023-08-20_22-58-49/rosetta_min_enc.tar.gz.aa, osdf:///chtc/staging/sgelman2/squid_rosetta_2023-08-20_22-58-49/rosetta_min_enc.tar.gz.ab, osdf:///chtc/staging/sgelman2/squid_rosetta_2023-08-20_22-58-49/rosetta_min_enc.tar.gz.ac, osdf:///chtc/staging/sgelman2/rosettafy_env_v0.4.tar.gz, {transfer_input_files}
 transfer_output_files = output
 
 request_cpus = 1

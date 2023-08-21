@@ -3,11 +3,15 @@ import itertools
 import math
 import time
 import os
-from os.path import join
+import hashlib
+from typing import Optional
+
+import urllib3
+from os.path import join, basename, isfile
 import argparse
 import shutil
 import subprocess
-import urllib3
+import urllib.parse
 # todo: tqdm is only on the local environment, not on condor environment
 #  shouldn't be a problem since this file isn't run during a condor run... but maybe specify separate env files for each
 from tqdm import tqdm
@@ -155,6 +159,15 @@ def fetch_repo(github_tag, github_token, out_dir):
     response.close()
 
 
+def load_lines(fn):
+    """ loads each line from given file """
+    lines = []
+    with open(fn, "r") as f_handle:
+        for line in f_handle:
+            lines.append(line.strip())
+    return lines
+
+
 def prep_energize(args):
 
     out_dir = join("output", "htcondor_runs", get_run_dir_name(args.run_name))
@@ -178,8 +191,16 @@ def prep_energize(args):
         f.write("export GITHUB_TAG={}\n".format(args.github_tag))
         f.write("export NUM_JOBS={}\n".format(num_jobs))
 
+    # prepare the additional data files
+    additional_files = prep_additional_data_files(args.additional_data_files, out_dir)
+
+    # fill in the template and save it
+    fill_submit_template(template_fn="htcondor/templates/energize.sub",
+                         additional_data_files=additional_files,
+                         save_dir=out_dir)
+
     # copy over energize.sub and run.sh and the pass.txt
-    shutil.copy("htcondor/templates/energize.sub", out_dir)
+    # shutil.copy("htcondor/templates/energize.sub", out_dir)
     shutil.copy("htcondor/templates/run.sh", out_dir)
     shutil.copy("htcondor/templates/pass.txt", out_dir)
 
@@ -189,6 +210,31 @@ def prep_energize(args):
     # create output directories where jobs will place their outputs
     os.makedirs(join(out_dir, "output/condor_logs"))
     os.makedirs(join(out_dir, "output/energize_outputs"))
+
+
+def fill_submit_template(template_fn: str,
+                         additional_data_files: Optional[list[str]],
+                         save_dir: str):
+
+    template_lines = load_lines(template_fn)
+    template_str = "\n".join(template_lines)
+
+    if additional_data_files is None:
+        # if there are no additional data files, make it an empty list
+        additional_data_files = []
+
+    # combine all files that need to be added to transfer_input_files
+    transfer_input_files = additional_data_files
+    transfer_input_files_str = ", ".join(transfer_input_files)
+
+    # if there is a spot to fill in the transfer_input_files, fill those in
+    if "{transfer_input_files}" in template_str:
+        template_str = template_str.format(transfer_input_files=transfer_input_files_str)
+
+    with open(join(save_dir, basename(template_fn)), "w") as f:
+        f.write(template_str)
+
+    return template_str
 
 
 def prep_prepare(args):
@@ -204,21 +250,125 @@ def prep_prepare(args):
     # download the repository
     fetch_repo(args.github_tag, args.github_token, out_dir)
 
+    # prepare the additional data files
+    additional_files = prep_additional_data_files(args.additional_data_files, out_dir)
+
+    # fill in the template and save it
+    fill_submit_template(template_fn="htcondor/templates/prepare.sub",
+                         additional_data_files=additional_files,
+                         save_dir=out_dir)
+
     # copy over energize.sub and run.sh
-    shutil.copy("htcondor/templates/prepare.sub", out_dir)
+    # shutil.copy("htcondor/templates/prepare.sub", out_dir)
     shutil.copy("htcondor/templates/run_prepare.sh", out_dir)
+    shutil.copy("htcondor/templates/pass.txt", out_dir)
 
     # copy over the pdb list (passed in as master_variant_fn)
     shutil.copyfile(args.master_variant_fn[0], join(out_dir, "pdb_list.txt"))
 
-    # tar and copy over the KJ directory
-    tar_fn = join(out_dir, "kj.tar.gz")
-    cmd = ["tar", "-czf", tar_fn, "pdb_files/KosciolekAndJones"]
-    subprocess.call(cmd)
+    # # tar and copy over the KJ directory
+    # tar_fn = join(out_dir, "kj.tar.gz")
+    # cmd = ["tar", "-czf", tar_fn, "pdb_files/KosciolekAndJones"]
+    # subprocess.call(cmd)
 
     # create output directories where jobs will place their outputs
     os.makedirs(join(out_dir, "output/condor_logs"))
     os.makedirs(join(out_dir, "output/prepare_outputs"))
+
+
+def is_url(path):
+    if urllib.parse.urlparse(path).scheme in ("http", "https"):
+        return True
+    else:
+        return False
+
+
+def zip_additional_data(data_fns):
+    """ zips up model checkpoint (for transfer learning) or other additional data
+        for either squid or direct to submit node """
+
+    if not isinstance(data_fns, list):
+        data_fns = [data_fns]
+
+    # compute hash of the files, this will become the zip filename
+    # prevents uploading the same file over and over to squid and
+    # having to keep track of which files are already on squid
+    hash_len = 6
+    # todo: this only hashes filenames, it would be more fool-proof to hash file contents
+    hash_object = hashlib.shake_256(",".join(data_fns).encode("utf-8"))
+    fns_hash = hash_object.hexdigest(hash_len)
+
+    # create the output directory containing
+    out_dir = join("output", "zipped_data", fns_hash)
+    os.makedirs(out_dir, exist_ok=True)
+
+    # check if zipped file already exists, if so just print a message and return
+    out_fn = join(out_dir, "{}.tar.gz".format(fns_hash))
+    if isfile(out_fn):
+        print("Zipped data file already exists: {}. "
+              "Existing file should be correct unless source contents were changed. Skipping...".format(out_fn))
+    else:
+        cmd = ["tar", "-czf", out_fn] + data_fns
+        subprocess.call(cmd)
+
+        # split files if needed (if the data file is bigger than 950mb)
+        size_limit_bytes = 1000000000
+        if os.path.getsize(out_fn) > size_limit_bytes:
+            raise NotImplementedError("The compressed additional data files are greater than 1GB. "
+                                      "That means the .tar.gz file is too big for SQUID, and it needs to be "
+                                      "split into multiple files. However, the pipeline for processing multiple "
+                                      "files is not implemented yet.")
+            # split_cmd = ["split", "-b", "900m", out_fn, out_fn + "."]
+            # subprocess.call(split_cmd)
+
+    return out_fn
+
+
+def prep_additional_data_files(additional_data_files, run_dir):
+    """ parses additional data files to determine what is coming from squid and
+        what needs to be copied to submit file or zipped up and copied to submit file """
+
+    if additional_data_files is None:
+        additional_data_files = []
+
+    # files from additional_data_files that are coming from squid or remote location
+    remote_files = []
+
+    # files from additional_data_files that are coming from local disk
+    # might need to be compressed and uploaded to squid depending on file size
+    # otherwise, need to be copied over to run directory to be uploade to submit node
+    local_files = []
+
+    for fn in additional_data_files:
+        if is_url(fn):
+            remote_files.append(fn)
+        else:
+            local_files.append(fn)
+
+    # create a zip file w/ all the local additional data
+    additional_final_path = None
+    if len(local_files) > 0:
+        zipped_local_files_fn = zip_additional_data(local_files)
+
+        size_limit_bytes = 100000000
+        if os.path.getsize(zipped_local_files_fn) > size_limit_bytes:
+            # this file needs to be transferred to squid, too big for submit node
+            squid_data_dir = "http://proxy.chtc.wisc.edu/SQUID/sgelman2/data"
+            additional_final_path = join(squid_data_dir, basename(zipped_local_files_fn))
+            print(f"ADDITIONAL DATA FILES NEED TO BE TRANSFERRED TO SQUID. "
+                  f"Transfer to squid: {zipped_local_files_fn}. Expected final location: {additional_final_path}")
+        else:
+            # this file can be transferred from submit node, copy to run dir
+            print("Copying compressed additional data files to run directory")
+            shutil.copy(zipped_local_files_fn, run_dir)
+            additional_final_path = basename(zipped_local_files_fn)
+
+    # create the final list of additional files that should be filled in submit template
+    # consists of remote files originally specified (unchanged), PLUS
+    # additional local files that were zipped up and may need to be transferred to run dir or uploaded to squid
+    final_files = remote_files + [additional_final_path] if additional_final_path is not None else remote_files
+
+    return final_files
 
 
 def main(args):
@@ -258,6 +408,12 @@ if __name__ == "__main__":
     parser.add_argument("--variants_per_job",
                         type=int,
                         help="the number of variants per job")
+
+    parser.add_argument("--additional_data_files",
+                        type=str,
+                        help="additional data files to transfer to execute node. these will "
+                             "get added to transfer_input_files in the HTCondor submit file.",
+                        nargs="*")
 
     parser.add_argument("--github_tag",
                         type=str,

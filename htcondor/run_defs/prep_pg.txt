@@ -1,0 +1,10 @@
+--run_type
+prepare
+--run_name
+pg
+--master_variant_fn
+pdb_files/protein_gym/prepare_list.txt
+--additional_data_files
+pdb_files/protein_gym/parsed_structures
+--github_tag
+master
