@@ -109,12 +109,7 @@ def run_centroid_step(score_jd2_bin_fn, database_path, working_dir):
         raise RosettaError("Centroid step did not execute successfully. Return code: {}".format(return_code))
 
 
-def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycles, relax_nstruct, relax_repeats,
-                         variant_has_mutations=True):
-
-    # keep track of how long it takes to run Rosetta
-    all_start = time.time()
-
+def get_rosetta_paths(rosetta_main_dir: str):
     # path to rosetta binaries which are used for the various steps
     # subprocess wants a full path... or "./", so let's just add abspath
     if platform.system() == "Linux":
@@ -134,6 +129,22 @@ def run_rosetta_pipeline(rosetta_main_dir, working_dir, mutate_default_max_cycle
 
     # path to the rosetta database
     database_path = abspath(join(rosetta_main_dir, "database"))
+
+    return relax_bin_fn, rosetta_scripts_bin_fn, score_jd2_bin_fn, database_path
+
+
+def run_rosetta_pipeline(rosetta_main_dir: str,
+                         working_dir: str,
+                         mutate_default_max_cycles: int,
+                         relax_nstruct: int,
+                         relax_repeats: int,
+                         variant_has_mutations: bool = True):
+
+    # keep track of how long it takes to run Rosetta
+    all_start = time.time()
+
+    # get the paths to the rosetta binaries and database
+    relax_bin_fn, rosetta_scripts_bin_fn, score_jd2_bin_fn, database_path = get_rosetta_paths(rosetta_main_dir)
 
     # this branch logic is just handling the special case of the "_wt" variant (no mutations)
     mt_run_time = 0
@@ -275,15 +286,14 @@ def run_single_variant(rosetta_main_dir, pdb_fn, chain, variant, rosetta_hparams
     return run_times["all"]
 
 
-def get_log_dir_name(args, job_uuid, start_time):
+def get_log_dir_name(args, job_uuid, start_time, ld_prefix="energize"):
     """ get a log dir name for this run, whether running locally or on HTCondor """
-
-    # note: it would be informative to include the PDB file in the log dir name.
-    # however, i might set up the script to accept different PDB files for different variants (defined in the
-    # input variants text file). in which case, there'd be multiple PDB files. so best keep PDB file out of it
-    # for now, until I figure out whether I want the runs to support only one or multiple PDB files
-    format_args = [args.cluster, args.process, time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime(start_time)), job_uuid]
-    log_dir_str = "energize_{}_{}_{}_{}"
+    format_args = [ld_prefix,
+                   args.cluster,
+                   args.process,
+                   time.strftime("%Y-%m-%d_%H-%M-%S", time.gmtime(start_time)),
+                   job_uuid]
+    log_dir_str = "{}_{}_{}_{}_{}"
     log_dir = log_dir_str.format(*format_args)
     return log_dir
 
@@ -323,8 +333,15 @@ def save_argparse_args(args_dict, out_fn):
                     f.write("{}\n".format(v))
 
 
-def main(args):
+def save_job_info(script_start, job_uuid, cluster, process, commit_id, log_dir):
+    # create an info file for this job (cluster, process, server, github commit id, etc.)
+    start_time_utc = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(script_start))
+    job_info = {"uuid": job_uuid, "cluster": cluster, "process": process, "hostname": socket.gethostname(),
+                "github_commit_id": commit_id, "script_start_time": start_time_utc}
+    save_csv_from_dict(join(log_dir, "job.csv"), job_info)
 
+
+def main(args):
     # rough script start time for logging
     # this will be logged in UTC time (GM time) in the log directory name and output files
     script_start = time.time()
@@ -339,11 +356,8 @@ def main(args):
     # save the argparse arguments back out to a file
     save_argparse_args(vars(args), join(log_dir, "args.txt"))
 
-    # create an info file for this job (cluster, process, server, github commit id, etc)
-    start_time_utc = time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(script_start))
-    job_info = {"uuid": job_uuid, "cluster": args.cluster, "process": args.process, "hostname": socket.gethostname(),
-                "github_commit_id": args.commit_id, "script_start_time": start_time_utc}
-    save_csv_from_dict(join(log_dir, "job.csv"), job_info)
+    # save job info
+    save_job_info(script_start, job_uuid, args.cluster, args.process, args.commit_id, log_dir)
 
     # create a dictionary of just rosetta hyperparameters that can be passed around throughout functions and saved
     rosetta_hparams = {"mutate_default_max_cycles": args.mutate_default_max_cycles,
