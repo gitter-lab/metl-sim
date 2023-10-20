@@ -234,36 +234,27 @@ def run_single_variant(rosetta_main_dir: str,
                                      rosetta_hparams["num_structs"],
                                      variant_has_mutations)
 
-    # # copy over or parse any files we want to keep from the working directory to the output directory
-    # # the stdout and stderr outputs from rosetta are in the working directory under mutate.out and relax.out
-    # # however, we don't need them, so we are going to leave them there and just parse the energies
-    #
-    # # parse the output files into a single-record csv, appending info about variant
-    # # place in a staging directory and combine with other variants that run during this job
-    # score_df = parse_score_sc(join(working_dir, "relax.sc"))
-    # filter_df = parse_score_sc(join(working_dir, "filter.sc"))
-    # centroid_df = parse_score_sc(join(working_dir, "centroid.sc"))
-    #
-    # # the total_score from filter and centroid probably won't be used, but let's keep them in just in case
-    # # just need to resolve the name conflict with the total_score from score_df
-    # filter_df.rename(columns={"total_score": "filter_total_score"}, inplace=True)
-    # centroid_df.rename(columns={"total_score": "centroid_total_score"}, inplace=True)
-    #
-    # full_df = pd.concat((score_df, filter_df, centroid_df), axis=1)
-    #
-    # # append info about this variant
-    # full_df.insert(0, "pdb_fn", [basename(pdb_fn)])
-    # full_df.insert(1, "variant", [variant])
-    # full_df.insert(2, "start_time", [time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(start_time))])
-    # full_df.insert(3, "run_time", [int(run_times["all"])])
-    # full_df.insert(4, "mutate_run_time", [int(run_times["mutate"])])
-    # full_df.insert(5, "relax_run_time", [int(run_times["relax"])])
-    # full_df.insert(6, "filter_run_time", [int(run_times["filter"])])
-    # full_df.insert(7, "centroid_run_time", [int(run_times["centroid"])])
-    #
-    # # note: it's not the best practice to have filenames with periods and commas
-    # #   could pass in the loop ID for this single variant and use that to save the file
-    # full_df.to_csv(join(staging_dir, "{}_{}_energies.csv".format(basename(pdb_fn), variant)), index=False)
+    # parse the output files into a single-record csv, appending info about variant
+    # place in a staging directory and combine with other variants that run during this job
+    # this selects the docking structure w/ the lowest dG_separated
+    dock_df = energize.parse_score_sc(score_sc_fn=join(working_dir, "docked_structures", "docked_score.sc"),
+                                      agg_method="min_energy_first",
+                                      sort_col="dG_separated")
+
+    # no additional energies to concat... so just use the dock_df
+    full_df = dock_df
+
+    # append info about this variant
+    full_df.insert(0, "pdb_fn", [basename(pdb_fn)])
+    full_df.insert(1, "variant", [variant])
+    full_df.insert(2, "start_time", [time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(start_time))])
+    full_df.insert(3, "run_time", [int(run_times["all"])])
+    full_df.insert(4, "mutate_run_time", [int(run_times["mutate"])])
+    full_df.insert(5, "dock_run_time", [int(run_times["dock"])])
+
+    # note: it's not the best practice to have filenames with periods and commas
+    #   could pass in the loop ID for this single variant and use that to save the file
+    full_df.to_csv(join(staging_dir, "{}_{}_energies.csv".format(basename(pdb_fn), variant)), index=False)
 
     # if the flag is set, save all files in the working directory for this variant
     # these go directly to the output directory instead of the staging directory
@@ -366,28 +357,27 @@ def main(args):
             for fv in failed:
                 f.write("{}\n".format(fv))
 
-    # # if any variants were successful, concat the outputs into a final energies.csv
-    # if len(failed) < len(pdbs_variants):
-    #     # combine outputs in the staging directory into a single csv file
-    #     cdf = combine_outputs(join(log_dir, "staging"))
-    #     # add additional column for job uuid
-    #     cdf.insert(2, "job_uuid", job_uuid)
-    #     # save in the main log directory
-    #     cdf.to_csv(join(log_dir, "energies.csv"), index=False)
-    #
-    # # compress outputs, delete the output staging directory, etc
-    # shutil.rmtree(join(log_dir, "staging"))
-    #
-    # if (len(failed) / len(pdbs_variants)) > args.allowable_failure_fraction:
-    #     # too many variants failed in this job. exit with failure code.
-    #     # todo: this exit code will put the job on hold, but the log directory will still be present with
-    #     #  energies.csv, causing there to be duplicates for the variants that succeeded in this run and the
-    #     #  variants that get run in the new run. one option is to just not save energies.csv when too many variants
-    #     #  fail. the job will get rescheduled anyway and the variants will run on a new machine.
-    #     #  but if we're going to run again, might as well keep the duplicate variants anyway? they get filtered out
-    #     #  later...
-    #     sys.exit(1)
+    # if any variants were successful, concat the outputs into a final energies.csv
+    if len(failed) < len(pdbs_variants):
+        # combine outputs in the staging directory into a single csv file
+        cdf = energize.combine_outputs(join(log_dir, "staging"))
+        # add additional column for job uuid
+        cdf.insert(2, "job_uuid", job_uuid)
+        # save in the main log directory
+        cdf.to_csv(join(log_dir, "energies.csv"), index=False)
 
+    # compress outputs, delete the output staging directory, etc
+    shutil.rmtree(join(log_dir, "staging"))
+
+    if (len(failed) / len(pdbs_variants)) > args.allowable_failure_fraction:
+        # too many variants failed in this job. exit with failure code.
+        # todo: this exit code will put the job on hold, but the log directory will still be present with
+        #  energies.csv, causing there to be duplicates for the variants that succeeded in this run and the
+        #  variants that get run in the new run. one option is to just not save energies.csv when too many variants
+        #  fail. the job will get rescheduled anyway and the variants will run on a new machine.
+        #  but if we're going to run again, might as well keep the duplicate variants anyway? they get filtered out
+        #  later...
+        sys.exit(1)
 
 
 if __name__ == "__main__":

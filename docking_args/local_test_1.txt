@@ -7,7 +7,7 @@ pdb_files/prepared_pdb_files
 --chain
 C
 --num_structs
-1
+3
 --save_wd
 --log_dir_base
 output/docking_outputs

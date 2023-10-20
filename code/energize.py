@@ -187,7 +187,9 @@ def run_rosetta_pipeline(rosetta_main_dir: str,
     return run_times
 
 
-def parse_score_sc(score_sc_fn, agg_method="avg"):
+def parse_score_sc(score_sc_fn: str,
+                   agg_method: str = "avg",
+                   sort_col: str = "total_score"):
     """ parse the score.sc file from the energize run, aggregating energies and appending info about variant
         this function has also been co-opted to parse the centroid and filter score files, which should only
         have 1 possible record, so no need to do any agg (and it shouldn't) """
@@ -196,21 +198,21 @@ def parse_score_sc(score_sc_fn, agg_method="avg"):
     # drop the "SCORE:" and "description" columns, these won't be needed for final output
     score_df = score_df.drop(["SCORE:", "description"], axis=1)
 
-    # special case: only 1 structure was generated, no need to aggerate
+    # special case: only 1 structure was generated, no need to aggregate
     if len(score_df) == 1:
         parsed_df = score_df.iloc[[0]]
     else:
         if agg_method == "min_energy_avg":
             # select the structure(s) with the minimum total_score and average the energies if multiple structures
             # we average just in case there are some structures with the same min total_score but different energies
-            min_score_df = score_df[score_df.total_score == score_df.total_score.min()]
+            min_score_df = score_df[score_df[sort_col] == score_df[sort_col].min()]
             parsed_df = min_score_df.mean(axis=0).to_frame().T
         elif agg_method == "min_energy_first":
             # select structures with min total_score and use the first one
-            min_score_df = score_df[score_df.total_score == score_df.total_score.min()]
+            min_score_df = score_df[score_df[sort_col] == score_df[sort_col].min()]
             parsed_df = min_score_df.iloc[[0]]
         elif agg_method == "avg":
-            # take the average of all structures, not just the ones with lowest score
+            # take the average of all structures, not just the ones with the lowest score
             parsed_df = score_df.mean(axis=0).to_frame().T
         else:
             raise ValueError("invalid aggregation method: {}".format(agg_method))
