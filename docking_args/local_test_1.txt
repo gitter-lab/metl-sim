@@ -1,0 +1,13 @@
+--rosetta_main_dir
+/Volumes/TurtleBuddy/Research/rosetta_bin_mac_2021.16.61629_bundle/main
+--variants_fn
+variant_lists/gb1_docking_test_variants.txt
+--pdb_dir
+pdb_files/prepared_pdb_files
+--chain
+C
+--num_structs
+1
+--save_wd
+--log_dir_base
+output/docking_outputs

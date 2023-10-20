@@ -1,0 +1,16 @@
+-docking					# the docking option group
+	-partners A_C			# set rigid body docking partners
+	-dock_pert 3 8			# set coarse perturbation parameters (degrees and angstroms)
+	-dock_mcm_trans_magnitude 0.1		# refinement translational perturbation
+	-dock_mcm_rot_magnitude 5.0		# refinement rotational perturbation
+-run:max_retry_job 10				# if the mover fails, retry 10 times
+-use_input_sc					# Use rotamers from input structure in packing
+-ex1						# Use extra chi1 sub-rotamers for all residues that pass the extrachi_cutoff
+-ex2						# Use extra chi2 sub-rotamers for all residues that pass the extrachi_cutoff
+-out:path:all docked_structures
+-out:file:scorefile docked_score.sc # Write a scorefile to the provided filename
+-out:overwrite
+-score:weights ref2015.wts			# Set ref2015 as default score function
+
+-parser
+	-protocol docking_minimize.xml

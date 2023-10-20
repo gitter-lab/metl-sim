@@ -1,0 +1,30 @@
+<ROSETTASCRIPTS>
+
+    <SCOREFXNS>
+    </SCOREFXNS>
+    <RESIDUE_SELECTORS>
+        <Neighborhood name="surrounding" resnums="{joined_idxs}" distance="10.0"/>
+        <Not name="rest" selector="surrounding"/>
+    </RESIDUE_SELECTORS>
+
+    <TASKOPERATIONS>
+        <OperateOnResidueSubset name="repack_res" selector="surrounding">
+            <RestrictToRepackingRLT/>
+        </OperateOnResidueSubset>
+        <OperateOnResidueSubset name="no_repack" selector="rest">
+            <PreventRepackingRLT/>
+        </OperateOnResidueSubset>
+    </TASKOPERATIONS>
+
+    <MOVERS>
+        {mutate_residue_placeholders}
+        <FastRelax name="relax" scorefxn="REF2015" task_operations="repack_res,no_repack" min_type="lbfgs_armijo_nonmonotone">
+        </FastRelax>
+    </MOVERS>
+
+    <PROTOCOLS>
+        {protocols_placeholders}
+        <Add mover_name="relax"/>
+    </PROTOCOLS>
+
+</ROSETTASCRIPTS>

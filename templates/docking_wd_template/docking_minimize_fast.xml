@@ -1,0 +1,21 @@
+<ROSETTASCRIPTS>
+	<TASKOPERATIONS>
+		InitializeFromCommandline name="ifcl"/>
+		RestrictToRepacking name="rtr" />
+		Restrict to residues within a distance and vector cutoff of the protein-protein interface
+		RestrictToInterfaceVector name="rtiv" chain1_num="1" chain2_num="2" CB_dist_cutoff="10.0" nearby_atom_cutoff="5.5" vector_angle_cutoff="75" vector_dist_cutoff="9.0" />
+	</TASKOPERATIONS>
+	<MOVERS>
+		MINIMIZATION MOVERS
+		Single cycle of FastRelax to minimize backbone of docking partners
+		FastRelax name="minimize_interface" scorefxn="REF2015" repeats="1" task_operations="ifcl,rtr,rtiv" />	
+		DOCKING MOVERS
+		Calculate binding energies
+		<InterfaceAnalyzerMover name="iface_analyzer" scorefxn="REF2015" packstat="0" pack_input="0" pack_separated="1" fixedchains="A" tracer="0" />
+	</MOVERS>
+	<PROTOCOLS>
+		Add mover="minimize_interface" />
+		<Add mover="iface_analyzer" />
+	</PROTOCOLS>
+	<OUTPUT scorefxn="REF2015" />
+</ROSETTASCRIPTS>

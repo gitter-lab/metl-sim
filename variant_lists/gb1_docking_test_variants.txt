@@ -1,0 +1,3 @@
+1FCC_rosetta_best.pdb X1A
+1FCC_rosetta_best.pdb A23F
+1FCC_rosetta_best.pdb G37V,L6E
