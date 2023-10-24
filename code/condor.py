@@ -169,6 +169,17 @@ def load_lines(fn):
 
 
 def prep_energize(args):
+    """
+    Prepare a condor run for calculating Rosetta energies
+    """
+
+    # supports original energies (energize.py) or docking for GB1 docking energies (gb1_docking.py)
+    if args.run_type == "energize":
+        pyscript = "energize.py"
+    elif args.run_type == "energize_docking":
+        pyscript = "gb1_docking.py"
+    else:
+        raise ValueError("Invalid run type: {}".format(args.run_type))
 
     out_dir = join("output", "htcondor_runs", get_run_dir_name(args.run_name))
     os.makedirs(out_dir)
@@ -190,6 +201,8 @@ def prep_energize(args):
     with open(join(out_dir, "env_vars.txt"), "w") as f:
         f.write("export GITHUB_TAG={}\n".format(args.github_tag))
         f.write("export NUM_JOBS={}\n".format(num_jobs))
+        # additional environment variables to handle the different types of runs
+        f.write("export PYSCRIPT={}\n".format(pyscript))
 
     # prepare the additional data files
     additional_files = prep_additional_data_files(args.additional_data_files, out_dir)
@@ -204,7 +217,7 @@ def prep_energize(args):
     shutil.copy("htcondor/templates/run.sh", out_dir)
     shutil.copy("htcondor/templates/pass.txt", out_dir)
 
-    # copy over the energize args and rename to standard filename
+    # copy over energize args and rename to standard filename
     shutil.copyfile(args.energize_args_fn, join(out_dir, "energize_args.txt"))
 
     # create output directories where jobs will place their outputs
@@ -388,7 +401,7 @@ if __name__ == "__main__":
                         help="prepare or energize",
                         type=str,
                         default="energize",
-                        choices=["prepare", "energize"])
+                        choices=["prepare", "energize", "energize_docking"])
 
     parser.add_argument("--run_name",
                         help="name for this condor run, used for log directory",

@@ -1,0 +1,10 @@
+--rosetta_main_dir
+rosetta_minimal
+--pdb_dir
+pdb_files/prepared_pdb_files
+--chain
+C
+--num_structs
+1
+--log_dir_base
+output/energize_outputs

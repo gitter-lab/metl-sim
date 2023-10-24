@@ -58,7 +58,6 @@ tar -xzf rosettafy_env_v0.7.11.tar.gz -C rosettafy_env
 . rosettafy_env/bin/activate
 rm rosettafy_env_v0.7.11.tar.gz
 
-
 # decrypt
 # note this is done AFTER setting up the Python environment because it requires
 # the openssl version inside the environment
@@ -79,6 +78,5 @@ then
 fi
 
 # launch our python run script with argument file number
-echo "Launching energize.py"
-python3 code/energize.py @energize_args.txt --variants_fn="${PROCESS}.txt" --cluster="$CLUSTER" --process="$PROCESS" --commit_id="$GITHUB_TAG"
-
+echo "Launching ${PYSCRIPT}"
+python3 code/${PYSCRIPT} @energize_args.txt --variants_fn="${PROCESS}.txt" --cluster="$CLUSTER" --process="$PROCESS" --commit_id="$GITHUB_TAG"
