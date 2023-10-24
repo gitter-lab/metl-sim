@@ -66,8 +66,19 @@ def runtimes_and_energies(energize_out_dir, out_dir):
     job_info.to_csv(join(out_dir, "jobs_df.csv"), index=False)
     hparams.to_csv(join(out_dir, "hparams_df.csv"), index=False)
 
-    runtime_vars = ["run_time", "mutate_run_time", "relax_run_time", "filter_run_time", "centroid_run_time"]
+    runtime_vars = ["run_time",
+                    "mutate_run_time",
+                    "relax_run_time",
+                    "filter_run_time",
+                    "centroid_run_time",
+                    "dock_run_time"]
+
     for runtime_var in runtime_vars:
+        # standard pipeline has different runtime vars than docking pipeline
+        # make sure the runtime var is in the dataframe
+        if runtime_var not in energies.columns:
+            continue
+
         if runtime_var == "run_time":
             step_name = "total"
         else:
@@ -85,12 +96,25 @@ def runtimes_and_energies(energize_out_dir, out_dir):
     # print("Avg runtime: {:.2f} seconds".format(energies["run_time"].mean()))
 
     # energies
-    axes = energies.hist(bins=60, figsize=(20, 40), layout=(17, 4))
+    # only plot starting at "run_time" column (i.e. skip the non-numeric columns)
+    # rather than hard-coding the column index, find it dynamically
+    # note this relies on "run_time" being the start of the numerical columns
+    # which is true for both the standard and docking pipelines...
+    # todo: this updated code hasn't been tested yet (from this line to below)
+    starting_col = energies.columns.get_loc("run_time")
+
+    # need to dynamically adjust the number of rows based on the number of columns
+    # this accounts for different quantity of energy terms for each pipeline
+    # the number of columns will always be 4, but the number of rows will vary
+
+    num_cols = 4
+    num_rows = int((len(energies.columns) - starting_col) / num_cols) + 1
+    axes = energies.hist(bins=60, figsize=(20, 40), layout=(num_rows, num_cols))
     fig = axes[0][0].get_figure()
-    for i in range(len(energies.columns) - 4):
+    for i in range(len(energies.columns) - starting_col):
         ax = axes.flatten()[i]
         # ax.axvline(wt_energies.iloc[0, 4 + i], color="red", linestyle="dashed", linewidth=1.5)
-        ax.axvline(energies.iloc[:, 4 + i].mean(), color="orange", linestyle="dashed", linewidth=1.5)
+        ax.axvline(energies.iloc[:, starting_col + i].mean(), color="orange", linestyle="dashed", linewidth=1.5)
     #     ax.set_title(ax.get_title()+" (WT={})".format(wt_energies.iloc[0, 4+i]))
     fig.tight_layout()
     fig.savefig(join(out_dir, "energies.png"))

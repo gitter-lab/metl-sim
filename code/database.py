@@ -13,9 +13,8 @@ import utils
 from utils import sort_variant_mutations
 
 
-def create_tables(con):
+def create_tables(con, ct_fn="variant_database/create_tables.sql"):
     # retrieve table creation commands from file
-    ct_fn = "variant_database/create_tables.sql"
     with open(ct_fn, "r") as f:
         sql_commands_str = f.read()
     sql_commands = sql_commands_str.split(';')
@@ -107,15 +106,25 @@ def add_pdb(db_fn, pdb_fn):
     con.close()
 
 
+def get_ct_fn(mode):
+    if mode == "create":
+        ct_fn = "variant_database/create_tables.sql"
+    elif mode == "create_docking":
+        ct_fn = "variant_database/create_tables_docking.sql"
+    else:
+        raise ValueError("unrecognized mode {}".format(mode))
+    return ct_fn
+
+
 def main(args):
 
-    if args.mode == "create":
+    if args.mode in ["create", "create_docking"]:
         # create a new database with the proper tables for storing energies
         if isfile(args.db_fn):
             print("error: database already exists: {}".format(args.db_fn))
         else:
             con = sqlite3.connect(args.db_fn)
-            create_tables(con)
+            create_tables(con, ct_fn=get_ct_fn(args.mode))
             con.commit()
             con.close()
 
@@ -147,7 +156,7 @@ if __name__ == "__main__":
     parser.add_argument("mode",
                         help="run mode",
                         type=str,
-                        choices=["create", "add_pdbs", "pdb_index"])
+                        choices=["create", "create_docking", "add_pdbs", "pdb_index"])
 
     parser.add_argument("--db_fn",
                         help="path to database file",
@@ -159,4 +168,3 @@ if __name__ == "__main__":
                         help="path to the parent condor directory for run to process")
 
     main(parser.parse_args())
-
