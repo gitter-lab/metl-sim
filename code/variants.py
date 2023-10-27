@@ -7,7 +7,7 @@ import time
 from os.path import join, basename, isfile
 from collections import Counter
 import random
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Union
 
 import pandas as pd
 from Bio.SeqIO.PdbIO import AtomIterator
@@ -204,7 +204,16 @@ def load_db_variants(db_fn: str, pdb_fn: str) -> set:
     return db
 
 
-def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng, pdb_fn, db_fn=None):
+def gen_subvariants_vlist(seq: str,
+                          target_num: int,
+                          min_num_subs: int,
+                          max_num_subs: int,
+                          chars: Union[list[str], tuple[str, ...]],
+                          seq_idxs: Sequence[int],
+                          rng: np.random.Generator,
+                          db_pdb_fn: str,
+                          db_fn: Optional[str] = None):
+
     # max_num_subs determines the maximum number of substitutions for the main variants
     # min_num_subs determines the minimum number of substitutions for subvariants
     #  so for example, if min_num_subs is 2, then this function won't generate subvariants with 1 substitution
@@ -215,7 +224,7 @@ def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, se
     # then this will still return the ones that aren't in the DB.
     db = None
     if db_fn is not None:
-        db = load_db_variants(db_fn, pdb_fn)
+        db = load_db_variants(db_fn, db_pdb_fn)
 
     # using a set and a list to maintain the order
     # this is slower and uses 2x the memory, but the final variant list will be ordered
@@ -258,7 +267,7 @@ def gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, se
 
 
 def gen_subvariants_sample(db_fn: str,
-                           pdb_fn: str,
+                           db_pdb_fn: str,
                            target_num: int,
                            min_num_subs: int,
                            max_num_subs: int,
@@ -271,17 +280,31 @@ def gen_subvariants_sample(db_fn: str,
     """
 
     # load all the variants for the given pdb_fn from the database
-    variants = list(load_db_variants(db_fn, pdb_fn))
-    df = pd.DataFrame({"variant": variants, "num_mutations": [len(v.split(",")) for v in variants]})
+    db_variants_set = load_db_variants(db_fn, db_pdb_fn)
+    db_variants = list(db_variants_set)
+
+    df = pd.DataFrame({"variant": db_variants, "num_mutations": [len(v.split(",")) for v in db_variants]})
 
     # iteratively sample variants with max_num_subs
     df_max_subs = df[df["num_mutations"] == max_num_subs]
 
+    # using a set and a list to maintain the order
     variants_set = set()
     variants_list = []
+
+    # create the list of max_subs variants to sample from, basically just shuffle df_max_subs
+    df_max_subs = df_max_subs.sample(frac=1, random_state=rng.bit_generator).reset_index(drop=True)
+    main_v_index = 0
+
     while len(variants_list) < target_num:
-        # sample a random variant from df_max_subs dataframe using rng
-        main_v = df_max_subs.sample(n=1, random_state=rng)[0]["variant"]
+
+        # sample the next variant from df_max_subs
+        if main_v_index > len(df_max_subs) - 1:
+            # there aren't enough df_max_subs variants to sample from to put together the target number of variants
+            raise ValueError("Not enough {}-variants to sample from".format(max_num_subs))
+
+        main_v = df_max_subs.iloc[main_v_index]["variant"]
+        main_v_index += 1
 
         # generate all subvariants for this variant
         av = [main_v]
@@ -299,7 +322,7 @@ def gen_subvariants_sample(db_fn: str,
                 print("Generated variant already in set: {}".format(v))
 
             variant_in_db = True
-            if v not in df["variant"]:
+            if v not in db_variants_set:
                 variant_in_db = False
                 print("Generated subvariant does NOT exist in database, skipping: {}".format(v))
 
@@ -352,6 +375,7 @@ def gen_all_main(pdb_fn: str,
                  out_dir: Optional[str],
                  db_fn: Optional[str] = None,
                  db_mode: Optional[str] = None,
+                 db_pdb_fn: Optional[str] = None,
                  ignore_existing_out_file: bool = False):
     """
     Generate all variants for a single PDB file
@@ -366,16 +390,27 @@ def gen_all_main(pdb_fn: str,
     if db_mode not in [None, "filter", "sample"]:
         raise ValueError("db_mode must be None, 'filter' or 'sample'")
 
+    # if db_pdb_fn is None, set it equal to pdb_fn
+    # note db_pdb_fn will only be used if db_mode is "filter" or "sample"
+    if db_pdb_fn is None:
+        db_pdb_fn = pdb_fn
+
     # if db_fn is specified, we need to have a hash of the database in the filename
     db_hash = hash_db(db_fn)
 
     # determine the output filename
     if db_mode == "sample":
         # only sampling variants from the given database
-        out_fn = "{}_all_NS-{}_sampled-DB-{}.txt".format(basename(pdb_fn)[:-4], ",".join(map(str, num_subs_list)), db_hash)
+        out_fn = "{}_all_NS-{}_sampled-DB-{}-{}.txt".format(basename(pdb_fn)[:-4],
+                                                            ",".join(map(str, num_subs_list)),
+                                                            db_hash,
+                                                            basename(db_pdb_fn)[:-4])
     elif db_mode == "filter":
         # excluding variants that are in the database
-        out_fn = "{}_all_NS-{}_filtered-DB-{}.txt".format(basename(pdb_fn)[:-4], ",".join(map(str, num_subs_list)), db_hash)
+        out_fn = "{}_all_NS-{}_filtered-DB-{}-{}.txt".format(basename(pdb_fn)[:-4],
+                                                             ",".join(map(str, num_subs_list)),
+                                                             db_hash,
+                                                             basename(db_pdb_fn)[:-4])
     else:
         # no database specified, just generate all variants
         out_fn = "{}_all_NS-{}.txt".format(basename(pdb_fn)[:-4], ",".join(map(str, num_subs_list)))
@@ -404,13 +439,13 @@ def gen_all_main(pdb_fn: str,
 
     if db_mode == "sample":
         # database sample mode, only include variants that are in the database
-        db_variants = load_db_variants(db_fn, pdb_fn)
+        db_variants = load_db_variants(db_fn, db_pdb_fn)
         variants = [v for v in variants if v in db_variants]
 
     # database filter mode, exclude any variants that are in the database
     elif db_mode == "filter":
         # filter out variants already in the database if one is provided
-        db_variants = load_db_variants(db_fn, pdb_fn)
+        db_variants = load_db_variants(db_fn, db_pdb_fn)
         variants = [v for v in variants if v not in db_variants]
 
     print_variant_info(variants)
@@ -444,7 +479,8 @@ def gen_subvariants_main(pdb_fn: str,
                          seed: int,
                          out_dir: str,
                          db_fn: Optional[str] = None,
-                         db_mode: Optional[str] = None):
+                         db_mode: Optional[str] = None,
+                         db_pdb_fn: Optional[str] = None):
 
     if (db_mode is None) ^ (db_fn is None):
         raise ValueError("Both db_fn and db_mode should be specified or left as None")
@@ -452,11 +488,17 @@ def gen_subvariants_main(pdb_fn: str,
     if db_mode is not None and db_mode not in ["filter", "sample"]:
         raise ValueError("db_mode must be None, 'filter' or 'sample'")
 
+    # db_pdb_fn is used to query the database for database modes 'filter' and 'sample'
+    # if None, then use the same PDB file for which we are generating variants
+    if db_pdb_fn is None:
+        db_pdb_fn = pdb_fn
+
     # if db_fn is specified, we need to have a hash of the database in the filename
     db_hash = hash_db(db_fn)
 
     # determine the output filename
-    out_fn_template = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_{}-DB-{}_RS-{}.txt"
+    # todo: hard for the filename can't communicate all the provenance...maybe have additional metadata file?
+    out_fn_template = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_{}-DB-{}-{}_RS-{}.txt"
     out_fn_template_args = [
         basename(pdb_fn).rsplit('.', 1)[0],
         human_format(target_num),
@@ -464,6 +506,7 @@ def gen_subvariants_main(pdb_fn: str,
         min_num_subs,
         "sampled" if db_mode == "sample" else "filtered",
         db_hash,
+        basename(db_pdb_fn).rsplit('.', 1)[0],
         seed
     ]
     out_fn = out_fn_template.format(*out_fn_template_args)
@@ -481,10 +524,10 @@ def gen_subvariants_main(pdb_fn: str,
         # just a type hint because if db_mode is "sample" then the error checking ensures db_fn is str
         db_fn: str
         # sampling needs a special function that selects the main variant from the database
-        variants = gen_subvariants_sample(db_fn, pdb_fn, target_num, min_num_subs, max_num_subs, rng)
+        variants = gen_subvariants_sample(db_fn, db_pdb_fn, target_num, min_num_subs, max_num_subs, rng)
     elif db_mode == "filter" or db_mode is None:
         # this can handle db_fn being None or db_mode being "filter"
-        variants = gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng, pdb_fn, db_fn)
+        variants = gen_subvariants_vlist(seq, target_num, min_num_subs, max_num_subs, chars, seq_idxs, rng, db_pdb_fn, db_fn)
     else:
         raise ValueError("db_mode must be None, 'filter' or 'sample'")
 
@@ -546,7 +589,8 @@ def main(args):
                                  seed=seed,
                                  out_dir=args.out_dir,
                                  db_fn=args.db_fn,
-                                 db_mode=args.db_mode)
+                                 db_mode=args.db_mode,
+                                 db_pdb_fn=args.db_pdb_fn)
 
         elif args.method == "random":
             gen_random_main(pdb_fn, seq, seq_idxs, chars,
@@ -561,6 +605,7 @@ def main(args):
                          out_dir=args.out_dir,
                          db_fn=args.db_fn,
                          db_mode=args.db_mode,
+                         db_pdb_fn=args.db_pdb_fn,
                          ignore_existing_out_file=args.ignore_existing_out_file)
 
 
@@ -613,6 +658,11 @@ if __name__ == "__main__":
                              "if 'sample', only include variants that are in the given database",
                         default=None,
                         choices=["filter", "sample"])
+    parser.add_argument("--db_pdb_fn",
+                        type=str,
+                        help="the PDB file to use for the database. if None, use the same PDB file as the one "
+                             "being used to generate variants",
+                        default=None)
     parser.add_argument("--ignore_existing_out_file",
                         action="store_true",
                         default=False,

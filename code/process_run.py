@@ -230,7 +230,7 @@ def main():
     # path to the parent condor directory for this run
 
     # stats, database, cleanup
-    mode = "database"
+    mode = "stats"
     print("Running mode: {}".format(mode))
 
     # main_dirs = ["output/htcondor_runs/condor_energize_2021-12-03_15-51-12_gb1_sd",
@@ -271,7 +271,9 @@ def main():
     #              "output/htcondor_runs/condor_energize_2022-12-14_16-19-18_dlg4_2",
     #              "output/htcondor_runs/condor_energize_2023-05-09_16-21-14_dlg4_2022_1"]
 
-    main_dirs = ["output/htcondor_runs/condor_energize_2023-05-24_23-13-10_tem-1_1"]
+    # main_dirs = ["output/htcondor_runs/condor_energize_2023-05-24_23-13-10_tem-1_1"]
+
+    main_dirs = ["output/htcondor_runs/condor_energize_2023-10-24_15-30-48_gb1_1fcc_docking_singles"]
 
     for main_dir in main_dirs:
         print("Processing {}".format(basename(main_dir)))

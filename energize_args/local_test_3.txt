@@ -1,7 +1,9 @@
 --rosetta_main_dir
-/Users/sg/rosetta_bin_mac_2021.16.61629_bundle/main
+/Volumes/TurtleBuddy/Research/rosetta_bin_mac_2021.16.61629_bundle/main
 --variants_fn
 variant_lists/avgfp_test_variants.txt
+--pdb_dir
+pdb_files/prepared_pdb_files
 --mutate_default_max_cycles
 100
 --relax_repeats

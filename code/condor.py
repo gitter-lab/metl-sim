@@ -385,7 +385,7 @@ def prep_additional_data_files(additional_data_files, run_dir):
 
 
 def main(args):
-    if args.run_type == "energize":
+    if args.run_type in ["energize", "energize_docking"]:
         prep_energize(args)
     elif args.run_type == "prepare":
         prep_prepare(args)

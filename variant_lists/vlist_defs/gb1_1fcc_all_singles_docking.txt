@@ -1,0 +1,7 @@
+all
+--pdb_fn
+pdb_files/prepared_pdb_files/1FCC_rosetta_best.pdb
+--chain_id
+C
+--num_subs_list
+1
