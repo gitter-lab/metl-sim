@@ -1,3 +1,5 @@
+import platform
+import shutil
 from io import StringIO
 from typing import Optional
 
@@ -159,3 +161,17 @@ def extract_seq_from_pdb(pdb_fn: str,
         return {ch.id: seq for ch, seq in zip(chains, sequences)}
     else:
         return sequences[0]
+
+
+def get_tar_command():
+    if platform.system() == "Darwin" and shutil.which("gtar"):
+        print("Detected macOS. Using GNU tar (gtar) for macOS.")
+        tar_command = "gtar"
+    else:
+        if platform.system() == "Darwin":
+            print("Detected macOS but GNU tar (gtar) not found. "
+                  "You can install it with `brew install gnu-tar`. "
+                  "For now, using default tar for macOS. "
+                  "May cause warnings when extracting on Linux, but it should still work.")
+        tar_command = "tar"
+    return tar_command

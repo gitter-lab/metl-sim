@@ -16,6 +16,7 @@ import urllib.parse
 #  shouldn't be a problem since this file isn't run during a condor run... but maybe specify separate env files for each
 from tqdm import tqdm
 
+import utils
 from utils import save_argparse_args, get_seq_from_pdb
 
 # todo: find a better way to handle reading PDBs with Rosetta's pose_energy_table at the end
@@ -120,7 +121,8 @@ def gen_args(master_variant_fn, variants_per_job, out_dir, keep_sep_files=False)
                 f.write("{}\n".format(line))
 
     # tar the argument files -- easier to transfer lots of arg files to/from condor servers
-    tar_cmd = ["tar", "-C", out_dir, "-czf", join(out_dir, "args.tar.gz"), "args"]
+    tar_command = utils.get_tar_command()   # tar or gtar depending on OS
+    tar_cmd = [tar_command, "-C", out_dir, "-czf", join(out_dir, "args.tar.gz"), "args"]
     subprocess.call(tar_cmd)
 
     # delete the separate args files

@@ -10,6 +10,8 @@ import stat
 import subprocess
 import time
 
+import utils
+
 
 def prep_for_squid(rosetta_minimal_dir, squid_dir, encryption_password):
     """ prepares the distribution for SQUID by compressing and splitting it """
@@ -27,19 +29,7 @@ def prep_for_squid(rosetta_minimal_dir, squid_dir, encryption_password):
     os.makedirs(squid_dir_with_datetime, exist_ok=False)
 
     # compress the rosetta minimal distribution
-    # if on macOS, use gnu tar if available (brew install gnu-tar) to avoid warnings when extracting on linux
-    # first check if platform is darwin, and if so, check if gnu tar is installed
-    if platform.system() == "Darwin" and shutil.which("gtar"):
-        print("Detected macOS. Using GNU tar (gtar) for macOS.")
-        tar_command = "gtar"
-    else:
-        if platform.system() == "Darwin":
-            print("Detected macOS but GNU tar (gtar) not found. "
-                  "You can install it with `brew install gnu-tar`. "
-                  "For now, using default tar for macOS. "
-                  "May cause warnings when extracting on Linux, but it should still work.")
-        tar_command = "tar"
-
+    tar_command = utils.get_tar_command()   # tar or gtar (GNU tar) depending on OS
     tar_cmd = [tar_command, "-czvf", tar_fn, rosetta_minimal_dir]
     subprocess.call(tar_cmd)
 
