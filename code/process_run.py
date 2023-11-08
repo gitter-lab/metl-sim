@@ -230,7 +230,7 @@ def main():
     # path to the parent condor directory for this run
 
     # stats, database, cleanup
-    mode = "stats"
+    mode = "database"
     print("Running mode: {}".format(mode))
 
     # main_dirs = ["output/htcondor_runs/condor_energize_2021-12-03_15-51-12_gb1_sd",
@@ -273,7 +273,8 @@ def main():
 
     # main_dirs = ["output/htcondor_runs/condor_energize_2023-05-24_23-13-10_tem-1_1"]
 
-    main_dirs = ["output/htcondor_runs/condor_energize_2023-10-24_15-30-48_gb1_1fcc_docking_singles"]
+    main_dirs = ["output/htcondor_runs/condor_energize_2023-10-30_18-00-08_gb1_1fcc_dms_docking_singles",
+                 "output/htcondor_runs/condor_energize_2023-10-30_19-08-32_gb1_1fcc_dms_docking_doubles"]
 
     for main_dir in main_dirs:
         print("Processing {}".format(basename(main_dir)))
@@ -300,7 +301,8 @@ def main():
             # database_fn = "variant_database/database.db"
             # database_fn = "variant_database/grb2.db"
             # database_fn = "variant_database/dlg4.db"
-            database_fn = "variant_database/tem-1.db"
+            # database_fn = "variant_database/tem-1.db"
+            database_fn = "variant_database/gb1_docking.db"
             add_to_database(database_fn, processed_run_dir, energize_out_dir)
 
         elif mode == "cleanup":

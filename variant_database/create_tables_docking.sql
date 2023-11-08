@@ -71,10 +71,7 @@ CREATE TABLE IF NOT EXISTS  `job` (
     `hostname` TEXT,
     `github_tag` TEXT,
     `script_start_time` TEXT,
-    `hp_mutate_default_max_cycles` INTEGER,
-    `hp_relax_repeats` INTEGER,
-    `hp_relax_nstruct` INTEGER,
-    `hp_relax_distance` REAL,
+    `hp_num_structs` INTEGER,
     PRIMARY KEY (`uuid`));
 
 
