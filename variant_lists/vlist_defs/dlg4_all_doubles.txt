@@ -1,9 +1,0 @@
-all
---pdb_fn
-pdb_files/prepared_pdb_files/6qji_p.pdb
---seq_idxs_range_start
-8
---seq_idxs_range_end
-74
---num_subs_list
-2

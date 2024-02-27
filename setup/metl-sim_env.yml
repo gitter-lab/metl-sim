@@ -1,4 +1,4 @@
-name: rosettafy
+name: metl-sim
 channels:
   - conda-forge
 dependencies:

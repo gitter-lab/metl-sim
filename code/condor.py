@@ -13,7 +13,7 @@ import shutil
 import subprocess
 import urllib.parse
 # todo: tqdm is only on the local environment, not on condor environment
-#  shouldn't be a problem since this file isn't run during a condor run... but maybe specify separate env files for each
+#  shouldn't be a problem since this file isn't run during a condor run...
 from tqdm import tqdm
 
 import utils
@@ -143,7 +143,7 @@ def fetch_repo(github_tag, github_token, out_dir):
     # https://stackoverflow.com/questions/17285464/whats-the-best-way-to-download-file-using-urllib3
     # https://stackoverflow.com/questions/27387783/how-to-download-a-file-with-urllib3
 
-    url = "https://github.com/samgelman/rosettafy/archive/{}.tar.gz".format(github_tag)
+    url = "https://github.com/gitter-lab/metl-sim/archive/{}.tar.gz".format(github_tag)
 
     http = urllib3.PoolManager()
     # todo: when repo is public, authorization token will no longer be needed
@@ -436,6 +436,6 @@ if __name__ == "__main__":
 
     parser.add_argument("--github_token",
                         type=str,
-                        help="authorization token for private rosettafy repository")
+                        help="authorization token for private metl-sim repository")
 
     main(parser.parse_args())

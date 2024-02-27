@@ -58,9 +58,9 @@ def add_energies(db_fn, energies_df):
     energies_db_ready = energies_df.rename(columns={"variant": "mutations"})
 
     # before adding the energies to the database, sort the variants so the mutations are in sorted order
-    # of sequence position. variants generated via rosettafy *should* already be in this order
+    # of sequence position. variants generated via metl-sim *should* already be in this order
     # however, there was the whole gb1_dms_cov dataset which used the order from the dms dataset
-    # also, just in case rosettafy generates variants in the wrong order, this is the backup
+    # also, just in case metl-sim generates variants in the wrong order, this is the backup
     energies_db_ready["mutations"] = sort_variant_mutations(energies_db_ready["mutations"].tolist())
 
     try:

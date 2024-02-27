@@ -1,8 +1,0 @@
---run_type
-prepare
---run_name
-rs2
---master_variant_fn
-pdb_files/KosciolekAndJones/ready_set_2.txt
---github_tag
-master

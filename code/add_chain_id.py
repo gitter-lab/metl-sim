@@ -1,8 +1,6 @@
-""" Adds chain ID to PDB files that don't have a named chain...
-    the reason we do this is just because rosetta expects a chain ID in some places and it's easier to add it
-    than have to workaround it in rosetta
-
-    the only file that doesn't have a chain ID is the bgl3 pdb file. """
+""" Adds chain ID to PDB files that don't have a named chain.
+    We need this because rosetta expects a chain ID, and it's easier to add it than work around it in Rosetta.
+    The only one of our files that doesn't have a chain ID is the Bgl3 pdb file. """
 
 import os
 from os.path import join

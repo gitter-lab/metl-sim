@@ -1,9 +1,0 @@
-subvariants
---pdb_fn
-pdb_files/prepared_pdb_files/AF-P62993-F1-model_v4_trunc_p.pdb
---target_num
-20000000
---max_num_subs
-5
---min_num_subs
-3

@@ -48,7 +48,7 @@ fi
 # set up the python environment (from packaged version)
 # https://chtc.cs.wisc.edu/conda-installation.shtml
 
-# this is the version of the rosettafy environment in repo version 0.7.11 (pinned openssl)
+# this is the version of the metl-sim environment in repo version 0.7.11 (pinned openssl)
 # simply a convenient way to keep track of versioning for this package which was created by hand
 # these lines handle setting up the environment
 echo "Setting up Python environment"

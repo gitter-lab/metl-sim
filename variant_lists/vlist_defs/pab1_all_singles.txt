@@ -1,5 +1,0 @@
-all
---pdb_fn
-pdb_files/prepared_pdb_files/pab1_cm.pdb
---num_subs_list
-1

@@ -1,3 +1,0 @@
-1FCC_dms.pdb X1A
-1FCC_dms.pdb A23F
-1FCC_dms.pdb G37V,L6E

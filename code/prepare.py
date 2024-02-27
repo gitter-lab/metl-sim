@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import stat
 from os.path import join, isdir, basename, abspath
 import shutil
 import subprocess

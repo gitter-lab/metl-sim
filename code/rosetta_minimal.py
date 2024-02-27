@@ -1,4 +1,4 @@
-""" Copy and tar files from the rosetta distribution that are needed for rosettafy """
+""" Copy and tar files from the rosetta distribution that are needed for metl-sim """
 
 import argparse
 import os
@@ -37,7 +37,7 @@ def prep_for_squid(rosetta_minimal_dir, squid_dir, encryption_password):
 
     # encrypt the tar file for extra security against public distribution
     tar_fn_encrypted = join(squid_dir_with_datetime, "rosetta_min_enc.tar.gz")
-    encrypt_cmd = ["conda", "run", "-n", "rosettafy", "openssl", "enc", "-e", "-aes256", "-pbkdf2",
+    encrypt_cmd = ["conda", "run", "-n", "metl-sim", "openssl", "enc", "-e", "-aes256", "-pbkdf2",
                    "-in", tar_fn, "-out", tar_fn_encrypted, "-pass", "pass:{}".format(encryption_password)]
     subprocess.call(encrypt_cmd)
 
@@ -53,8 +53,8 @@ def make_executable(fn):
 
 
 def gen_minimal_distr(rosetta_main_dir, out_dir):
-    """ generates a minimal distribution of just what is needed for rosettafy """
-    # rosettafy was originally designed to work with Rosetta 2020.50.61505
+    """ generates a minimal distribution of just what is needed for metl-sim """
+    # metl-sim was originally designed to work with Rosetta 2020.50.61505
     # new version will be using Rosetta 3.13 (2021.16.61629)
     # note the relax/scripts binary paths are symlinks, which is okay, because shutil.copyfile follows them
     # (path, executable) -- note the "executable" is ignored for directories (can't make a dir executable)

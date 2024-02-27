@@ -274,7 +274,8 @@ def main():
     # main_dirs = ["output/htcondor_runs/condor_energize_2023-05-24_23-13-10_tem-1_1"]
 
     main_dirs = ["output/htcondor_runs/condor_energize_2023-10-30_18-00-08_gb1_1fcc_dms_docking_singles",
-                 "output/htcondor_runs/condor_energize_2023-10-30_19-08-32_gb1_1fcc_dms_docking_doubles"]
+                 "output/htcondor_runs/condor_energize_2023-10-30_19-08-32_gb1_1fcc_dms_docking_doubles",
+                 "output/htcondor_runs/condor_energize_2023-10-31_11-25-39_gb1_1fcc_dms_docking_subvariants_1"]
 
     for main_dir in main_dirs:
         print("Processing {}".format(basename(main_dir)))
@@ -302,7 +303,7 @@ def main():
             # database_fn = "variant_database/grb2.db"
             # database_fn = "variant_database/dlg4.db"
             # database_fn = "variant_database/tem-1.db"
-            database_fn = "variant_database/gb1_docking.db"
+            database_fn = "variant_database/gb1-docking.db"
             add_to_database(database_fn, processed_run_dir, energize_out_dir)
 
         elif mode == "cleanup":

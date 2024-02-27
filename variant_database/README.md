@@ -1,7 +1,4 @@
-# Database of Rosetta energies
+# Rosetta attribute databases
 
-| File      | Description |
-| --------- | ----------- |
-| create_tables.sql | Set up schema for sqlite database
-| database.db | Main database containing all variants across different proteins |
-| database2.db | Database containing only GB1 variants (temporary) |
+This directory contains databases storing the results of high-throughput Rosetta runs.
+Create a database with [database.py](../code/database.py). Add results to the database using [process_run.py](../code/process_run.py). See the main README for more information.

@@ -1,10 +1,9 @@
-# Rosettafy
+# Molecular simulations for METL
 
 This repository facilitates high-throughput Rosetta runs to compute energy terms for protein variants.
 
 
 ## Table of Contents
-- [Rosettafy](#rosettafy)
   * [Setup](#setup)
   * [Preparing PDB files for Rosetta](#preparing-pdb-files-for-rosetta)
     + [Example](#example)
@@ -29,12 +28,12 @@ See the website for instructions on acquiring a license and installing the softw
 There are two Python environments in the [setup](setup) directory. Install them with [Anaconda](https://www.anaconda.com).
 ```
 conda env create -f setup/clean_pdb_env.yml
-conda env create -f setup/rosettafy_env.yml
+conda env create -f setup/metl-sim_env.yml
 ```
 
-The main environment is named `rosettafy`.
+The main environment is named `metl-sim`.
 ```
-conda activate rosettafy
+conda activate metl-sim
 ```
 The other environment, named `clean_pdb`, is exclusively for running Rosetta's `clean_pdb.py` and `clean_pdb_keep_ligand.py`, which require Python 2. 
 There is no need to manually activate this environment. It will be automatically activated when preparing PDB files for use with Rosetta.
@@ -57,14 +56,14 @@ Our approach is based on the [recommendation in the Rosetta documentation](https
     ```
 3. Select the lowest energy structure generated in the previous step.
 
-The main script for this pipeline is [prepare.py](code/prepare.py).
+The main script for this pipeline is [prepare.py](code/prepare.py), and it will run the above steps for you (no need to do it manually).
 
 ### Example
 
 Let's prepare [2qmt.pdb](pdb_files/raw_pdb_files/2qmt.pdb) for use with Rosetta. 
 This PDB file was downloaded from [Protein Data Bank](https://www.rcsb.org/structure/2QMT) and is located at `pdb_files/raw_pdb_files/2qmt.pdb`.
 
-Make sure the `rosettafy` conda environment is active. 
+Make sure the `metl-sim` conda environment is active. 
 Then, call the following command from the root directory of this repository.
 
 ```commandline
@@ -120,7 +119,7 @@ The [energize.py](code/energize.py) script accepts variants in a text file.
 I explain how to generate variant lists in the next section.
 For now, I created a sample text file with two variants, [2qmt_p_example.txt](variant_lists/2qmt_p_example.txt).
 
-Make sure the `rosettafy` conda environment is active. 
+Make sure the `metl-sim` conda environment is active. 
 Then, call the following command from the root directory of this repository.
 
 ```commandline
@@ -135,9 +134,9 @@ By default, the output will be placed in the `output/energize_outputs` directory
 
 ## Running with HTCondor
 
-The main steps for setting up a Rosettafy HTCondor run are:
-1. Package a minimal distribution of Rosetta and upload it to SQUID ([rosetta_minimal.py](code/rosetta_minimal.py))
-2. Package the Python environment and upload it to SQUID
+The main steps for setting up a metl-sim HTCondor run are:
+1. Package a minimal distribution of Rosetta and upload it to SQUID or OSDF ([rosetta_minimal.py](code/rosetta_minimal.py))
+2. Package the Python environment and upload it to SQUID or OSDF
 3. Prepare a PDB file for use with Rosetta ([prepare.py](code/prepare.py))
 4. Generate a list of variants for which you want to compute energies ([variants.py](code/variants.py))
 5. Prepare an HTCondor run ([condor.py](code/condor.py))
@@ -147,7 +146,7 @@ The [rosetta_minimal.py](code/rosetta_minimal.py) script can be used to:
 - Create a minimal distribution of Rosetta
 - Compress it into a single `.tar.gz` file
 - Encrypt the `.tar.gz` file with a password using the `openssl` library
-- Split the encrypted `.tar.gz` file into multiple ~700mb files to adhere to SQUID guidelines for file size
+- Split the encrypted `.tar.gz` file into multiple ~700mb files
 
 > **Note**  
 > You need to package the Linux version of Rosetta for running on Linux servers like those available from CHTC and OSG
@@ -164,7 +163,7 @@ where `<path_to_rosetta_main_dir>` is the path to full Rosetta distribution.
 It may look similar to: `/Users/<username>/rosetta_bin_linux_2021.16.61629_bundle/main`.
 The minimal distribution will be created in the `rosetta_minimal` directory.
 
-To package the Rosetta distribution for SQUID:
+To package the Rosetta distribution for SQUID or OSDF:
 
 ```commandline
 python code/rosetta_minimal.py --prep_for_squid --out_dir=rosetta_minimal --squid_dir=output/squid_rosetta --encryption_password=password
@@ -177,17 +176,17 @@ The packaged distribution will be created in the `output/squid_rosetta` director
 
 ### Packaging the Python environment
 
-You must package the Python environment and upload it to SQUID.
+You must package the Python environment and upload it to SQUID or OSDF.
 CHTC has instructions on how to do this [here](https://chtc.cs.wisc.edu/uw-research-computing/conda-installation.html).
 To make this process easier, I created a helper script, [package_env.sh](htcondor/package_env.sh). 
 
 To package the Python environment, perform the following steps:
 1. Create a working directory on the submit node named `environment`
-2. Upload [htcondor/package_env.sh](htcondor/package_env.sh) and [setup/rosettafy_env.yml](setup/rosettafy_env.yml) to the `environment` directory
+2. Upload [htcondor/package_env.sh](htcondor/package_env.sh) and [setup/metl-sim_env.yml](setup/metl-sim_env.yml) to the `environment` directory
 3. CD into the `environment` directory on the submit node
-4. Rename rosettafy_env.yml to environment.yml (this is what package_env.sh expects)
+4. Rename metl-sim.yml to environment.yml (this is what package_env.sh expects)
 5. Run `package_env.sh` and wait for it to finish
-6. Transfer the resulting `rosettafy_env.tar.gz` file to SQUID
+6. Transfer the resulting `metl-sim_env.tar.gz` file to SQUID
 
 
 ### Prepare a PDB file for use with Rosetta

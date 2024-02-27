@@ -13,4 +13,4 @@ For example:
 2qmt_p.pdb G37V,L6E
 ```
 
-Variant lists for the RosettaTL dataset can be generated using [variants.py](../code/variants.py).
+Variant lists for can be generated using [variants.py](../code/variants.py).
