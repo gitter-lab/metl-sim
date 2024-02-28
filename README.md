@@ -6,9 +6,7 @@ This repository facilitates high-throughput Rosetta runs to compute energy terms
 ## Table of Contents
   * [Setup](#setup)
   * [Preparing PDB files for Rosetta](#preparing-pdb-files-for-rosetta)
-    + [Example](#example)
   * [Computing Rosetta energy terms for protein variants](#computing-rosetta-energy-terms-for-protein-variants)
-    + [Example](#example-1)
   * [Running with HTCondor](#running-with-htcondor)
     + [Packaging a minimal distribution of Rosetta](#packaging-a-minimal-distribution-of-rosetta)
     + [Packaging the Python environment](#packaging-the-python-environment)
@@ -173,6 +171,15 @@ The packaged distribution will be created in the `output/squid_rosetta` director
 > **Note**  
 > You must specify an encryption password to prevent unauthorized access to the Rosetta distribution. Make sure to update [pass.txt](htcondor/templates/pass.txt) with the password you choose. The password contained in [pass.txt](htcondor/templates/pass.txt) is what will be used to decrypt Rosetta later on and must match the encryption password.   
 
+Once you have the packaged Rosetta distribution, upload it to OSDF.
+**Then, modify [osdf_rosetta_distribution.txt](htcondor/templates/osdf_rosetta_distribution.txt) to list the OSDF paths to the Rosetta distribution files you uploaded.** 
+The file currently contains the following example paths:
+```
+osdf:///chtc/staging/sgelman2/squid_rosetta_2023-10-30_21-53-58/rosetta_min_enc.tar.gz.aa
+osdf:///chtc/staging/sgelman2/squid_rosetta_2023-10-30_21-53-58/rosetta_min_enc.tar.gz.ab
+osdf:///chtc/staging/sgelman2/squid_rosetta_2023-10-30_21-53-58/rosetta_min_enc.tar.gz.ac
+```
+
 
 ### Packaging the Python environment
 
@@ -186,7 +193,8 @@ To package the Python environment, perform the following steps:
 3. CD into the `environment` directory on the submit node
 4. Rename metl-sim.yml to environment.yml (this is what package_env.sh expects)
 5. Run `package_env.sh` and wait for it to finish
-6. Transfer the resulting `metl-sim_env.tar.gz` file to SQUID
+6. Transfer the resulting `metl-sim_env.tar.gz` file to OSDF
+7. **Modify [osdf_python_distribution.txt](htcondor/templates/osdf_python_distribution.txt) to list the OSDF path to the Python environment file you uploaded. See the current file contents for an example.**
 
 
 ### Prepare a PDB file for use with Rosetta

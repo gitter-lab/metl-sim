@@ -8,14 +8,14 @@ output = output/condor_logs/rosetta_$(Cluster)_$(Process).out
 
 # rosetta provides the precompiled 64bit binaries for linux
 # has_avx is included because I think I ran into avx-related errors in the past
-# (GlideIN_Site =!= "FNAL") is meant to exclude the FNAL site because of complaints
+# (GlideIN_Site =!= "FNAL") is meant to exclude the FNAL site because of problems
 requirements = (Arch == "X86_64") && (has_avx == true) && (OpSys=="LINUX") && (GlideIN_Site =!= "FNAL")
 executable = run.sh
 
 should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 
-transfer_input_files = run.sh, pass.txt, code.tar.gz, args/$(Process).txt, energize_args.txt, osdf:///chtc/staging/sgelman2/squid_rosetta_2023-10-30_21-53-58/rosetta_min_enc.tar.gz.aa, osdf:///chtc/staging/sgelman2/squid_rosetta_2023-10-30_21-53-58/rosetta_min_enc.tar.gz.ab, osdf:///chtc/staging/sgelman2/squid_rosetta_2023-10-30_21-53-58/rosetta_min_enc.tar.gz.ac, osdf:///chtc/staging/sgelman2/rosettafy_env_v0.7.11.tar.gz, {transfer_input_files}
+transfer_input_files = run.sh, pass.txt, code.tar.gz, args/$(Process).txt, energize_args.txt, {osdf_rosetta_distribution}, {osdf_python_distribution}, {transfer_input_files}
 transfer_output_files = output
 
 request_cpus = 1

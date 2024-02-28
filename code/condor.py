@@ -170,6 +170,18 @@ def load_lines(fn):
     return lines
 
 
+def check_pass_file(pass_fn="htcondor/templates/pass.txt"):
+    """ check if the pass.txt file is still using the default password """
+
+    # load the contents
+    with open(pass_fn, "r") as f:
+        pass_contents = f.read().strip()
+
+    if pass_contents == "password":
+        warnings.warn("The pass.txt file is still using the default password. "
+                      "Please change the password in pass.txt to the one you used to encrypt Rosetta.")
+
+
 def prep_energize(args):
     """
     Prepare a condor run for calculating Rosetta energies
@@ -207,16 +219,19 @@ def prep_energize(args):
         f.write("export PYSCRIPT={}\n".format(pyscript))
 
     # prepare the additional data files
-    additional_files = prep_additional_data_files(args.additional_data_files, out_dir)
+    additional_files = prep_additional_data_files(args.additional_data_files, out_dir, args.additional_data_dir)
 
     # fill in the template and save it
     fill_submit_template(template_fn="htcondor/templates/energize.sub",
+                         osdf_python_distribution=args.osdf_python_distribution,
+                         osdf_rosetta_distribution=args.osdf_rosetta_distribution,
                          additional_data_files=additional_files,
                          save_dir=out_dir)
 
     # copy over energize.sub and run.sh and the pass.txt
     # shutil.copy("htcondor/templates/energize.sub", out_dir)
     shutil.copy("htcondor/templates/run.sh", out_dir)
+    check_pass_file("htcondor/templates/pass.txt")
     shutil.copy("htcondor/templates/pass.txt", out_dir)
 
     # copy over energize args and rename to standard filename
@@ -228,11 +243,26 @@ def prep_energize(args):
 
 
 def fill_submit_template(template_fn: str,
+                         osdf_python_distribution: Optional[str],
+                         osdf_rosetta_distribution: Optional[str],
                          additional_data_files: Optional[list[str]],
                          save_dir: str):
 
     template_lines = load_lines(template_fn)
     template_str = "\n".join(template_lines)
+
+    format_dict = {}
+
+    if osdf_python_distribution is not None and "{osdf_python_distribution}" in template_str:
+        # load the osdf python distribution files into a list
+        osdf_python_distribution_lines = load_lines(osdf_python_distribution)
+        # fill in the template with the osdf python distribution
+        format_dict["osdf_python_distribution"] = ", ".join(osdf_python_distribution_lines)
+
+    # same for Rosetta distribution
+    if osdf_rosetta_distribution is not None and "{osdf_rosetta_distribution}" in template_str:
+        osdf_rosetta_distribution_lines = load_lines(osdf_rosetta_distribution)
+        format_dict["osdf_rosetta_distribution"] = ", ".join(osdf_rosetta_distribution_lines)
 
     if additional_data_files is None:
         # if there are no additional data files, make it an empty list
@@ -244,7 +274,9 @@ def fill_submit_template(template_fn: str,
 
     # if there is a spot to fill in the transfer_input_files, fill those in
     if "{transfer_input_files}" in template_str:
-        template_str = template_str.format(transfer_input_files=transfer_input_files_str)
+        format_dict["transfer_input_files"] = transfer_input_files_str
+
+    template_str = template_str.format(**format_dict)
 
     with open(join(save_dir, basename(template_fn)), "w") as f:
         f.write(template_str)
@@ -266,16 +298,19 @@ def prep_prepare(args):
     fetch_repo(args.github_tag, args.github_token, out_dir)
 
     # prepare the additional data files
-    additional_files = prep_additional_data_files(args.additional_data_files, out_dir)
+    additional_files = prep_additional_data_files(args.additional_data_files, out_dir, args.additional_data_dir)
 
     # fill in the template and save it
     fill_submit_template(template_fn="htcondor/templates/prepare.sub",
+                         osdf_python_distribution=args.osdf_python_distribution,
+                         osdf_rosetta_distribution=args.osdf_rosetta_distribution,
                          additional_data_files=additional_files,
                          save_dir=out_dir)
 
     # copy over energize.sub and run.sh
     # shutil.copy("htcondor/templates/prepare.sub", out_dir)
     shutil.copy("htcondor/templates/run_prepare.sh", out_dir)
+    check_pass_file("htcondor/templates/pass.txt")
     shutil.copy("htcondor/templates/pass.txt", out_dir)
 
     # copy over the pdb list (passed in as master_variant_fn)
@@ -339,7 +374,7 @@ def zip_additional_data(data_fns):
     return out_fn
 
 
-def prep_additional_data_files(additional_data_files, run_dir):
+def prep_additional_data_files(additional_data_files, run_dir, additional_data_dir):
     """ parses additional data files to determine what is coming from squid and
         what needs to be copied to submit file or zipped up and copied to submit file """
 
@@ -367,11 +402,14 @@ def prep_additional_data_files(additional_data_files, run_dir):
 
         size_limit_bytes = 100000000
         if os.path.getsize(zipped_local_files_fn) > size_limit_bytes:
-            # this file needs to be transferred to squid, too big for submit node
-            squid_data_dir = "http://proxy.chtc.wisc.edu/SQUID/sgelman2/data"
-            additional_final_path = join(squid_data_dir, basename(zipped_local_files_fn))
-            print(f"ADDITIONAL DATA FILES NEED TO BE TRANSFERRED TO SQUID. "
-                  f"Transfer to squid: {zipped_local_files_fn}. Expected final location: {additional_final_path}")
+            # this file needs to be transferred to OSDF, too big for submit node
+            # additional data dir needs to be specified in this scenario
+            if additional_data_dir is None:
+                raise ValueError("The compressed additional data files are greater than 100MB. "
+                                 "The additional_data_dir must be specified to transfer these files to OSDF.")
+            additional_final_path = join(additional_data_dir, basename(zipped_local_files_fn))
+            print(f"ADDITIONAL DATA FILES NEED TO BE TRANSFERRED TO STORAGE SERVER. "
+                  f"Transfer to OSDF: {zipped_local_files_fn}. Expected final location: {additional_final_path}")
         else:
             # this file can be transferred from submit node, copy to run dir
             print("Copying compressed additional data files to run directory")
@@ -424,11 +462,27 @@ if __name__ == "__main__":
                         type=int,
                         help="the number of variants per job")
 
+    parser.add_argument("--osdf_python_distribution",
+                        type=str,
+                        help="text file containing the OSDF paths to Python distribution files",
+                        default="htcondor/templates/osdf_python_distribution.txt")
+
+    parser.add_argument("--osdf_rosetta_distribution",
+                        type=str,
+                        help="text file containing the OSDF paths to Rosetta distribution files",
+                        default="htcondor/templates/osdf_rosetta_distribution.txt")
+
     parser.add_argument("--additional_data_files",
                         type=str,
                         help="additional data files to transfer to execute node. these will "
                              "get added to transfer_input_files in the HTCondor submit file.",
                         nargs="*")
+
+    parser.add_argument("--additional_data_dir",
+                        type=str,
+                        help="OSDF directory where additional data files should be placed. only used "
+                             "when additional_data_files are present and need to be transferred to storage "
+                             "server due to the file size being too big")
 
     parser.add_argument("--github_tag",
                         type=str,

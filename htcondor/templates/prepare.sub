@@ -15,7 +15,7 @@ should_transfer_files = YES
 when_to_transfer_output = ON_EXIT
 
 # SQUID_DIR="squid_rosetta_2023-08-20_22-58-49"
-transfer_input_files = run_prepare.sh, pass.txt, code.tar.gz, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2023-08-20_22-58-49/rosetta_min_enc.tar.gz.aa, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2023-08-20_22-58-49/rosetta_min_enc.tar.gz.ab, http://proxy.chtc.wisc.edu/SQUID/sgelman2/squid_rosetta_2023-08-20_22-58-49/rosetta_min_enc.tar.gz.ac, http://proxy.chtc.wisc.edu/SQUID/sgelman2/rosettafy_env_v0.7.11.tar.gz, http://proxy.chtc.wisc.edu/SQUID/sgelman2/Miniconda3-py38_4.9.2-Linux-x86_64.sh, {transfer_input_files}
+transfer_input_files = run_prepare.sh, pass.txt, code.tar.gz, {osdf_rosetta_distribution}, {osdf_python_distribution}, http://proxy.chtc.wisc.edu/SQUID/sgelman2/Miniconda3-py38_4.9.2-Linux-x86_64.sh, {transfer_input_files}
 transfer_output_files = output
 
 request_cpus = 1

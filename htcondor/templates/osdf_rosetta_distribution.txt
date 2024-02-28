@@ -1,0 +1,3 @@
+osdf:///chtc/staging/sgelman2/squid_rosetta_2023-10-30_21-53-58/rosetta_min_enc.tar.gz.aa
+osdf:///chtc/staging/sgelman2/squid_rosetta_2023-10-30_21-53-58/rosetta_min_enc.tar.gz.ab
+osdf:///chtc/staging/sgelman2/squid_rosetta_2023-10-30_21-53-58/rosetta_min_enc.tar.gz.ac

@@ -152,6 +152,6 @@ if __name__ == "__main__":
     parser.add_argument("--encryption_password",
                         help="the password to use for encrypting the Rosetta tar file",
                         type=str,
-                        default="R0S3774123")
+                        default="password")
 
     main(parser.parse_args())
