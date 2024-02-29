@@ -8,5 +8,9 @@ energize_args/condor_set_2.txt
 variant_lists/2qmt_p_all_NS-1.txt
 --variants_per_job
 -1
+--osdf_python_distribution
+htcondor/templates/osdf_python_distribution.txt
+--osdf_rosetta_distribution
+htcondor/templates/osdf_rosetta_distribution.txt
 --github_tag
-v0.7.8
+v0.8

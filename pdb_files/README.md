@@ -5,10 +5,13 @@ Local datasets are based on proteins from deep mutational scanning datasets.
 We found structures for these proteins by manually searching [RCSB Protein Data Bank](https://www.rcsb.org) for matching sequences.
 The raw PDB files are located in [raw_pdb_files](raw_pdb_files) and ready-to-use pdb files are located in [prepared_pdb_files](prepared_pdb_files).
 
-| Protein | DMS Reference | PDB Reference | Notes                                                                                                                                                                                          |
-|---------|-------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| GB1     |             | 2QMT          |                                                                                                                                                                                                |
-| avGFP   |             | 1GFL          | To match the reference sequence of the DMS dataset, we ultiamtely used a homology model based on 1GFL. The homology model `1gfl_cm.pdb` is stored in [prepared_pdb_files](prepared_pdb_files). |
+[//]: # (| Protein | DMS Reference | PDB Reference | Notes                                                                                                                                                                                          |)
+
+[//]: # (|---------|-------------|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|)
+
+[//]: # (| GB1     |             | 2QMT          |                                                                                                                                                                                                |)
+
+[//]: # (| avGFP   |             | 1GFL          | To match the reference sequence of the DMS dataset, we ultimately used a homology model based on 1GFL. The homology model `1gfl_cm.pdb` is stored in [prepared_pdb_files]&#40;prepared_pdb_files&#41;. |)
 
 
 
