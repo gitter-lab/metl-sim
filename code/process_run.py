@@ -1,4 +1,5 @@
 """ process an htcondor run """
+import argparse
 import os
 from os.path import join, isdir, isfile, basename
 import subprocess
@@ -226,60 +227,14 @@ def gen_cleanup_run_def(main_run_dir):
     print("saved run def to {}".format(new_run_def_fn))
 
 
-def main():
-    # path to the parent condor directory for this run
+def main(args):
 
     # stats, database, cleanup
-    mode = "database"
-    print("Running mode: {}".format(mode))
+    print("Running mode: {}".format(args.mode))
 
-    # main_dirs = ["output/htcondor_runs/condor_energize_2021-12-03_15-51-12_gb1_sd",
-    #              "output/htcondor_runs/condor_energize_2021-12-03_15-54-27_gb1_subvariants_1",
-    #              "output/htcondor_runs/condor_energize_2021-12-08_14-07-21_gb1_subvariants_2",
-    #              "output/htcondor_runs/condor_energize_2021-12-08_14-06-08_avgfp_1"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-01-13_21-07-37_KJ_set_1"]
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-01-18_17-30-50_KJ_set_1_2"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2021-12-08_14-07-21_gb1_subvariants_2"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-02-14_10-31-50_gb1_dms_supp"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-02-10_20-40-07_KJ_sets_23"]
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-03-15_07-48-16_KJ_set_4"]
-    # main_dirs = ["output/htcondor_runs/condor_energize_2021-12-08_14-06-08_avgfp_1"]
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-09-13_14-30-07_avgfp_2"]
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-10-05_18-21-19_dlg4_1"]
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-05-05_19-03-00_pab1_1"]
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-05-10_14-46-24_ube4b_1"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-12-13_10-59-55_avgfp_dms_cov",
-    #              "output/htcondor_runs/condor_energize_2022-12-13_11-36-14_pab1_dms_cov",
-    #              "output/htcondor_runs/condor_energize_2022-12-13_11-39-05_ube4b_dms_cov"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-12-14_16-17-39_pab1_2"]
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-12-14_16-19-10_ube4b_2"]
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-12-14_16-19-18_dlg4_2"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2023-01-12_13-03-12_ube4b_dms_cov_supplemental"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2023-04-29_15-08-28_grb2_1"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2023-05-09_16-21-14_dlg4_2022_1"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2022-10-05_18-21-19_dlg4_1",
-    #              "output/htcondor_runs/condor_energize_2022-12-14_16-19-18_dlg4_2",
-    #              "output/htcondor_runs/condor_energize_2023-05-09_16-21-14_dlg4_2022_1"]
-
-    # main_dirs = ["output/htcondor_runs/condor_energize_2023-05-24_23-13-10_tem-1_1"]
-
-    main_dirs = ["output/htcondor_runs/condor_energize_2023-10-30_18-00-08_gb1_1fcc_dms_docking_singles",
-                 "output/htcondor_runs/condor_energize_2023-10-30_19-08-32_gb1_1fcc_dms_docking_doubles",
-                 "output/htcondor_runs/condor_energize_2023-10-31_11-25-39_gb1_1fcc_dms_docking_subvariants_1"]
-
-    for main_dir in main_dirs:
+    for main_dir in args.main_run_dirs:
         print("Processing {}".format(basename(main_dir)))
-        if mode == "stats":
+        if args.mode == "stats":
             # output directory for processed run stats
             processed_run_dir = join(main_dir, "processed_run")
 
@@ -294,22 +249,39 @@ def main():
                 os.makedirs(processed_run_dir)
                 process_run(main_dir, condor_log_dir, energize_out_dir, processed_run_dir)
 
-        elif mode == "database":
+        elif args.mode == "database":
             processed_run_dir = join(main_dir, "processed_run")
             energize_out_dir = join(main_dir, "output", "energize_outputs")
 
             # add to database
-            # database_fn = "variant_database/database.db"
-            # database_fn = "variant_database/grb2.db"
-            # database_fn = "variant_database/dlg4.db"
-            # database_fn = "variant_database/tem-1.db"
-            database_fn = "variant_database/gb1-docking.db"
-            add_to_database(database_fn, processed_run_dir, energize_out_dir)
+            add_to_database(args.database_fn, processed_run_dir, energize_out_dir)
 
-        elif mode == "cleanup":
+        elif args.mode == "cleanup":
             # create a new condor run definition file to re-run failed jobs
             gen_cleanup_run_def(main_dir)
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        fromfile_prefix_chars="@")
+
+    parser.add_argument("mode",
+                        help="what method to use to generate variants",
+                        type=str,
+                        choices=["stats", "database"])
+
+    # common args
+    parser.add_argument("--main_run_dirs",
+                        help="the main directory for the condor run(s) to process",
+                        type=str,
+                        nargs="+")
+
+    parser.add_argument("--database_fn",
+                        help="for mode 'database', the database to add the run to",
+                        type=str,
+                        default=None)
+
+    main(parser.parse_args())
+
