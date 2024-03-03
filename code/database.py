@@ -163,8 +163,4 @@ if __name__ == "__main__":
                         type=str,
                         default="variant_database/database.db")
 
-    parser.add_argument("--condor_main_dir",
-                        type=str,
-                        help="path to the parent condor directory for run to process")
-
     main(parser.parse_args())

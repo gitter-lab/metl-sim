@@ -16,6 +16,8 @@ This repository facilitates high-throughput Rosetta runs to compute energy terms
       - [Generating variants using the subvariants algorithm](#generating-variants-using-the-subvariants-algorithm)
     + [Prepare an HTCondor run](#prepare-an-htcondor-run)
     + [Processing results](#processing-results)
+        - [Parse the results files](#parse-the-results-files)
+        - [Add results to a database](#add-results-to-a-database)
 
 
 ## Setup
@@ -279,10 +281,60 @@ python code/condor.py @htcondor/run_defs/gb1_example_run.txt
 ```
 
 The script will generate a run directory and place it in `output/htcondor_runs`.
-From there, you can upload the run directory to your CHTC submit node. 
+From there, you can upload the run directory to your HTCondor submit node. 
 You can then submit the run using `submit.sh`, which should be located in the run directory.
 
 ### Processing results
 
+The HTCondor run will produce a log directory for each job. 
+The log directory contains 4 files: `args.txt`, `job.csv`, `hparams.csv`, and `energies.csv`.
 
+| File Name     | Description                                                                                                          |
+|---------------|----------------------------------------------------------------------------------------------------------------------|
+| `args.txt`    | Contains the arguments fed into the `energize.py` script to produce the output.                                      |
+| `job.csv`     | Contains information about the HTCondor job that produced the output, such as the cluster, hostname, and start time. |
+| `hparams.csv` | Contains the Rosetta hyperparameters used to compute the energies.                                                   |
+| `energies.csv`| Contains the computed energies for each variant in the job.                                                          |
 
+After the HTCondor run, transfer these log directories to your local machine for processing. 
+I recommend compressing them before the file transfer:
+```commandline
+tar -czf output.tar.gz output
+```
+Then untar the file on your local machine:
+```commandline
+tar -xf output.tar.gz
+```
+
+Make sure to extract the output into the same condor run directory that you produced with `condor.py` in the [Prepare an HTCondor run](#prepare-an-htcondor-run) section.
+
+#### Parse the results files
+
+The [process_run.py](code/process_run.py) script can be used to parse the results files and combine them into a single dataframe.
+
+Run it with the following command, specifying the mode `stats` and the main run directory of the HTCondor run:
+```commandline
+python code/process_run.py stats --main_run_dirs output/htcondor_runs/my_condor_run
+```
+
+This will produce a directory named `processed_run` inside in the main run directory.
+The `processed_run` directory contains a number of plots and dataframes which should be self-explanatory.
+The main dataframe is `processed_run/energies_df.csv` and contains the computed energies for each variant in the run.
+
+You can specify multiple run directories to process at a time by separating them with a space when calling [process_run.py](code/process_run.py).
+
+#### Add results to a database
+
+You can add the results of one or more HTCondor runs to an SQLite database using the [process_run.py](code/process_run.py) script.
+
+First, create the blank database using [database.py](code/database.py).
+```commandline
+python code/database.py create --db_fn variant_database/my_database.db
+```
+
+Then, add the results of one or more HTCondor runs to the database using the `database` mode of [process_run.py](code/process_run.py).
+```commandline
+python code/process_run.py database --main_run_dirs output/htcondor_runs/my_condor_run --db_fn variant_database/my_database.db
+```
+
+This database can now be used with the [metl](https://github.com/gitter-lab/metl) repository to create a processed Rosetta dataset and pretrain METL models.
