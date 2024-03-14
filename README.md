@@ -1,4 +1,5 @@
 # Molecular simulations for METL
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10819523.svg)](https://zenodo.org/doi/10.5281/zenodo.10819523)
 
 This repository facilitates high-throughput Rosetta runs to compute energy terms for protein variants.
 For more information, please see the [metl](https://github.com/gitter-lab/metl) repository and our manuscript:
@@ -277,7 +278,7 @@ htcondor/templates/osdf_python_distribution.txt
 --osdf_rosetta_distribution
 htcondor/templates/osdf_rosetta_distribution.txt
 --github_tag
-v0.8
+v1.0
 ```
 
 You can then generate the HTCondor run using the following command:
