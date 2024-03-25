@@ -9,6 +9,8 @@ Sam Gelman, Bryce Johnson, Chase Freschlin, Sameer D'Costa, Anthony Gitter<sup>+
 *bioRxiv*, 2024. doi:10.1101/2024.03.15.585128  
 <sup>+</sup> denotes equal contribution.
 
+Users of this workflow should [cite Rosetta](https://github.com/RosettaCommons/rosetta/blob/main/CITING_ROSETTA.md) in addition to METL.
+
 ## Table of Contents
   * [Setup](#setup)
   * [Preparing PDB files for Rosetta](#preparing-pdb-files-for-rosetta)
