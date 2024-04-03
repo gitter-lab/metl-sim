@@ -39,6 +39,8 @@ conda env create -f setup/clean_pdb_env.yml
 conda env create -f setup/metl-sim_env.yml
 ```
 
+Installation typically takes approximately 5 minutes. 
+
 The main environment is named `metl-sim`.
 ```
 conda activate metl-sim
@@ -92,6 +94,7 @@ Additional arguments specified in this example:
 
 For a full list of parameters, call `python code/prepare.py -h`. 
 
+Running this example can take approximately 5-10 minutes depending on CPU speed.
 
 When you call this command, the [prepare.py](code/prepare.py) script will:
 - Create an output directory named `2qmt` under `output/prepare_outputs`
@@ -138,7 +141,16 @@ Note we are using the `@energize_args/example.txt` argument to insert arguments 
 Additionally, we are specifying the path to the Rosetta installation, the file containing the variants to run, and an additional flag `--save_wd` to save the working directory for each variant.
 For condor runs, there is no need to specify the `--save_wd` flag, as it will generate too much output.
 
+Running this example takes approximately 2-3 minutes depending on CPU speed.
+
 By default, the output will be placed in the `output/energize_outputs` directory.
+The output consists of multiple files:
+- **args.txt** which contains the arguments used to run the script
+- **energies.csv** which contains the computed energy terms for each variant
+- **hparams.csv** which contains the hyperparameters used to compute the energy terms
+- **job.csv** which contains information about the run
+- If the `--save_wd` flag is specified, the output will also contain working directories for each variant, which contain a number of additional log files and structure files output by Rosetta. 
+
 
 ## Running with HTCondor
 
