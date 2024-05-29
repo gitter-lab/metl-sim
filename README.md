@@ -82,7 +82,7 @@ python code/prepare.py --rosetta_main_dir=<path_to_rosetta_main_dir> --pdb_fn=pd
 
 >**Note**  
 > You need to specify the path to your Rosetta installation's `main` folder. It may look similar to:  
-`/Users/<username>/rosetta_bin_mac_2021.16.61629_bundle/main` 
+`/Users/<username>/rosetta_bin_mac_2021.16.61629_bundle/main/` 
 
 Additional arguments specified in this example: 
 
