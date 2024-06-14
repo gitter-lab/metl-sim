@@ -278,7 +278,7 @@ if __name__ == "__main__":
                         type=str,
                         nargs="+")
 
-    parser.add_argument("--database_fn",
+    parser.add_argument("--db_fn",
                         help="for mode 'database', the database to add the run to",
                         type=str,
                         default=None)
