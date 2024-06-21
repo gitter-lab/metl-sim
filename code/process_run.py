@@ -254,7 +254,7 @@ def main(args):
             energize_out_dir = join(main_dir, "output", "energize_outputs")
 
             # add to database
-            add_to_database(args.database_fn, processed_run_dir, energize_out_dir)
+            add_to_database(args.db_fn, processed_run_dir, energize_out_dir)
 
         elif args.mode == "cleanup":
             # create a new condor run definition file to re-run failed jobs
