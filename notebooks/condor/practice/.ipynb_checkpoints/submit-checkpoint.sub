@@ -1,0 +1,16 @@
+# helloworld.sub
+Universe = vanilla
+Executable = helloworld.sh
+Output = output/condor_logs/helloworld_$(Process).out
+Error = output/condor_logs/helloworld_$(Process).err
+Log = output/condor_logs/helloworld_$(Process).log
+RequestCpus = 1
+RequestMemory = 512 MB
+
+# set it so jobs that fail will go on hold
+on_exit_hold = (ExitCode =!= 0)
+on_exit_hold_subcode = 1
+on_exit_hold_reason = "Nonzero exit-code"
+
+
+queue 3
