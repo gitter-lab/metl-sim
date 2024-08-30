@@ -273,9 +273,12 @@ def job_status():
     print(df)
 
 
-
-def untar_file_with_progress(file_path, extract_dir,filetype='gz'):
+def untar_file_with_progress(file_path, extract_dir='.', filetype='gz'):
     try:
+        # Use current directory if no extract_dir is specified
+        if extract_dir == '.':
+            extract_dir = os.getcwd()
+        
         # Check if the directory already exists
         if os.path.exists(extract_dir):
             # Check if the directory is not empty
@@ -310,10 +313,44 @@ def untar_file_with_progress(file_path, extract_dir,filetype='gz'):
         
         print(f"\033[91m❌ Failure: {str(e)}\033[0m")
 
+# def untar_file_with_progress(file_path, extract_dir,filetype='gz'):
+#     try:
+#         # Check if the directory already exists
+#         if os.path.exists(extract_dir):
+#             # Check if the directory is not empty
+#             if os.listdir(extract_dir):
+#                 print(f"\033[93m🔔 Notice: Directory '{extract_dir}' already exists and is not empty. Skipping extraction.\033[0m")
+#                 return
+        
+#         # Create the directory if it does not exist
+#         os.makedirs(extract_dir, exist_ok=True)
+        
+#         # Open the tar file
+#         with tarfile.open(file_path, f"r:{filetype}") as tar:
+#             # Get the list of files in the tar archive
+#             members = tar.getmembers()
+#             total_files = len(members)
+            
+#             # Create a progress bar
+#             with tqdm(total=total_files, unit='file', desc='Extracting') as pbar:
+#                 # Extract each member and update the progress bar
+#                 for member in members:
+#                     tar.extract(member, path=extract_dir)
+#                     pbar.update(1)
+            
+#             print(f"\033[92m✅ Success: File untarred to '{extract_dir}'.\033[0m")
+    
+#     except Exception as e:
+#         # Handle extraction errors
+#         if os.path.exists(extract_dir):
+#             # Clean up the directory if extraction fails
+#             shutil.rmtree(extract_dir)
+#             print(f"\033[91m❌ Failure: Extraction failed. Directory '{extract_dir}' has been removed.\033[0m")
+        
+#         print(f"\033[91m❌ Failure: {str(e)}\033[0m")
 
 
-
-def download_file(url, output_path):
+def download_file(url, output_path, method='curl'):
     try:
         # Check if the downloads directory exists
         dir_path = os.path.dirname(output_path)
@@ -326,33 +363,87 @@ def download_file(url, output_path):
         if os.path.isfile(output_path):
             print(f"\033[93m🔔 Notice: File '{output_path}' already exists. No download needed.\033[0m")
             return
-
-        # Send a GET request to the URL
-        response = requests.get(url, stream=True)
         
-        # Check if the request was successful
-        if response.status_code == 200:
-            # Get the total file size from the response headers
-            total_size = int(response.headers.get('content-length', 0))
+        if method == 'curl':
+            # Send a GET request to the URL
+            response = requests.get(url, stream=True)
 
-            # Write the content to the output file with progress bar
-            with open(output_path, 'wb') as file:
-                # Wrap the iter_content with tqdm to show progress
-                for chunk in tqdm(response.iter_content(chunk_size=8192), 
-                                  total=total_size // 8192, 
-                                  unit='KB', 
-                                  desc='Downloading'):
-                    file.write(chunk)
-            
-            # Output success message in green
-            print(f"\033[92m✅ Success: File downloaded to '{output_path}'.\033[0m")
+            # Check if the request was successful
+            if response.status_code == 200:
+                # Get the total file size from the response headers
+                total_size = int(response.headers.get('content-length', 0))
+
+                # Write the content to the output file with progress bar
+                with open(output_path, 'wb') as file:
+                    # Wrap the iter_content with tqdm to show progress
+                    for chunk in tqdm(response.iter_content(chunk_size=8192), 
+                                      total=total_size // 8192, 
+                                      unit='KB', 
+                                      desc='Downloading'):
+                        file.write(chunk)
+
+                # Output success message in green
+                print(f"\033[92m✅ Success: File downloaded to '{output_path}'.\033[0m")
+            else:
+                # Output failure message in red if the request was unsuccessful
+                print(f"\033[91m❌ Failure: HTTP {response.status_code} - Could not download the file.\033[0m")
+
+        elif method == 'scp':
+            # Assume url is of the form 'user@host:/path/to/file'
+            try:
+                scp_command = f"scp {url} {output_path}"
+                subprocess.check_call(scp_command, shell=True)
+                print(f"\033[92m✅ Success: File copied to '{output_path}' using SCP.\033[0m")
+            except subprocess.CalledProcessError as e:
+                print(f"\033[91m❌ Failure: SCP command failed with error: {str(e)}\033[0m")
+
         else:
-            # Output failure message in red if the request was unsuccessful
-            print(f"\033[91m❌ Failure: HTTP {response.status_code} - Could not download the file.\033[0m")
+            print(f"\033[91m❌ Failure: Invalid method '{method}'. Use 'curl' or 'scp'.\033[0m")
     
     except Exception as e:
         # Handle any other exceptions and output failure message in red
         print(f"\033[91m❌ Failure: {str(e)}\033[0m")
+
+# def download_file(url, output_path):
+#     try:
+#         # Check if the downloads directory exists
+#         dir_path = os.path.dirname(output_path)
+#         if not os.path.exists(dir_path):
+#             # Create the directory
+#             os.makedirs(dir_path)
+#             print(f"\033[93m🔔 Notice: Directory '{dir_path}' did not exist and has been created.\033[0m")
+
+#         # Check if the file has already been downloaded
+#         if os.path.isfile(output_path):
+#             print(f"\033[93m🔔 Notice: File '{output_path}' already exists. No download needed.\033[0m")
+#             return
+
+#         # Send a GET request to the URL
+#         response = requests.get(url, stream=True)
+        
+#         # Check if the request was successful
+#         if response.status_code == 200:
+#             # Get the total file size from the response headers
+#             total_size = int(response.headers.get('content-length', 0))
+
+#             # Write the content to the output file with progress bar
+#             with open(output_path, 'wb') as file:
+#                 # Wrap the iter_content with tqdm to show progress
+#                 for chunk in tqdm(response.iter_content(chunk_size=8192), 
+#                                   total=total_size // 8192, 
+#                                   unit='KB', 
+#                                   desc='Downloading'):
+#                     file.write(chunk)
+            
+#             # Output success message in green
+#             print(f"\033[92m✅ Success: File downloaded to '{output_path}'.\033[0m")
+#         else:
+#             # Output failure message in red if the request was unsuccessful
+#             print(f"\033[91m❌ Failure: HTTP {response.status_code} - Could not download the file.\033[0m")
+    
+#     except Exception as e:
+#         # Handle any other exceptions and output failure message in red
+#         print(f"\033[91m❌ Failure: {str(e)}\033[0m")
 
 
 def check_last_two_folders(expected_folder1, expected_folder2):
@@ -375,4 +466,171 @@ def check_last_two_folders(expected_folder1, expected_folder2):
         print(f"\033[92m✅ Success: You are in '{second_last_folder}/{last_folder}'.\033[0m")
     else:
         print(f"\033[91m❌ Failure: Your current working directory is '{second_last_folder}/{last_folder}', not '{expected_folder1}/{expected_folder2}'.\033[0m")
+
+def set_permissions(path, permissions):
+    """
+    Change the permissions of a file or all files in a directory using chmod.
+
+    Parameters:
+    path (str): Path to the file or directory.
+    permissions (str): Permissions to set, e.g., '755'.
+
+    Returns:
+    None
+    """
+    # Helper function to change permissions for a file
+    def change_permissions(file_path):
+        command = ['chmod', permissions, file_path]
+        try:
+            subprocess.run(command, check=True)
+            print(f"\033[92m✅ Successfully changed permissions for {file_path} to {permissions}.\033[0m")
+        except subprocess.CalledProcessError as e:
+            print(f"\033[91m❌ Error occurred while changing permissions for {file_path}: {e}\033[0m")
     
+    # If path is a directory, change permissions for all files inside it
+    if os.path.isdir(path):
+        for root, dirs, files in os.walk(path):
+            for name in files:
+                file_path = os.path.join(root, name)
+                change_permissions(file_path)
+    else:
+        # Change permissions for the single file
+        change_permissions(path)
+
+def decode_rosetta():
+    """
+    Set permissions for the bash_scripts directory and then run the rosetta_download.sh script.
+
+    Returns:
+    None
+    """
+    # Set permissions for the bash_scripts directory
+    set_permissions('bash_scripts', '777')
+
+    # Run the shell script
+    script_path = 'bash_scripts/rosetta_download.sh'
+    command = ['bash', script_path]
+    
+    try:
+        subprocess.run(command, check=True)
+        print("\033[92m✅ Successfully  decoded rosetta.\033[0m")
+    except subprocess.CalledProcessError as e:
+        print(f"\033[91m❌ Error occurred while executing the script: {e}\033[0m")
+
+
+
+# def print_colored(message, color_code):
+#     """Prints the message in the specified color."""
+#     print(f"\033[{color_code}m{message}\033[0m")
+
+# def run_prepare_script(rosetta_main_dir, pdb_fn, relax_nstruct=10, out_dir_base='output/prepare_outputs'):
+#     # Construct the command to run the shell script with parameters
+#     command = [
+#         './bash_scripts/run_prepare.sh',
+#         rosetta_main_dir,
+#         pdb_fn,
+#         str(relax_nstruct),
+#         out_dir_base
+#     ]
+    
+#     # Run the shell script
+#     try:
+#         result = subprocess.run(command, check=True, text=True, capture_output=True)
+#         print_colored("✅ Prepare.py executed successfully!", '32')  # Green color
+#         print(result.stdout)
+#     except subprocess.CalledProcessError as e:
+#         print_colored("❌ Prepare.py execution failed!", '31')  # Red color
+#         print(f"Error details:\n{e.stderr}")
+
+def print_colored(message, color_code):
+    """Prints the message in the specified color."""
+    print(f"\033[{color_code}m{message}\033[0m")
+
+def extract_output_directory(output):
+    """Extracts the output directory from the given output text."""
+    match = re.search(r'output directory is: (.+)', output)
+    if match:
+        return match.group(1)
+    return None
+
+def transfer_file(src_file, dest_dir, cwd):
+    """Transfers a file from source to destination directory."""
+    original_cwd = os.getcwd()
+    try:
+        # Change to the specified directory
+        os.chdir(cwd)
+        
+        # Ensure destination directory exists
+        if not os.path.exists(dest_dir):
+            os.makedirs(dest_dir)
+        
+        # Copy the file to the destination directory
+        shutil.copy(src_file, dest_dir)
+        print_colored(f"✅ File transferred to {dest_dir}!", '32')  # Green color
+    
+    except Exception as e:
+        print_colored(f"❌ Failed to transfer file: {e}", '31')  # Red color
+    
+    finally:
+        # Change back to the original directory
+        os.chdir(original_cwd)
+
+def run_prepare_script(rosetta_main_dir, pdb_fn, relax_nstruct, out_dir_base):
+    # Construct the command to run the shell script with parameters
+    command = [
+        './bash_scripts/run_prepare.sh',
+        rosetta_main_dir,
+        pdb_fn,
+        str(relax_nstruct),
+        out_dir_base
+    ]
+    
+    # Run the shell script
+    try:
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
+        output_directory = extract_output_directory(result.stdout)
+        # print('found output dir:',output_directory)
+        # output_directory='output/prepare_outputs/2qmt_2024-08-27_21-52-35'
+        if output_directory:
+            print_colored("✅ Prepare.py executed successfully!", '32')  # Green color
+            # print(f"Output directory: {output_directory}")
+            pdb = pdb_fn.split(os.sep)[-1].split('.')[0]
+            # print(pdb)
+            file_to_transfer = f"{output_directory}/{pdb}_p.pdb"
+            # Define the file to transfer (assuming you have a specific file to look for, e.g., 'prepared.pdb')
+            # file_to_transfer = Path(output_directory) / 'prepared.pdb'
+            target_directory = 'pdb_files/prepared_pdb_files'
+
+            # print(os.getcwd())
+            # Check if the file exists and transfer it
+            
+            transfer_file(file_to_transfer, target_directory,'..')
+        else:
+            print_colored("✅ Script executed successfully, but output directory not found!", '33')  # Yellow color
+            print(result.stdout)
+    
+    except subprocess.CalledProcessError as e:
+        print_colored("❌ Script execution failed!", '31')  # Red color
+        print(f"Error details:\n{e.stderr}")
+
+def run_variant_script(pdb_fn,num_subs_list):
+
+
+    
+    # Construct the command to run the shell script with parameters
+    command = [
+        './bash_scripts/run_variants.sh',
+        sample_type,
+        pdb_fn,
+        str(num_subs_list),
+    ]
+    
+    # Run the shell script
+    try:
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
+        print_colored("✅ Variants.py executed successfully!", '32')  # Green color
+        
+    
+    except subprocess.CalledProcessError as e:
+        print_colored("❌ Script execution failed!", '31')  # Red color
+        print(f"Error details:\n{e.stderr}")
