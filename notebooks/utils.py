@@ -734,5 +734,82 @@ def post_process_rosetta_download(job_name):
     extract_dir = "rosetta"
     untar_file_with_progress(file_path, extract_dir)
 
+# variant file 
+# pdb file 
+# osdf files  - probably should be changed earlier 
+# usual tarring process. 
+
+def prepare_rosetta_run(job_name,pdb_file_name,variants_to_generate,max_subs,min_subs): 
+    # first set up the argument file
+    # 
+    parent_dir='../htcondor/run_defs'
+    metl_dir ='metl-sim-v1.0'
+    runs=os.listdir(parent_dir)
+    if job_name in runs:
+        print_colored(f"❌ Job name {job_name} not is availabe, please specify a new job name", '31')
+        return 
+    else:
+        print_colored(f"✅ Job name {job_name} is availabe, preparing rosetta job", '32') 
+    
+    os.makedirs(f'{parent_dir}/{job_name}')
+    
+    pdb_fn=f'{pdb_file_name.split(".")[0]}_p.pdb'
+    variants_fn=get_variants_fn(pdb_fn,variants_to_generate,max_subs,min_subs,seed=0)
+    pdb_full_path=f'pdb_files/prepared_pdb_files/{pdb_fn}'
+    varaints_full_path = f'variant_lists/{variants_fn}'
+
+
+    
+    if os.path.isfile(f'../{varaints_full_path}'):
+        print_colored(f"✅ Variant file exists:\n Variants to Generate : {variants_to_generate} \n Max Subs: {max_subs} \n Min Subs :{min_subs}", '32') 
+    else:
+        print_colored(f"❌ Variant file does not exists:\n Variants to Generate : {variants_to_generate} \n Max Subs: {max_subs} \n Min Subs :{min_subs} \n Please run section 'Generate variants for Rosetta Relax' again or change input parameters", '31')   
+        return 
+        
+    # condor_dir_pdb=f'{parent_dir}/{job_name}/{metl_dir}/pdb_files/prepared_pdb_files'
+    # condor_dir_variant=f'{parent_dir}/{job_name}/{metl_dir}/variant_lists'
+
+    with open('htcondor/templates/energize_run.txt','r') as f: 
+        contents= f.read()
+
+    contents=contents.replace('{job_name}',job_name)
+    contents=contents.replace('{variant_file}',varaints_full_path)
+
+    param_fn =f"{parent_dir}/{job_name}/htcondor.txt"
+    with open(param_fn,'w') as f:
+        f.write(contents)
+
+    # copy the password file into the correct spot: 
+    shutil.copy('htcondor/templates/pass.txt','../htcondor/templates/')
+    
+    command = ['./bash_scripts/run_condor.sh',f"htcondor/run_defs/{job_name}/htcondor.txt"]
+
+    try:
+        result = subprocess.run(command, check=True, text=True, capture_output=True)
+         # Print stdout and stderr from the bash script
+        print("Standard Output:\n", result.stdout)
+        print("Standard Error:\n", result.stderr)
+        print_colored("✅ Successfully prepared OSG run!", '32')  # Green color
+    
+    
+    except subprocess.CalledProcessError as e:
+        print_colored("❌ Script execution failed to prepare OSG run!", '31')  # Red color
+        print(f"Error details:\n{e.stderr}")
+
+
+    # export things here maybe 
+
+    # untar the arguments file here as well. 
+
+
+
+
+
+    # edit condor.py such that if the github tag is "notebooks" then 
+    # it automatically just tar's up everything instead. 
+    # then no need to worry about pdb file either, because it just works. 
+    # just need to figure out how to rename the title folder metl-sim-notebooks
+
+
 
 
