@@ -31,7 +31,7 @@ fi
 
 echo "Decrypting Rosetta"
 openssl version # echo the version for my knowledge
-openssl enc -d -aes256 -pbkdf2 -in rosetta_min_enc_v2.tar.gz -out rosetta_min.tar.gz -pass file:pass.txt
+openssl enc -d -aes256 -pbkdf2 -in rosetta_min_enc_v2.tar.gz -out rosetta_min.tar.gz -pass pass:R0S3774123
 # rm rosetta_min_enc_v2.tar.gz
 
 

@@ -1,3 +1,3 @@
-osdf:///ospool/ap40/data/bryce.johnson/rosetta_min_enc_v2.tar.gz.aa
-osdf:///ospool/ap40/data/bryce.johnson/rosetta_min_enc_v2.tar.gz.ab
-osdf:///ospool/ap40/data/bryce.johnson/rosetta_min_enc_v2.tar.gz.ac
+/home/bryce.johnson/metl-sim/notebooks/downloads/rosetta_min_enc_v2.tar.gz.aa
+/home/bryce.johnson/metl-sim/notebooks/downloads/rosetta_min_enc_v2.tar.gz.ab
+/home/bryce.johnson/metl-sim/notebooks/downloads/rosetta_min_enc_v2.tar.gz.ac

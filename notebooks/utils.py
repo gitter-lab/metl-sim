@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 import re
 
-
+from os.path import basename
 
 def remove_all_condor_jobs():
     try:
@@ -119,6 +119,15 @@ def submit_condor_job(job_name,job_type):
             working_directory = f"condor/{job_name}"
             
             create_directory_and_copy_items(working_directory,['condor/practice/'])
+        elif job_type=='rosetta_download': 
+            ## now construct the directory 
+            print(f"\033[92m✅ Setting up job type `rosetta_download`\033[0m")
+
+            # must specify file paths and submit jobs
+            submit_file_path = "rosetta_download.sub"
+            working_directory = f"condor/{job_name}"
+            
+            create_directory_and_copy_items(working_directory,['condor/rosetta/'])
             
         else:
             print(f"\033[91m❌ Error invalid job type, select from:\033[91m\n"\
@@ -168,16 +177,14 @@ def remove_jobs_with_constraints():
 def extract_exit_code(job_output):
     # Regular expression to match the exit code part
     c,r,f=0,0,0
-    if 'Job terminated' in job_output:
-        match = re.search(r'Job terminated.*exit-code (\d+)', job_output, re.DOTALL)
-        # print('match code:',match)
-        if match is None: 
-            f+=1
-        else:
-            exit_code = match.group(1)
-            assert exit_code=='0'
-            c+=1 
-    else:
+    # match = re.search(r'Job terminated.*exit-code (\d+)', job_output, re.DOTALL)
+    # exit_code = match.group(1)
+    
+    if 'exit-code 0' in job_output:
+        c+=1 
+    elif 'Nonzero exit-code' in job_output or 'Job was aborted' in job_output: 
+        f+=1
+    else: 
         r+=1
     return r,c,f
 
@@ -185,7 +192,7 @@ def extract_exit_code(job_output):
 def get_single_job_status(job_name):
     log_dir=f'condor/{job_name}/output/condor_logs'
     log_files=get_log_files(log_dir)
-
+    # print(log_dir)
     completed,failed,running=0,0,0
     for log_file in log_files:
         with open(f"{log_dir}/{log_file}",'r') as f: 
@@ -255,6 +262,7 @@ def job_status():
     if sum(F)!=0: 
         print('\033[33m💡 Notice: Found failed jobs in log files, checking OSG if jobs exist\033[0m')
         count =get_jobs_on_OSG()
+        # print(count)
         run_condor_rm= False 
         if len(count)!=0: 
             for c in count.keys(): 
@@ -483,7 +491,7 @@ def set_permissions(path, permissions):
         command = ['chmod', permissions, file_path]
         try:
             subprocess.run(command, check=True)
-            print(f"\033[92m✅ Successfully changed permissions for {file_path} to {permissions}.\033[0m")
+            # print(f"\033[92m✅ Successfully changed permissions for {file_path} to {permissions}.\033[0m")
         except subprocess.CalledProcessError as e:
             print(f"\033[91m❌ Error occurred while changing permissions for {file_path}: {e}\033[0m")
     
@@ -613,24 +621,118 @@ def run_prepare_script(rosetta_main_dir, pdb_fn, relax_nstruct, out_dir_base):
         print_colored("❌ Script execution failed!", '31')  # Red color
         print(f"Error details:\n{e.stderr}")
 
-def run_variant_script(pdb_fn,num_subs_list):
 
 
+
+def human_format(num):
+    """https://stackoverflow.com/questions/579310/formatting-long-numbers-as-strings-in-python"""
+    num = float('{:.3g}'.format(num))
+    magnitude = 0
+    while abs(num) >= 1000:
+        magnitude += 1
+        num /= 1000.0
+    return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
+
+
+
+def get_variants_fn(pdb_fn,variants_to_generate,max_subs,min_subs,seed):
+    out_fn_template = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_{}-DB-{}-{}_RS-{}.txt"
     
-    # Construct the command to run the shell script with parameters
-    command = [
-        './bash_scripts/run_variants.sh',
-        sample_type,
-        pdb_fn,
-        str(num_subs_list),
+    out_fn_template_args = [
+        basename(pdb_fn).rsplit('.', 1)[0],
+        human_format(variants_to_generate),
+        max_subs,
+        min_subs,
+        "filtered",
+        0, # currently the db hash will always be zero 458 of variants.py
+        basename(pdb_fn).rsplit('.', 1)[0],
+        seed
     ]
     
+    out_fn = out_fn_template.format(*out_fn_template_args)
+    return out_fn
+
+def run_variant_script(pdb_fn,variants_to_generate,max_subs,min_subs):
+
+    # Construct the command to run the shell script with parameters
+    
+        
+    seed = 0
+
+    out_fn=get_variants_fn(pdb_fn,variants_to_generate,max_subs,min_subs,seed)
+
+    params=f"\t variants to generate {variants_to_generate}\n\t maximum substitutions {max_subs} \n\t minimum substitutions {min_subs}"
+        
+    
+    if os.path.isfile(f"../variant_lists/{out_fn}"):
+        print_colored(f"❌ A variant file with these parameters already exist: \n {params} \n -->Either run this function again with new parameters or move onto next step.", '31')  # red color
+        return 
+    else:
+        print_colored(f"✅ A variant file with these parameters doesn't exist: \n {params} \n--> Generating variants now ⌛", '32')  # Green color
+        
+        
+    command = [
+        './bash_scripts/run_variants.sh',
+        pdb_fn,
+        str(variants_to_generate),
+        str(max_subs),
+        str(min_subs),
+        str(seed)
+    ]
+
+
     # Run the shell script
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)
-        print_colored("✅ Variants.py executed successfully!", '32')  # Green color
+        print_colored("✅ Successfully generate variants!", '32')  # Green color
         
     
     except subprocess.CalledProcessError as e:
         print_colored("❌ Script execution failed!", '31')  # Red color
         print(f"Error details:\n{e.stderr}")
+
+
+
+def post_process_rosetta_download(job_name): 
+
+    
+    for suffix in ['aa','ab','ac']:
+        file_path=f'condor/{job_name}/rosetta_min_enc_v2.tar.gz.{suffix}'
+        dest_dir=f'downloads'
+        if not os.path.isfile(file_path):
+            print_colored(f"❌ Could not find all rosetta file:{file_path} for {job_name}", '31')
+            print_colored(f"❌ Please redo the Downloading Rosetta section above and wait until the download of rosetta job has completed", '31')
+            print_colored(f"💡 Notice: This function could lead to errors if using a different version of Rosetta than the default version", '33')
+            print_colored(f"💡 Notice: Feel free to post an issue on github if any problems with downloading rosetta", '33')
+            return 
+        else:
+            print_colored(f"✅ Found Rosetta File: {file_path}", '32') 
+            transfer_file(file_path, dest_dir, cwd='.')
+
+    # move the files over ... 
+    osdf='htcondor/templates/osdf_rosetta_distribution.txt'
+    with open(osdf,'r') as f: 
+        out=f.read()
+    
+    out=out.replace('full_path',os.getcwd())
+
+    # print(out)
+
+    # replace {full_path} in osdf_rosetta_disribution with the path of this user to specify....
+    # also then copy that file to the htcondor/templates file... 
+
+    
+    with open('../htcondor/templates/osdf_rosetta_distribution.txt','w') as f:
+        f.write(out)
+
+     
+    # we also need to decode rosetta 
+    decode_rosetta()
+
+    # then untar the binaries ...
+    file_path = "downloads/rosetta_min.tar.gz"
+    extract_dir = "rosetta"
+    untar_file_with_progress(file_path, extract_dir)
+
+
+

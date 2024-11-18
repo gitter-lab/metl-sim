@@ -1,1 +1,1 @@
-osdf:///ospool/ap40/data/bryce.johnson/rosettafy_env_v0.7.11.tar.gz
+http://proxy.chtc.wisc.edu/SQUID/bcjohnson7/rosettafy_env_v0.7.11.tar.gz

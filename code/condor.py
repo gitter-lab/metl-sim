@@ -12,6 +12,7 @@ import argparse
 import shutil
 import subprocess
 import urllib.parse
+import tarfile
 # todo: tqdm is only on the local environment, not on condor environment
 #  shouldn't be a problem since this file isn't run during a condor run...
 from tqdm import tqdm
@@ -182,6 +183,30 @@ def check_pass_file(pass_fn="htcondor/templates/pass.txt"):
                       "Please change the password in pass.txt to the one you used to encrypt Rosetta.")
 
 
+
+
+def create_custom_tar(exclude_dirs, output_name, root_dir_name):
+    """
+    Create a tar archive of all files and directories in the current directory,
+    excluding specified directories, and with a custom root name when extracted.
+
+    Parameters:
+    - exclude_dirs (list of str): Names of directories to exclude from the tar.
+    - output_name (str): Name of the output tar file.
+    - root_dir_name (str): The name to give the root directory in the tar archive.
+    """
+    with tarfile.open(output_name, "w:gz") as tar:
+        for item in os.listdir('.'):
+            # Skip excluded directories
+            if item in exclude_dirs:
+                continue
+            # Add each item to the archive with the specified root directory name
+            tar.add(item, arcname=os.path.join(root_dir_name, item))
+            print(f"Added {item} to {output_name} under root {root_dir_name}")
+    
+    print(f"Tar file '{output_name}' created successfully with root '{root_dir_name}', excluding {exclude_dirs}.")
+
+
 def prep_energize(args):
     """
     Prepare a condor run for calculating Rosetta energies
@@ -205,7 +230,17 @@ def prep_energize(args):
     save_argparse_args(args_dict, join(out_dir, "run_def.txt"))
 
     # download the repository
-    fetch_repo(args.github_tag, args.github_token, out_dir)
+    if args.github_tag=='source_local':
+        # Specify the directories to exclude and the name of the output tar file
+        exclude_dirs = ['notebooks', 'output']
+        output_name = f'{out_dir}{os.sep}code.tar.gz'
+        root_dir_name = 'metl-sim-source_local'
+    
+        # Create the tar file
+        create_custom_tar(exclude_dirs, output_name, root_dir_name)
+                
+    else: 
+        fetch_repo(args.github_tag, args.github_token, out_dir)
 
     # generate arguments files from the master variant list. returns the number of jobs
     # also generates a file containing the filenames of the separate variant lists (for condor queue)
