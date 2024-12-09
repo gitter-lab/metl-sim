@@ -108,6 +108,9 @@ def submit_condor_job(job_name,job_type):
     """
     try:
         # Check if the current submit directory is already in the Iwd values
+
+        env_vars = os.environ.copy()
+        
         if not check_directory_exists(job_name):
             return  
         elif job_type=='helloworld': 
@@ -128,6 +131,43 @@ def submit_condor_job(job_name,job_type):
             working_directory = f"condor/{job_name}"
             
             create_directory_and_copy_items(working_directory,['condor/rosetta/'])
+        elif job_type=='relax':
+            print(f"\033[92m✅ Setting up job type `relax`\033[0m")
+            
+            submit_file_path = "energize.sub"
+            working_directory = f"condor/{job_name}"
+            
+             # 0) make the direcotry
+            os.makedirs(working_directory, exist_ok=True)
+           
+            # 0.5) get the name of the previous directory based on the endswith function.
+            htcondor_output_dir='../output/htcondor_runs'
+            
+            
+            dir_metl_sim =[x for x in os.listdir(htcondor_output_dir) if x.endswith(job_name)]
+            if len(dir_metl_sim)>1: 
+                print(f"\033[91m❌ Error found multiple prepared runs for job name: {job_name}, please prepare a run for OSG with a unique job name \033[91m\n")
+                return 
+            elif len(dir_metl_sim)==0:
+                print(f"\033[91m❌ Error no found job name: {job_name}, please prepare a run for OSG with this job name or select from already prepared job names \033[91m\n")
+                return
+            
+            # print(filename_metl_sim)
+            dir_metl_sim =dir_metl_sim[0]
+
+            # untar the args file into the directory in notebooks
+            untar_file_with_progress(f'{htcondor_output_dir}/{dir_metl_sim}/args.tar.gz',working_directory)
+
+            
+            return 
+
+            # 1) 
+            # 2) copy over the contents from metl-sim dir into notebooks condor dir
+            # 3) export local environment parameters env_vars = os.environ.copy()  # Copy the current environment variables
+                # env_vars["MY_VAR"] = "my_value"  # Add or modify environment variables
+                # env_vars["ANOTHER_VAR"] = "another_value"
+            # 4) call condor submit without having to call a bash script which is kind of nice.
+            
             
         else:
             print(f"\033[91m❌ Error invalid job type, select from:\033[91m\n"\
@@ -694,10 +734,10 @@ def run_variant_script(pdb_fn,variants_to_generate,max_subs,min_subs):
 
 
 def post_process_rosetta_download(job_name): 
-
+    untar_file_with_progress(f'condor/{job_name}/output.tar.gz',f'condor/{job_name}/output/rosetta_download')
     
     for suffix in ['aa','ab','ac']:
-        file_path=f'condor/{job_name}/rosetta_min_enc_v2.tar.gz.{suffix}'
+        file_path=f'condor/{job_name}/output/rosetta_download/output/squid_rosetta/rosetta_min_enc.tar.gz.{suffix}'
         dest_dir=f'downloads'
         if not os.path.isfile(file_path):
             print_colored(f"❌ Could not find all rosetta file:{file_path} for {job_name}", '31')
@@ -709,21 +749,18 @@ def post_process_rosetta_download(job_name):
             print_colored(f"✅ Found Rosetta File: {file_path}", '32') 
             transfer_file(file_path, dest_dir, cwd='.')
 
-    # move the files over ... 
-    osdf='htcondor/templates/osdf_rosetta_distribution.txt'
-    with open(osdf,'r') as f: 
-        out=f.read()
-    
-    out=out.replace('full_path',os.getcwd())
-
-    # print(out)
-
-    # replace {full_path} in osdf_rosetta_disribution with the path of this user to specify....
-    # also then copy that file to the htcondor/templates file... 
+    # move the files over ...
 
     
-    with open('../htcondor/templates/osdf_rosetta_distribution.txt','w') as f:
-        f.write(out)
+    for osdf in ['rosetta','python']:
+        osdf_fn=f'htcondor/templates/osdf_{osdf}_distribution.txt'
+        with open(osdf_fn,'r') as f: 
+            out=f.read()
+        
+        out=out.replace('full_path',os.getcwd())
+    
+        with open(f'../htcondor/templates/osdf_{osdf}_distribution.txt','w') as f:
+            f.write(out)
 
      
     # we also need to decode rosetta 
