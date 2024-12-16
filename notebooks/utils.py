@@ -51,14 +51,18 @@ def check_directory_exists(folder_name,base_dir='condor'):
         return True
 
 
-def create_directory_and_copy_items(new_dir, items_to_copy):
+def create_directory_and_copy_items(new_dir, items_to_copy,basename=True):
     # Create the new directory if it doesn't exist
     os.makedirs(new_dir, exist_ok=True)
     # print(f"✅ Directory '{new_dir}' created")
 
     # Copy each item (file or directory) into the new directory
     for item in items_to_copy:
-        destination = os.path.join(new_dir, os.path.basename(item))
+
+        if basename: 
+            destination = os.path.join(new_dir, os.path.basename(item))
+        else:
+            destination=new_dir
         
         if os.path.isdir(item):
             if os.path.exists(destination):
@@ -146,28 +150,36 @@ def submit_condor_job(job_name,job_type):
             
             dir_metl_sim =[x for x in os.listdir(htcondor_output_dir) if x.endswith(job_name)]
             if len(dir_metl_sim)>1: 
-                print(f"\033[91m❌ Error found multiple prepared runs for job name: {job_name}, please prepare a run for OSG with a unique job name \033[91m\n")
+                print(f"\033[91m❌ Error found multiple prepared runs for job name: {job_name}, please prepare a run (using prepare_rosetta_run() for OSG with a unique job name \033[91m\n")
                 return 
             elif len(dir_metl_sim)==0:
-                print(f"\033[91m❌ Error no found job name: {job_name}, please prepare a run for OSG with this job name or select from already prepared job names \033[91m\n")
+                print(f"\033[91m❌ Error no found job name: {job_name}, please prepare a run using prepare_rosetta_run() for OSG with this job name or select from already prepared job names \033[91m\n")
                 return
             
             # print(filename_metl_sim)
             dir_metl_sim =dir_metl_sim[0]
 
-            # untar the args file into the directory in notebooks
+            # 1) untar the args file into the directory in notebooks
             untar_file_with_progress(f'{htcondor_output_dir}/{dir_metl_sim}/args.tar.gz',working_directory)
 
-            
-            return 
-
-            # 1) 
             # 2) copy over the contents from metl-sim dir into notebooks condor dir
+            create_directory_and_copy_items(working_directory,[f'{htcondor_output_dir}/{dir_metl_sim}'],basename=False)
+
             # 3) export local environment parameters env_vars = os.environ.copy()  # Copy the current environment variables
                 # env_vars["MY_VAR"] = "my_value"  # Add or modify environment variables
                 # env_vars["ANOTHER_VAR"] = "another_value"
-            # 4) call condor submit without having to call a bash script which is kind of nice.
-            
+
+            file_path_env_vars=f'{working_directory}/env_vars.txt'
+            with open(file_path_env_vars, 'r') as file:
+                for line in file:
+                    # Strip leading/trailing whitespace and ignore empty lines or comments
+                    line = line.strip()
+                    if line.startswith("export"):
+                        # Remove 'export' keyword and split into key-value pairs
+                        key, value = line.replace("export ", "").split("=", 1)
+                        
+                        env_vars[key.strip()] = value.strip()
+        
             
         else:
             print(f"\033[91m❌ Error invalid job type, select from:\033[91m\n"\
@@ -182,7 +194,9 @@ def submit_condor_job(job_name,job_type):
             stderr=subprocess.PIPE,
             text=True,
             check=True,
-            cwd=working_directory  # Specify the working directory here
+            cwd=working_directory,            # Specify the working directory here
+            env=env_vars
+
         )
 
         # give it time to create the log files
@@ -776,7 +790,7 @@ def post_process_rosetta_download(job_name):
 # osdf files  - probably should be changed earlier 
 # usual tarring process. 
 
-def prepare_rosetta_run(job_name,pdb_file_name,variants_to_generate,max_subs,min_subs): 
+def prepare_rosetta_run(job_name,pdb_file_name,variants_to_generate,max_subs,min_subs,verbose=False): 
     # first set up the argument file
     # 
     parent_dir='../htcondor/run_defs'
@@ -824,8 +838,9 @@ def prepare_rosetta_run(job_name,pdb_file_name,variants_to_generate,max_subs,min
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)
          # Print stdout and stderr from the bash script
-        print("Standard Output:\n", result.stdout)
-        print("Standard Error:\n", result.stderr)
+        if verbose: 
+            print("Standard Output:\n", result.stdout)
+            print("Standard Error:\n", result.stderr)
         print_colored("✅ Successfully prepared OSG run!", '32')  # Green color
     
     
@@ -846,6 +861,34 @@ def prepare_rosetta_run(job_name,pdb_file_name,variants_to_generate,max_subs,min
     # it automatically just tar's up everything instead. 
     # then no need to worry about pdb file either, because it just works. 
     # just need to figure out how to rename the title folder metl-sim-notebooks
+
+def run_post_process_script(job_name,verbose=False):
+    
+    command = ['./bash_scripts/run_post_process.sh',job_name]
+    final_file=f'condor/{job_name}/processed_run/energies_df.csv'
+    if os.path.exists(final_file):
+        print_colored(f"💡 Notice:{job_name} all ready post processed, loading pandas dataframe", '33')  # yellow color
+
+    else:
+        try:
+            result = subprocess.run(command, check=True, text=True, capture_output=True)
+             # Print stdout and stderr from the bash script
+            if verbose: 
+                print("Standard Output:\n", result.stdout)
+                print("Standard Error:\n", result.stderr)
+            print_colored(f"✅ Successfully post process job name {job_name}", '32')  # Green color
+        
+        
+        except subprocess.CalledProcessError as e:
+            print_colored(f"❌ Script execution failed to post process {job_name}!", '31')  # Red color
+            print(f"Error details:\n{e.stderr}")
+
+
+    df=pd.read_csv(final_file)
+
+    return df
+
+    
 
 
 
