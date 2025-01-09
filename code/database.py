@@ -12,6 +12,8 @@ from tqdm import tqdm
 import utils
 from utils import sort_variant_mutations
 
+# import warnings
+# warnings.filterwarnings("ignore", message="'HEADER' line not found; can't determine PDB ID.")
 
 def create_tables(con, ct_fn="variant_database/create_tables.sql"):
     # retrieve table creation commands from file
@@ -143,7 +145,12 @@ def main(args):
             f.write("pdb_fn,aa_sequence,seq_len\n")
             for pdb_fn in pdb_fns:
                 print("Processing {}".format(pdb_fn))
-                seq = utils.get_seq_from_pdb(pdb_fn)
+                # seq = utils.get_seq_from_pdb(pdb_fn)
+                seq = utils.extract_seq_from_pdb(pdb_fn, error_on_multiple_chains=False)
+                # check if seq has multiple chains
+                if isinstance(seq, dict):
+                    print("Multiple chains found in {}, skipping".format(pdb_fn))
+                    continue
                 f.write("{},{},{}\n".format(basename(pdb_fn), seq, len(seq)))
 
 
