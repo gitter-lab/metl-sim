@@ -1,1 +1,1 @@
-osdf:///chtc/staging/sgelman2/rosettafy_env_v0.7.11.tar.gz
+/home/bryce.johnson/metl-sim/notebooks/downloads/rosettafy_env_v0.7.11.tar.gz

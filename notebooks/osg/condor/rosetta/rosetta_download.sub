@@ -1,0 +1,21 @@
+Universe = vanilla
+Executable = run.sh
+Output = output/condor_logs/rosetta_$(Process).out
+Error = output/condor_logs/rosetta_$(Process).err
+Log = output/condor_logs/rosetta_$(Process).log
+RequestCpus = 8
+RequestMemory = 10 GB
+RequestDisk = 100 GB 
+
+
+# Specify the input file(s) to transfer
+transfer_input_files = rosetta_minimal.py,utils.py,encrypt.sh
+when_to_transfer_output = ON_EXIT
+
+
+# set it so jobs that fail will go on hold
+on_exit_hold = (ExitCode =!= 0)
+on_exit_hold_subcode = 1
+on_exit_hold_reason = "Nonzero exit-code"
+
+queue 1
