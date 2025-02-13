@@ -7,11 +7,9 @@ RequestCpus = 8
 RequestMemory = 10 GB
 RequestDisk = 100 GB 
 
-
 # Specify the input file(s) to transfer
-transfer_input_files = rosetta_minimal.py,utils.py,encrypt.sh
+transfer_input_files = metl-sim_2025-02-13.tar.gz, rosetta_minimal.py, utils.py, encrypt.sh
 when_to_transfer_output = ON_EXIT
-
 
 # set it so jobs that fail will go on hold
 on_exit_hold = (ExitCode =!= 0)

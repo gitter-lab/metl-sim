@@ -3,10 +3,8 @@
 # exit if any command fails...
 set -e
 
-
-
-# we need to activate the conda environment prior to encrypting 
-. rosettafy_env/bin/activate
+# activate the conda environment
+. env/bin/activate
 
 tar_fn=$1
 tar_fn_encrypted=$2

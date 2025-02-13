@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+ENV_FN=metl-sim_2025-02-13.tar.gz
+
 # exit if any command fails...
 set -e
 
@@ -19,50 +21,38 @@ echo "RunningOn: $RUNNINGON"
 # this makes it easier to set up the environments, since the PWD we are running in is not $HOME
 export HOME=$PWD
 
-echo "Launching Download environment"
-# start the downloading for the environment first.
-curl http://proxy.chtc.wisc.edu/SQUID/bcjohnson7/rosettafy_env_v0.7.11.tar.gz -o rosettafy_env_v0.7.11.tar.gz
+# the environment files need to be un-tarred into the "env" directory
+# un-tar the environment files
+if [ -f "$ENV_FN" ]; then
+  echo "Extracting $ENV_FN"
+  mkdir env
+  tar -xzf $ENV_FN -C env
+  rm $ENV_FN
+fi
 
-
-echo "Setting up Python environment"
+echo "Activating Python environment"
 export PATH
-mkdir rosettafy_env
-tar -xzf rosettafy_env_v0.7.11.tar.gz -C rosettafy_env
-. rosettafy_env/bin/activate
-rm rosettafy_env_v0.7.11.tar.gz
+. env/bin/activate
 
-echo "Launching Download Rosetta"
+echo "Launching Rosetta download"
 
 curl https://downloads.rosettacommons.org/downloads/academic/3.14/rosetta_bin_linux_3.14_bundle.tar.bz2 -o rosetta_bin_linux_3.14_bundle.tar.bz2 
 
-
 # curl --range 0-10485759 https://downloads.rosettacommons.org/downloads/academic/3.14/rosetta_bin_linux_3.14_bundle.tar.bz2 -o rosetta_bin_linux_3.14_bundle_partial.tar.bz2
-
 
 tar -xvjf rosetta_bin_linux_3.14_bundle.tar.bz2
 
 rm rosetta_bin_linux_3.14_bundle.tar.bz2
 
-
 chmod 777 encrypt.sh
 
-echo "Sucessfully Downloaded Rosetta and deleted tar file"
-
-
-
-echo "Starting the compression of rosetta "
+echo "Generating a minimal Rosetta distribution and compressing it"
 python rosetta_minimal.py --gen_distribution --rosetta_main_dir=rosetta.binary.linux.release-371/main --out_dir=rosetta_minimal
-echo "completed the compression of rosetta "
 
-
-echo "Starting the encryption "
-
-
+echo "Encrypting the minimal Rosetta distribution"
 python rosetta_minimal.py --prep_for_squid --out_dir=rosetta_minimal --squid_dir=output/squid_rosetta --encryption_password=R0S3774123
-echo "finished the encryption "
 
-
-echo "starting the tar output "
+echo "Tarring final outputs"
 tar -czf output.tar.gz output/squid_rosetta/
 
 

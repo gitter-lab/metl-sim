@@ -133,7 +133,7 @@ def submit_condor_job(job_name,job_type):
             submit_file_path = "submit.sub"
             working_directory = f"condor/{job_name}"
             
-            create_directory_and_copy_items(working_directory,['condor/practice/'])
+            create_directory_and_copy_items(working_directory, ['condor/practice/'])
         elif job_type=='rosetta_download': 
             ## now construct the directory 
             print(f"\033[92m✅ Setting up job type `rosetta_download`\033[0m")
@@ -142,7 +142,7 @@ def submit_condor_job(job_name,job_type):
             submit_file_path = "rosetta_download.sub"
             working_directory = f"condor/{job_name}"
             
-            create_directory_and_copy_items(working_directory,['condor/rosetta/'])
+            create_directory_and_copy_items(working_directory, ['condor/rosetta/', 'downloads/metl-sim_2025-02-13.tar.gz'])
         elif job_type=='relax':
             print(f"\033[92m✅ Setting up job type `relax`\033[0m")
             
