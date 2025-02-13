@@ -11,7 +11,7 @@ import pandas as pd
 import numpy as np
 import re
 
-from os.path import basename
+from os.path import basename, join
 
 def remove_all_condor_jobs():
     try:
@@ -51,9 +51,19 @@ def check_directory_exists(folder_name,base_dir='condor'):
         return True
 
 
-def create_directory_and_copy_items(new_dir, items_to_copy,basename=True):
+def create_directory_and_copy_items(
+    new_dir, 
+    items_to_copy,
+    basename=True,
+    condor_logs_dir="output/condor_logs"
+):
+    
     # Create the new directory if it doesn't exist
     os.makedirs(new_dir, exist_ok=True)
+
+    # create the condor logs directory, which needs to exist for condor to save the .log files
+    os.makedirs(join(new_dir, condor_logs_dir), exist_ok=True)
+
     # print(f"✅ Directory '{new_dir}' created")
 
     # Copy each item (file or directory) into the new directory
@@ -80,14 +90,12 @@ def create_directory_and_copy_items(new_dir, items_to_copy,basename=True):
                 # print(f"✅ Directory '{item}' copied to '{new_dir}'.")
         else:
             shutil.copy(item, destination)
-            # print(f"✅ File '{item}' copied to '{new_dir}'.")
+            # print(f"✅ File '{item}' copied to '{new_dir}'.")    
 
 
 def get_log_files(directory):
     if not os.path.exists(directory):
         print(f'\033[33m💡 Notice: No log files found for job: {directory.split(os.sep)[1]}, skipping job \033[0m')
-    
-
         return []
 
     # List all files in the directory
@@ -246,7 +254,6 @@ def extract_exit_code(job_output):
 def get_single_job_status(job_name):
     log_dir=f'condor/{job_name}/output/condor_logs'
     log_files=get_log_files(log_dir)
-    # print(log_dir)
     completed,failed,running=0,0,0
     for log_file in log_files:
         with open(f"{log_dir}/{log_file}",'r') as f: 
@@ -254,7 +261,6 @@ def get_single_job_status(job_name):
         completed+=c
         failed+=f
         running+=r
-
     
     return running,completed,failed
        
