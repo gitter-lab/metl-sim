@@ -40,25 +40,33 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, overwrite_wd=False):
 #     os.chmod(fn, st.st_mode | stat.S_IEXEC)
 
 
-def clean_pdb_wrapper(keep_ligand, rosetta_main_dir, working_dir, chain):
+def clean_pdb_wrapper(keep_ligand, rosetta_main_dir, working_dir, chain, conda_pack_env=None):
     """ run Rosetta's clean_pdb_keep_ligand.py script. assumes there is a structure.pdb file in the working_dir """
 
     if keep_ligand:
-        cleaned_fn = run_clean_pdb_keep_ligand(rosetta_main_dir, working_dir)
+        cleaned_fn = run_clean_pdb_keep_ligand(rosetta_main_dir, working_dir, conda_pack_env)
     else:
-        cleaned_fn = run_clean_pdb(rosetta_main_dir, working_dir, chain)
+        cleaned_fn = run_clean_pdb(rosetta_main_dir, working_dir, chain, conda_pack_env)
 
     return cleaned_fn
 
 
-def run_clean_pdb(rosetta_main_dir, working_dir, chain):
+def run_clean_pdb(rosetta_main_dir, working_dir, chain, conda_pack_env=None):
     clean_pdb_script_fn = abspath(join(rosetta_main_dir, "tools/protein_tools/scripts/clean_pdb.py"))
-    clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', chain]
+    # clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', chain]
+    if conda_pack_env:
+        clean_pdb_cmd = f"source {conda_pack_env}/bin/activate && python {clean_pdb_script_fn} structure.pdb {chain}"
+        shell = True
+    else:
+        # Use standard Conda environment
+        clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', chain]
+        shell = False
 
     # run the clean pdb script
     clean_out_fn = join(working_dir, "clean_pdb.out")
     with open(clean_out_fn, "w") as f:
-        return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir, stdout=f, stderr=f)
+        # return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir, stdout=f, stderr=f)
+        return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir, stdout=f, stderr=f, shell=shell, executable="/bin/bash" if shell else None)
     if return_code != 0:
         raise RuntimeError("Clean PDB did not execute successfully, return code: {}".format(return_code))
 
@@ -71,15 +79,23 @@ def run_clean_pdb(rosetta_main_dir, working_dir, chain):
     return cleaned_pdb_fn
 
 
-def run_clean_pdb_keep_ligand(rosetta_main_dir, working_dir):
+def run_clean_pdb_keep_ligand(rosetta_main_dir, working_dir, conda_pack_env=None):
     clean_pdb_keep_ligand_fn = "source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py"
     clean_pdb_script_fn = abspath(join(rosetta_main_dir, clean_pdb_keep_ligand_fn))
-    clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', '-ignorechain']
+
+    # clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', '-ignorechain']
+    if conda_pack_env:
+        clean_pdb_cmd = f"source {conda_pack_env}/bin/activate && python {clean_pdb_script_fn} structure.pdb -ignorechain"
+        shell = True
+    else:
+        clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', '-ignorechain']
+        shell = False
 
     # run the clean pdb script
     clean_out_fn = join(working_dir, "clean_pdb.out")
     with open(clean_out_fn, "w") as f:
-        return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir, stdout=f, stderr=f)
+        # return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir, stdout=f, stderr=f)
+        return_code = subprocess.call(clean_pdb_cmd, cwd=working_dir, stdout=f, stderr=f, shell=shell, executable="/bin/bash" if shell else None)
     if return_code != 0:
         raise RuntimeError("Clean PDB did not execute successfully, return code: {}".format(return_code))
 
@@ -157,7 +173,7 @@ def main(args):
     save_argparse_args(args_dict, join(output_dir, "args.txt"))
 
     # run the clean_pdb script
-    cleaned_pdb_fn = clean_pdb_wrapper(args.keep_ligand, args.rosetta_main_dir, working_dir, args.chain)
+    cleaned_pdb_fn = clean_pdb_wrapper(args.keep_ligand, args.rosetta_main_dir, working_dir, args.chain, args.conda_pack_env)
 
     # relax with all-heavy-atom constraints
     if args.relax_nstruct > 0:
@@ -204,6 +220,9 @@ if __name__ == "__main__":
                         help="base output directory",
                         type=str,
                         default="output/prepare_outputs")
+
+    parser.add_argument("--conda_pack_env", type=str, default=None,
+                        help="Optional path to a Conda-pack environment to use")
 
     main(parser.parse_args())
 
