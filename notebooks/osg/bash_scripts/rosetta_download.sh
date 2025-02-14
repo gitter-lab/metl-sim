@@ -27,7 +27,7 @@ if [ "$(ls 2>/dev/null -Ubad1 -- *.tar.gz.* | wc -l)" -gt 0 ]; then
 fi
 
 
-. ../rosetta_env/bin/activate
+. ../env/bin/activate
 
 echo "Decrypting Rosetta"
 openssl version # echo the version for my knowledge

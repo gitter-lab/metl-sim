@@ -42,7 +42,6 @@ def prep_working_dir(template_dir, working_dir, pdb_fn, overwrite_wd=False):
 
 def clean_pdb_wrapper(keep_ligand, rosetta_main_dir, working_dir, chain, conda_pack_env=None):
     """ run Rosetta's clean_pdb_keep_ligand.py script. assumes there is a structure.pdb file in the working_dir """
-
     if keep_ligand:
         cleaned_fn = run_clean_pdb_keep_ligand(rosetta_main_dir, working_dir, conda_pack_env)
     else:
@@ -53,9 +52,9 @@ def clean_pdb_wrapper(keep_ligand, rosetta_main_dir, working_dir, chain, conda_p
 
 def run_clean_pdb(rosetta_main_dir, working_dir, chain, conda_pack_env=None):
     clean_pdb_script_fn = abspath(join(rosetta_main_dir, "tools/protein_tools/scripts/clean_pdb.py"))
-    # clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', chain]
     if conda_pack_env:
-        clean_pdb_cmd = f"source {conda_pack_env}/bin/activate && python {clean_pdb_script_fn} structure.pdb {chain}"
+        conda_pack_env_abspath = abspath(f"{conda_pack_env}/bin/activate")
+        clean_pdb_cmd = f"source {conda_pack_env_abspath} && python {clean_pdb_script_fn} structure.pdb {chain}"
         shell = True
     else:
         # Use standard Conda environment
@@ -83,9 +82,9 @@ def run_clean_pdb_keep_ligand(rosetta_main_dir, working_dir, conda_pack_env=None
     clean_pdb_keep_ligand_fn = "source/src/apps/public/relax_w_allatom_cst/clean_pdb_keep_ligand.py"
     clean_pdb_script_fn = abspath(join(rosetta_main_dir, clean_pdb_keep_ligand_fn))
 
-    # clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', '-ignorechain']
     if conda_pack_env:
-        clean_pdb_cmd = f"source {conda_pack_env}/bin/activate && python {clean_pdb_script_fn} structure.pdb -ignorechain"
+        conda_pack_env_abspath = abspath(f"{conda_pack_env}/bin/activate")
+        clean_pdb_cmd = f"source {conda_pack_env_abspath} && python {clean_pdb_script_fn} structure.pdb -ignorechain"
         shell = True
     else:
         clean_pdb_cmd = ['conda', 'run', '-n', 'clean_pdb', clean_pdb_script_fn, 'structure.pdb', '-ignorechain']

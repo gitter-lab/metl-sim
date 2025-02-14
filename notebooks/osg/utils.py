@@ -581,7 +581,7 @@ def decode_rosetta():
     
     try:
         subprocess.run(command, check=True)
-        print("\033[92m✅ Successfully  decoded rosetta.\033[0m")
+        print("\033[92m✅ Successfully decoded rosetta.\033[0m")
     except subprocess.CalledProcessError as e:
         print(f"\033[91m❌ Error occurred while executing the script: {e}\033[0m")
 
@@ -643,14 +643,15 @@ def transfer_file(src_file, dest_dir, cwd):
         # Change back to the original directory
         os.chdir(original_cwd)
 
-def run_prepare_script(rosetta_main_dir, pdb_fn, relax_nstruct, out_dir_base):
+def run_prepare_script(rosetta_main_dir, pdb_fn, relax_nstruct, out_dir_base, conda_pack_env):
     # Construct the command to run the shell script with parameters
     command = [
         './bash_scripts/run_prepare.sh',
         rosetta_main_dir,
         pdb_fn,
         str(relax_nstruct),
-        out_dir_base
+        out_dir_base,
+        conda_pack_env
     ]
     
     # Run the shell script
@@ -672,7 +673,7 @@ def run_prepare_script(rosetta_main_dir, pdb_fn, relax_nstruct, out_dir_base):
             # print(os.getcwd())
             # Check if the file exists and transfer it
             
-            transfer_file(file_to_transfer, target_directory,'..')
+            transfer_file(file_to_transfer, target_directory, '../..')
         else:
             print_colored("✅ Script executed successfully, but output directory not found!", '33')  # Yellow color
             print(result.stdout)
@@ -770,17 +771,16 @@ def post_process_rosetta_download(job_name):
             transfer_file(file_path, dest_dir, cwd='.')
 
     # move the files over ...
-
     
-    for osdf in ['rosetta','python']:
-        osdf_fn=f'htcondor/templates/osdf_{osdf}_distribution.txt'
-        with open(osdf_fn,'r') as f: 
-            out=f.read()
+    # for osdf in ['rosetta','python']:
+    #     osdf_fn=f'htcondor/templates/osdf_{osdf}_distribution.txt'
+    #     with open(osdf_fn,'r') as f: 
+    #         out=f.read()
         
-        out=out.replace('full_path',os.getcwd())
+    #     out=out.replace('full_path',os.getcwd())
     
-        with open(f'../htcondor/templates/osdf_{osdf}_distribution.txt','w') as f:
-            f.write(out)
+    #     with open(f'../htcondor/templates/osdf_{osdf}_distribution.txt','w') as f:
+    #         f.write(out)
 
      
     # we also need to decode rosetta 

@@ -3,7 +3,7 @@
 
 set -e
 
-. rosetta_env/bin/activate
+. env/bin/activate
 
 cd ..
 
