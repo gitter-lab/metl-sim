@@ -851,8 +851,8 @@ def prepare_rosetta_run(
         contents = f.read()
 
     contents = contents.replace('{job_name}', job_name)
-    # generate the full paths from the root dir to the variant files
-    variant_fns_full = [f"{rel_path_to_vls}/{variant_fn}" for variant_fn in variant_fns]
+    # generate the full paths from the repository root dir to the variant files
+    variant_fns_full = [f"{vl_dir}/{variant_fn}" for variant_fn in variant_fns]
     contents = contents.replace('{variant_file}', "\n".join(variant_fns_full))
 
     param_fn = f"{rel_path_to_run_defs}/{job_name}/htcondor.txt"
