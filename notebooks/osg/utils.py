@@ -804,28 +804,37 @@ def prepare_rosetta_run(
     pdb_file_name,
     variant_fns,
     verbose=False
-): 
+):
+    # the relative path to the repo root
+    rel_path_to_root = "../../"
 
+    # paths to various directories (from the repo root)
     vl_dir = "variant_lists"
-    
-    # first set up the argument file
-    parent_dir = '../../htcondor/run_defs'
-    metl_dir = 'metl-sim-v1.0'
-    runs = os.listdir(parent_dir)
+    prepared_pdb_dir = "pdb_files/prepared_pdb_files"
+    run_defs_dir = "htcondor/run_defs"
+
+    # full relative paths to the directories
+    rel_path_to_run_defs = f"{rel_path_to_root}{run_defs_dir}"
+    rel_path_to_vls = f"{rel_path_to_root}{vl_dir}"
+
+    # check if the job name is already taken
+    # if it is, print an error message and return
+    # otherwise, create the job directory
+    runs = os.listdir(rel_path_to_run_defs)
     if job_name in runs:
-        print_colored(f"❌ Job name {job_name} not is availabe, please specify a new job name", '31')
+        print_colored(f"❌ Job name {job_name} not is available, please specify a new job name", '31')
         # return 
     else:
-        print_colored(f"✅ Job name {job_name} is availabe, preparing rosetta job", '32') 
-
-    os.makedirs(f'{parent_dir}/{job_name}', exist_ok=True)
+        print_colored(f"✅ Job name {job_name} is available, preparing rosetta job", '32')
+    os.makedirs(f"{rel_path_to_run_defs}/{job_name}", exist_ok=True)
     
     pdb_fn = f'{pdb_file_name.split(".")[0]}_p.pdb'
-    pdb_full_path = f'pdb_files/prepared_pdb_files/{pdb_fn}'
+    pdb_fp = f'{prepared_pdb_dir}/{pdb_fn}'
 
+    # make sure the variant files exist
     total_variants = 0
     for variant_fn in variant_fns:
-        variant_fp = f"../../{vl_dir}/{variant_fn}"
+        variant_fp = f"{rel_path_to_vls}/{variant_fn}"
         if not os.path.isfile(variant_fp):
             print_colored(f"❌ Variant file does not exist: {variant_fn}\nPlease run the previous section to generate variants.", '31')   
             return
@@ -835,19 +844,21 @@ def prepare_rosetta_run(
             total_variants += num_variants
     print_colored(f"✅ Total number of variants: {total_variants}", '32')
 
-    # condor_dir_pdb=f'{parent_dir}/{job_name}/{metl_dir}/pdb_files/prepared_pdb_files'
-    # condor_dir_variant=f'{parent_dir}/{job_name}/{metl_dir}/variant_lists'
-
-    return
-    with open('htcondor/templates/energize_run.txt','r') as f: 
+    # open the template run def file and replace the placeholders
+    # then save it to the run defs directory
+    with open('htcondor/templates/energize_run.txt','r') as f:
         contents = f.read()
 
-    contents=contents.replace('{job_name}', job_name)
-    contents=contents.replace('{variant_file}', "\n".join(varaints_full_path))
+    contents = contents.replace('{job_name}', job_name)
+    # generate the full paths from the root dir to the variant files
+    variant_fns_full = [f"{rel_path_to_vls}/{variant_fn}" for variant_fn in variant_fns]
+    contents = contents.replace('{variant_file}', "\n".join(variant_fns_full))
 
-    param_fn = f"{parent_dir}/{job_name}/htcondor.txt"
+    param_fn = f"{rel_path_to_run_defs}/{job_name}/htcondor.txt"
     with open(param_fn,'w') as f:
         f.write(contents)
+
+    return
 
     # copy the password file into the correct spot: 
     shutil.copy('htcondor/templates/pass.txt', '../htcondor/templates/')
