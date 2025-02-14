@@ -725,7 +725,7 @@ def run_variant_script(pdb_fn,variants_to_generate,max_subs,min_subs):
     params=f"\t variants to generate {variants_to_generate}\n\t maximum substitutions {max_subs} \n\t minimum substitutions {min_subs}"
         
     
-    if os.path.isfile(f"../variant_lists/{out_fn}"):
+    if os.path.isfile(f"../../variant_lists/{out_fn}"):
         print_colored(f"❌ A variant file with these parameters already exist: \n {params} \n -->Either run this function again with new parameters or move onto next step.", '31')  # red color
         return 
     else:
@@ -799,7 +799,7 @@ def post_process_rosetta_download(job_name):
 def prepare_rosetta_run(job_name,pdb_file_name,variants_to_generate,max_subs,min_subs,verbose=False): 
     # first set up the argument file
     # 
-    parent_dir='../htcondor/run_defs'
+    parent_dir='../../htcondor/run_defs'
     metl_dir ='metl-sim-v1.0'
     runs=os.listdir(parent_dir)
     if job_name in runs:
@@ -815,9 +815,7 @@ def prepare_rosetta_run(job_name,pdb_file_name,variants_to_generate,max_subs,min
     pdb_full_path=f'pdb_files/prepared_pdb_files/{pdb_fn}'
     varaints_full_path = f'variant_lists/{variants_fn}'
 
-
-    
-    if os.path.isfile(f'../{varaints_full_path}'):
+    if os.path.isfile(f'../../{varaints_full_path}'):
         print_colored(f"✅ Variant file exists:\n Variants to Generate : {variants_to_generate} \n Max Subs: {max_subs} \n Min Subs :{min_subs}", '32') 
     else:
         print_colored(f"❌ Variant file does not exists:\n Variants to Generate : {variants_to_generate} \n Max Subs: {max_subs} \n Min Subs :{min_subs} \n Please run section 'Generate variants for Rosetta Relax' again or change input parameters", '31')   
@@ -858,10 +856,6 @@ def prepare_rosetta_run(job_name,pdb_file_name,variants_to_generate,max_subs,min
     # export things here maybe 
 
     # untar the arguments file here as well. 
-
-
-
-
 
     # edit condor.py such that if the github tag is "notebooks" then 
     # it automatically just tar's up everything instead. 
