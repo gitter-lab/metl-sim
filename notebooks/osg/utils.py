@@ -846,7 +846,8 @@ def prepare_rosetta_run(
 
     # open the template run def file and replace the placeholders
     # then save it to the run defs directory
-    with open('htcondor/templates/energize_run.txt','r') as f:
+    run_def_template_fn = "condor/energize_run_template.txt"
+    with open(run_def_template_fn, 'r') as f:
         contents = f.read()
 
     contents = contents.replace('{job_name}', job_name)
