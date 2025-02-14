@@ -859,12 +859,14 @@ def prepare_rosetta_run(
     with open(param_fn,'w') as f:
         f.write(contents)
 
-    return
+    # TODO: This has the wrong password, need to specify the password used for encryption in the previous step
+    # shutil.copy('htcondor/templates/pass.txt', '../htcondor/templates/')
 
-    # copy the password file into the correct spot: 
-    shutil.copy('htcondor/templates/pass.txt', '../htcondor/templates/')
-    
-    command = ['./bash_scripts/run_condor.sh', f"htcondor/run_defs/{job_name}/htcondor.txt"]
+    # run the main condor prep script using the run def we created
+    command = [
+        './bash_scripts/run_condor.sh',
+        f"{run_defs_dir}/{job_name}/htcondor.txt"
+    ]
 
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)
@@ -873,12 +875,10 @@ def prepare_rosetta_run(
             print("Standard Output:\n", result.stdout)
             print("Standard Error:\n", result.stderr)
         print_colored("✅ Successfully prepared OSG run!", '32')  # Green color
-    
-    
+
     except subprocess.CalledProcessError as e:
         print_colored("❌ Script execution failed to prepare OSG run!", '31')  # Red color
         print(f"Error details:\n{e.stderr}")
-
 
     # export things here maybe 
 
