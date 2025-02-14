@@ -713,24 +713,22 @@ def get_variants_fn(pdb_fn,variants_to_generate,max_subs,min_subs,seed):
     out_fn = out_fn_template.format(*out_fn_template_args)
     return out_fn
 
-def run_variant_script(pdb_fn,variants_to_generate,max_subs,min_subs):
+def run_variant_script(
+    pdb_fn,
+    variants_to_generate,
+    max_subs,
+    min_subs,
+    seed=0
+):
 
-    # Construct the command to run the shell script with parameters
-    
-        
-    seed = 0
+    out_fn = get_variants_fn(pdb_fn, variants_to_generate, max_subs, min_subs, seed)
+    params = f"\t variants to generate: {variants_to_generate}\n\t maximum substitutions: {max_subs} \n\t minimum substitutions: {min_subs} \n\t random seed: {seed} \n\t filename: {out_fn}"
 
-    out_fn=get_variants_fn(pdb_fn,variants_to_generate,max_subs,min_subs,seed)
-
-    params=f"\t variants to generate {variants_to_generate}\n\t maximum substitutions {max_subs} \n\t minimum substitutions {min_subs}"
-        
-    
     if os.path.isfile(f"../../variant_lists/{out_fn}"):
         print_colored(f"❌ A variant file with these parameters already exist: \n {params} \n -->Either run this function again with new parameters or move onto next step.", '31')  # red color
         return 
     else:
         print_colored(f"✅ A variant file with these parameters doesn't exist: \n {params} \n--> Generating variants now ⌛", '32')  # Green color
-        
         
     command = [
         './bash_scripts/run_variants.sh',
@@ -741,17 +739,14 @@ def run_variant_script(pdb_fn,variants_to_generate,max_subs,min_subs):
         str(seed)
     ]
 
-
     # Run the shell script
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)
         print_colored("✅ Successfully generate variants!", '32')  # Green color
         
-    
     except subprocess.CalledProcessError as e:
         print_colored("❌ Script execution failed!", '31')  # Red color
         print(f"Error details:\n{e.stderr}")
-
 
 
 def post_process_rosetta_download(job_name): 
@@ -796,48 +791,68 @@ def post_process_rosetta_download(job_name):
 # osdf files  - probably should be changed earlier 
 # usual tarring process. 
 
-def prepare_rosetta_run(job_name,pdb_file_name,variants_to_generate,max_subs,min_subs,verbose=False): 
+def load_lines(fn: str):
+    """ loads each line from given file """
+    lines = []
+    with open(fn, "r") as f_handle:
+        for line in f_handle:
+            lines.append(line.strip())
+    return lines
+
+def prepare_rosetta_run(
+    job_name,
+    pdb_file_name,
+    variant_fns,
+    verbose=False
+): 
+
+    vl_dir = "variant_lists"
+    
     # first set up the argument file
-    # 
-    parent_dir='../../htcondor/run_defs'
-    metl_dir ='metl-sim-v1.0'
-    runs=os.listdir(parent_dir)
+    parent_dir = '../../htcondor/run_defs'
+    metl_dir = 'metl-sim-v1.0'
+    runs = os.listdir(parent_dir)
     if job_name in runs:
         print_colored(f"❌ Job name {job_name} not is availabe, please specify a new job name", '31')
-        return 
+        # return 
     else:
         print_colored(f"✅ Job name {job_name} is availabe, preparing rosetta job", '32') 
-    
-    os.makedirs(f'{parent_dir}/{job_name}')
-    
-    pdb_fn=f'{pdb_file_name.split(".")[0]}_p.pdb'
-    variants_fn=get_variants_fn(pdb_fn,variants_to_generate,max_subs,min_subs,seed=0)
-    pdb_full_path=f'pdb_files/prepared_pdb_files/{pdb_fn}'
-    varaints_full_path = f'variant_lists/{variants_fn}'
 
-    if os.path.isfile(f'../../{varaints_full_path}'):
-        print_colored(f"✅ Variant file exists:\n Variants to Generate : {variants_to_generate} \n Max Subs: {max_subs} \n Min Subs :{min_subs}", '32') 
-    else:
-        print_colored(f"❌ Variant file does not exists:\n Variants to Generate : {variants_to_generate} \n Max Subs: {max_subs} \n Min Subs :{min_subs} \n Please run section 'Generate variants for Rosetta Relax' again or change input parameters", '31')   
-        return 
-        
+    os.makedirs(f'{parent_dir}/{job_name}', exist_ok=True)
+    
+    pdb_fn = f'{pdb_file_name.split(".")[0]}_p.pdb'
+    pdb_full_path = f'pdb_files/prepared_pdb_files/{pdb_fn}'
+
+    total_variants = 0
+    for variant_fn in variant_fns:
+        variant_fp = f"../../{vl_dir}/{variant_fn}"
+        if not os.path.isfile(variant_fp):
+            print_colored(f"❌ Variant file does not exist: {variant_fn}\nPlease run the previous section to generate variants.", '31')   
+            return
+        else:
+            num_variants = len(load_lines(variant_fp))
+            print_colored(f"✅ Variant file exists: {variant_fn}", '32') 
+            total_variants += num_variants
+    print_colored(f"✅ Total number of variants: {total_variants}", '32')
+
     # condor_dir_pdb=f'{parent_dir}/{job_name}/{metl_dir}/pdb_files/prepared_pdb_files'
     # condor_dir_variant=f'{parent_dir}/{job_name}/{metl_dir}/variant_lists'
 
+    return
     with open('htcondor/templates/energize_run.txt','r') as f: 
-        contents= f.read()
+        contents = f.read()
 
-    contents=contents.replace('{job_name}',job_name)
-    contents=contents.replace('{variant_file}',varaints_full_path)
+    contents=contents.replace('{job_name}', job_name)
+    contents=contents.replace('{variant_file}', "\n".join(varaints_full_path))
 
-    param_fn =f"{parent_dir}/{job_name}/htcondor.txt"
+    param_fn = f"{parent_dir}/{job_name}/htcondor.txt"
     with open(param_fn,'w') as f:
         f.write(contents)
 
     # copy the password file into the correct spot: 
-    shutil.copy('htcondor/templates/pass.txt','../htcondor/templates/')
+    shutil.copy('htcondor/templates/pass.txt', '../htcondor/templates/')
     
-    command = ['./bash_scripts/run_condor.sh',f"htcondor/run_defs/{job_name}/htcondor.txt"]
+    command = ['./bash_scripts/run_condor.sh', f"htcondor/run_defs/{job_name}/htcondor.txt"]
 
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)

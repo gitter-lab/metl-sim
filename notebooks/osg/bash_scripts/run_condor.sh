@@ -1,20 +1,10 @@
 #!/bin/bash
 
-
 set -e
 
 . env/bin/activate
 
-echo ${pwd}
-
-
-
-# this is here because i need to retar everything in the binary because i forgot to include this package.
-pip install tqdm
-
-
-cd .. 
-
+cd ../..
 
 INPUT_FN=$1
 
