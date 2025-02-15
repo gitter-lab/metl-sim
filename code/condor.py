@@ -500,12 +500,12 @@ if __name__ == "__main__":
     parser.add_argument("--osdf_python_distribution",
                         type=str,
                         help="text file containing the OSDF paths to Python distribution files",
-                        default="htcondor/templates/osdf_python_distribution.txt")
+                        default=None)
 
     parser.add_argument("--osdf_rosetta_distribution",
                         type=str,
                         help="text file containing the OSDF paths to Rosetta distribution files",
-                        default="htcondor/templates/osdf_rosetta_distribution.txt")
+                        default=None)
 
     parser.add_argument("--additional_data_files",
                         type=str,

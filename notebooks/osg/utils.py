@@ -842,7 +842,7 @@ def prepare_rosetta_run(
 
     # open the template run def file and replace the placeholders
     # then save it to the run defs directory
-    run_def_template_fn = "condor/energize_run_template.txt"
+    run_def_template_fn = "templates/energize_run_template.txt"
     with open(run_def_template_fn, 'r') as f:
         contents = f.read()
 
@@ -850,6 +850,18 @@ def prepare_rosetta_run(
     # generate the full paths from the repository root dir to the variant files
     variant_fns_full = [f"{vl_dir}/{variant_fn}" for variant_fn in variant_fns]
     contents = contents.replace('{variant_file}', "\n".join(variant_fns_full))
+
+    # fill in additional data files (python environment and rosetta binaries)
+    addtl_files = [
+        "notebooks/osg/downloads/rosetta_min_enc.tar.gz.aa",
+        "notebooks/osg/downloads/rosetta_min_enc.tar.gz.ab",
+        "notebooks/osg/downloads/rosetta_min_enc.tar.gz.ac",
+        "metl-sim_2025-02-13.tar.gz"
+    ]
+    contents = contents.replace(
+        '{additional_data_files}',
+        "\n".join(addtl_files)
+    )
 
     param_fn = f"{rel_path_to_run_defs}/{job_name}/htcondor.txt"
     with open(param_fn,'w') as f:

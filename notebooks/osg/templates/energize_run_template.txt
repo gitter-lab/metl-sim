@@ -8,9 +8,7 @@ energize_args/condor_set_2.txt
 {variant_file}
 --variants_per_job
 -1
---osdf_python_distribution
-htcondor/templates/osdf_python_distribution.txt
---osdf_rosetta_distribution
-htcondor/templates/osdf_rosetta_distribution.txt
+--additional_data_files
+{additional_data_files}
 --github_tag
 source_local
