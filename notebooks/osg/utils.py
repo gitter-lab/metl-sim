@@ -10,6 +10,7 @@ import json
 import pandas as pd
 import numpy as np
 import re
+from pathlib import Path
 
 from os.path import basename, join
 
@@ -761,19 +762,6 @@ def post_process_rosetta_download(job_name):
             print_colored(f"✅ Found Rosetta File: {file_path}", '32') 
             transfer_file(file_path, dest_dir, cwd='.')
 
-    # move the files over ...
-    
-    # for osdf in ['rosetta','python']:
-    #     osdf_fn=f'htcondor/templates/osdf_{osdf}_distribution.txt'
-    #     with open(osdf_fn,'r') as f: 
-    #         out=f.read()
-        
-    #     out=out.replace('full_path',os.getcwd())
-    
-    #     with open(f'../htcondor/templates/osdf_{osdf}_distribution.txt','w') as f:
-    #         f.write(out)
-
-     
     # we also need to decode rosetta 
     decode_rosetta()
 
@@ -782,10 +770,6 @@ def post_process_rosetta_download(job_name):
     extract_dir = "rosetta"
     untar_file_with_progress(file_path, extract_dir)
 
-# variant file 
-# pdb file 
-# osdf files  - probably should be changed earlier 
-# usual tarring process. 
 
 def load_lines(fn: str):
     """ loads each line from given file """
@@ -851,16 +835,24 @@ def prepare_rosetta_run(
     variant_fns_full = [f"{vl_dir}/{variant_fn}" for variant_fn in variant_fns]
     contents = contents.replace('{variant_file}', "\n".join(variant_fns_full))
 
-    # fill in additional data files (python environment and rosetta binaries)
+    # fill in addtl data files (python environment and rosetta binaries)
+    # listed as relative from the root of the repository
     addtl_files = [
         "notebooks/osg/downloads/rosetta_min_enc.tar.gz.aa",
         "notebooks/osg/downloads/rosetta_min_enc.tar.gz.ab",
         "notebooks/osg/downloads/rosetta_min_enc.tar.gz.ac",
         "notebooks/osg/downloads/metl-sim_2025-02-13.tar.gz"
     ]
+
+    # do some path math to get the relative paths from cwd
+    cwd = Path.cwd()
+    root_path = (cwd / rel_path_to_root).resolve()
+    absolute_file_paths = [root_path / file for file in addtl_files]
+    relative_paths = [file.relative_to(cwd) for file in absolute_file_paths]
+
     contents = contents.replace(
         '{additional_data_files}',
-        "\n".join(addtl_files)
+        "\n".join(relative_paths)
     )
 
     param_fn = f"{rel_path_to_run_defs}/{job_name}/htcondor.txt"
@@ -896,7 +888,7 @@ def prepare_rosetta_run(
 
 def run_post_process_script(job_name,verbose=False):
     
-    command = ['./bash_scripts/run_post_process.sh',job_name]
+    command = ['./bash_scripts/run_post_process.sh', job_name]
     final_file=f'condor/{job_name}/processed_run/energies_df.csv'
     if os.path.exists(final_file):
         print_colored(f"💡 Notice:{job_name} all ready post processed, loading pandas dataframe", '33')  # yellow color
