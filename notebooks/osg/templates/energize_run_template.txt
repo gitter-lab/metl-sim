@@ -10,5 +10,6 @@ energize_args/condor_set_2.txt
 -1
 --additional_data_files
 {additional_data_files}
+--use_additional_data_as_is
 --github_tag
 source_local

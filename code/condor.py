@@ -254,7 +254,14 @@ def prep_energize(args):
         f.write("export PYSCRIPT={}\n".format(pyscript))
 
     # prepare the additional data files
-    additional_files = prep_additional_data_files(args.additional_data_files, out_dir, args.additional_data_dir)
+    if args.use_additional_data_as_is:
+        additional_files = args.additional_data_files
+    else:
+        additional_files = prep_additional_data_files(
+            args.additional_data_files,
+            out_dir,
+            args.additional_data_dir
+        )
 
     # fill in the template and save it
     fill_submit_template(template_fn="htcondor/templates/energize.sub",
@@ -409,7 +416,11 @@ def zip_additional_data(data_fns):
     return out_fn
 
 
-def prep_additional_data_files(additional_data_files, run_dir, additional_data_dir):
+def prep_additional_data_files(
+        additional_data_files,
+        run_dir,
+        additional_data_dir,
+):
     """ parses additional data files to determine what is coming from squid and
         what needs to be copied to submit file or zipped up and copied to submit file """
 
@@ -518,6 +529,10 @@ if __name__ == "__main__":
                         help="OSDF directory where additional data files should be placed. only used "
                              "when additional_data_files are present and need to be transferred to storage "
                              "server due to the file size being too big")
+
+    parser.add_argument("--use_additional_data_as_is",
+                        action="store_true",
+                        help="use additional data files as is, don't zip them up or split them")
 
     parser.add_argument("--github_tag",
                         type=str,

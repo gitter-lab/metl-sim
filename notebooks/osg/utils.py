@@ -856,7 +856,7 @@ def prepare_rosetta_run(
         "notebooks/osg/downloads/rosetta_min_enc.tar.gz.aa",
         "notebooks/osg/downloads/rosetta_min_enc.tar.gz.ab",
         "notebooks/osg/downloads/rosetta_min_enc.tar.gz.ac",
-        "metl-sim_2025-02-13.tar.gz"
+        "notebooks/osg/downloads/metl-sim_2025-02-13.tar.gz"
     ]
     contents = contents.replace(
         '{additional_data_files}',
