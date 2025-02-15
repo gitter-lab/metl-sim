@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 CODE_FN=code.tar.gz
+ENV_FN=metl-sim_2025-02-13.tar.gz
 
 # exit if any command fails...
 set -e
@@ -48,15 +49,18 @@ fi
 # set up the python environment (from packaged version)
 # https://chtc.cs.wisc.edu/conda-installation.shtml
 
-# this is the version of the metl-sim environment in repo version 0.7.11 (pinned openssl)
-# simply a convenient way to keep track of versioning for this package which was created by hand
-# these lines handle setting up the environment
-echo "Setting up Python environment"
+# the environment files need to be un-tarred into the "env" directory
+# un-tar the environment files
+if [ -f "$ENV_FN" ]; then
+  echo "Extracting $ENV_FN"
+  mkdir env
+  tar -xzf $ENV_FN -C env
+  rm $ENV_FN
+fi
+
+echo "Activating Python environment"
 export PATH
-mkdir rosettafy_env
-tar -xzf rosettafy_env_v0.7.11.tar.gz -C rosettafy_env
-. rosettafy_env/bin/activate
-rm rosettafy_env_v0.7.11.tar.gz
+. env/bin/activate
 
 # decrypt
 # note this is done AFTER setting up the Python environment because it requires

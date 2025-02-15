@@ -108,7 +108,7 @@ def get_log_files(directory):
     return log_files
 
 
-def submit_condor_job(job_name,job_type):
+def submit_condor_job(job_name, job_type):
     """
     Submits a Condor job using the provided submit file name and directory.
     
@@ -680,8 +680,6 @@ def run_prepare_script(rosetta_main_dir, pdb_fn, relax_nstruct, out_dir_base, co
         print(f"Error details:\n{e.stderr}")
 
 
-
-
 def human_format(num):
     """https://stackoverflow.com/questions/579310/formatting-long-numbers-as-strings-in-python"""
     num = float('{:.3g}'.format(num))
@@ -690,7 +688,6 @@ def human_format(num):
         magnitude += 1
         num /= 1000.0
     return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
-
 
 
 def get_variants_fn(pdb_fn,variants_to_generate,max_subs,min_subs,seed):
@@ -857,14 +854,6 @@ def prepare_rosetta_run(
         print_colored("❌ Script execution failed to prepare OSG run!", '31')  # Red color
         print(f"Error details:\n{e.stderr}")
 
-    # export things here maybe 
-
-    # untar the arguments file here as well. 
-
-    # edit condor.py such that if the github tag is "notebooks" then 
-    # it automatically just tar's up everything instead. 
-    # then no need to worry about pdb file either, because it just works. 
-    # just need to figure out how to rename the title folder metl-sim-notebooks
 
 def run_post_process_script(job_name,verbose=False):
     
