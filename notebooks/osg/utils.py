@@ -249,18 +249,19 @@ def extract_exit_code(job_output):
 
 
 def get_single_job_status(job_name):
-    log_dir=f'condor/{job_name}/output/condor_logs'
-    log_files=get_log_files(log_dir)
-    completed,failed,running=0,0,0
+    log_dir = f'condor/{job_name}/output/condor_logs'
+    log_files = get_log_files(log_dir)
+    completed, failed, running = 0, 0, 0
     for log_file in log_files:
-        with open(f"{log_dir}/{log_file}",'r') as f: 
-            r,c,f=extract_exit_code(f.read())   
-        completed+=c
-        failed+=f
-        running+=r
-    
-    return running,completed,failed
-       
+        with open(f"{log_dir}/{log_file}", 'r') as f:
+            r, c, f = extract_exit_code(f.read())
+        completed += c
+        failed += f
+        running += r
+
+    return running, completed, failed
+
+
 def get_jobs_on_OSG():
     try:
         result = subprocess.run(
@@ -270,14 +271,13 @@ def get_jobs_on_OSG():
             text=True,
             check=True
         )
-        
+
         json_output = result.stdout
-        if len(json_output)==0: 
+        if len(json_output) == 0:
             return []
         data = json.loads(json_output)
-        
-        iwd_values = [entry['Iwd'].split(os.sep)[-1] for entry in data if 'Iwd' in entry]
 
+        iwd_values = [entry['Iwd'].split(os.sep)[-1] for entry in data if 'Iwd' in entry]
 
         counts = pd.Series(iwd_values).value_counts()
 
@@ -286,7 +286,7 @@ def get_jobs_on_OSG():
 
             # print(f"\033[0mJob name: {val}, number jobs:{counts[val]}\033[0m")         
         return counts
-    
+
     except subprocess.CalledProcessError as e:
         print(f"Error checking for running jobs: {e}")
         return []
@@ -297,44 +297,47 @@ def get_jobs_on_OSG():
 
     # condor_rm -constraint 'JobStatus == 1'
 
+
 def job_status():
     # go through each folder that is valid in condor/ 
     # look to each logs file and see what is currently their 
 
-    jobs=os.listdir('condor')
+    jobs_dir = 'condor'
+    jobs = os.listdir(jobs_dir)
+    jobs = sorted(jobs, key=lambda f: os.path.getctime(os.path.join(jobs_dir, f)), reverse=True)
 
-    C,F,R,J=[],[],[],[]
-    for job in jobs: 
-        if job!='practice' and job!='rosetta' and job[0]!='.':
-            running,completed,failed=get_single_job_status(job)
+    C, F, R, J = [], [], [], []
+    for job in jobs:
+        if job != 'practice' and job != 'rosetta' and job[0] != '.':
+            running, completed, failed = get_single_job_status(job)
             C.append(completed)
             F.append(failed)
             R.append(running)
             J.append(job)
-    df=pd.DataFrame(index=J)
-    df['Running⌛']=R
-    df['Completed✅']=C
-    df['Failed❌']=F
+    df = pd.DataFrame(index=J)
+    df['Running⌛'] = R
+    df['Completed✅'] = C
+    df['Failed❌'] = F
 
-    if sum(F)!=0: 
+    if sum(F) != 0:
         print('\033[33m💡 Notice: Found failed jobs in log files, checking OSG if jobs exist\033[0m')
-        count =get_jobs_on_OSG()
+        count = get_jobs_on_OSG()
         # print(count)
-        run_condor_rm= False 
-        if len(count)!=0: 
-            for c in count.keys(): 
-                if df.loc[c]['Failed❌']>0: 
-                    run_condor_rm=True
+        run_condor_rm = False
+        if len(count) != 0:
+            for c in count.keys():
+                if df.loc[c]['Failed❌'] > 0:
+                    run_condor_rm = True
 
-        if run_condor_rm: 
+        if run_condor_rm:
             print('\033[33m💡 Notice: Found failed jobs on OSG, removing failed jobs now\033[0m')
 
             remove_jobs_with_constraints()
-        else: 
+        else:
             print('\033[33m💡 Notice: No failed jobs currently on OSG\033[0m')
 
     print(f"\033[92m Status of all submitted jobs \033[0m")
-                    
+
     print(df)
 
 
