@@ -149,13 +149,12 @@ def submit_condor_job(job_name,job_type):
             submit_file_path = "energize.sub"
             working_directory = f"condor/{job_name}"
             
-             # 0) make the direcotry
+             # 0) make the directory
             os.makedirs(working_directory, exist_ok=True)
            
             # 0.5) get the name of the previous directory based on the endswith function.
-            htcondor_output_dir='../output/htcondor_runs'
-            
-            
+            htcondor_output_dir='../../output/htcondor_runs'
+
             dir_metl_sim =[x for x in os.listdir(htcondor_output_dir) if x.endswith(job_name)]
             if len(dir_metl_sim)>1: 
                 print(f"\033[91m❌ Error found multiple prepared runs for job name: {job_name}, please prepare a run (using prepare_rosetta_run() for OSG with a unique job name \033[91m\n")
@@ -165,7 +164,7 @@ def submit_condor_job(job_name,job_type):
                 return
             
             # print(filename_metl_sim)
-            dir_metl_sim =dir_metl_sim[0]
+            dir_metl_sim = dir_metl_sim[0]
 
             # 1) untar the args file into the directory in notebooks
             untar_file_with_progress(f'{htcondor_output_dir}/{dir_metl_sim}/args.tar.gz',working_directory)
@@ -187,14 +186,12 @@ def submit_condor_job(job_name,job_type):
                         key, value = line.replace("export ", "").split("=", 1)
                         
                         env_vars[key.strip()] = value.strip()
-        
-            
+
         else:
             print(f"\033[91m❌ Error invalid job type, select from:\033[91m\n"\
             "\033[91m--->'helloworld'\n--->'rosetta_download'\n--->'relax'\033[91m")
             return False 
 
-        
         # Run the command with a specified working directory
         result = subprocess.run(
             ["condor_submit", submit_file_path],
@@ -212,7 +209,6 @@ def submit_condor_job(job_name,job_type):
 
         print(f"\033[92m✅ Job name: '{job_name}' submitted \033[92m")  
 
-    
     except subprocess.CalledProcessError as e:
         print(f"\033[91m❌ Error submitting job: {e}\033[91m")
 
@@ -858,9 +854,6 @@ def prepare_rosetta_run(
     param_fn = f"{rel_path_to_run_defs}/{job_name}/htcondor.txt"
     with open(param_fn,'w') as f:
         f.write(contents)
-
-    # TODO: This has the wrong password, need to specify the password used for encryption in the previous step
-    # shutil.copy('htcondor/templates/pass.txt', '../htcondor/templates/')
 
     # run the main condor prep script using the run def we created
     command = [
