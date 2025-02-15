@@ -848,7 +848,7 @@ def prepare_rosetta_run(
     cwd = Path.cwd()
     root_path = (cwd / rel_path_to_root).resolve()
     absolute_file_paths = [root_path / file for file in addtl_files]
-    relative_paths = [file.relative_to(cwd) for file in absolute_file_paths]
+    relative_paths = [str(file.relative_to(cwd)) for file in absolute_file_paths]
 
     contents = contents.replace(
         '{additional_data_files}',
