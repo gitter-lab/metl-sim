@@ -835,26 +835,6 @@ def prepare_rosetta_run(
     variant_fns_full = [f"{vl_dir}/{variant_fn}" for variant_fn in variant_fns]
     contents = contents.replace('{variant_file}', "\n".join(variant_fns_full))
 
-    # fill in addtl data files (python environment and rosetta binaries)
-    # listed as relative from the root of the repository
-    addtl_files = [
-        "notebooks/osg/downloads/rosetta_min_enc.tar.gz.aa",
-        "notebooks/osg/downloads/rosetta_min_enc.tar.gz.ab",
-        "notebooks/osg/downloads/rosetta_min_enc.tar.gz.ac",
-        "notebooks/osg/downloads/metl-sim_2025-02-13.tar.gz"
-    ]
-
-    # do some path math to get the relative paths from cwd
-    cwd = Path.cwd()
-    root_path = (cwd / rel_path_to_root).resolve()
-    absolute_file_paths = [root_path / file for file in addtl_files]
-    relative_paths = [str(file.relative_to(cwd)) for file in absolute_file_paths]
-
-    contents = contents.replace(
-        '{additional_data_files}',
-        "\n".join(relative_paths)
-    )
-
     param_fn = f"{rel_path_to_run_defs}/{job_name}/htcondor.txt"
     with open(param_fn,'w') as f:
         f.write(contents)

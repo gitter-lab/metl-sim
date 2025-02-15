@@ -9,7 +9,10 @@ energize_args/condor_set_2.txt
 --variants_per_job
 -1
 --additional_data_files
-{additional_data_files}
+../../downloads/rosetta_min_enc.tar.gz.aa
+../../downloads/rosetta_min_enc.tar.gz.ab
+../../downloads/rosetta_min_enc.tar.gz.ac
+../../downloads/metl-sim_2025-02-13.tar.gz
 --use_additional_data_as_is
 --rosetta_decryption_password
 R0S3774123
