@@ -295,16 +295,22 @@ def fill_submit_template(template_fn: str,
 
     format_dict = {}
 
-    if osdf_python_distribution is not None and "{osdf_python_distribution}" in template_str:
-        # load the osdf python distribution files into a list
-        osdf_python_distribution_lines = load_lines(osdf_python_distribution)
-        # fill in the template with the osdf python distribution
-        format_dict["osdf_python_distribution"] = ", ".join(osdf_python_distribution_lines)
+    if "{osdf_python_distribution}" in template_str:
+        if osdf_python_distribution is not None:
+            # load the osdf python distribution files into a list
+            osdf_python_distribution_lines = load_lines(osdf_python_distribution)
+            # fill in the template with the osdf python distribution
+            format_dict["osdf_python_distribution"] = ", ".join(osdf_python_distribution_lines)
+        else:
+            format_dict["osdf_python_distribution"] = ""
 
     # same for Rosetta distribution
-    if osdf_rosetta_distribution is not None and "{osdf_rosetta_distribution}" in template_str:
-        osdf_rosetta_distribution_lines = load_lines(osdf_rosetta_distribution)
-        format_dict["osdf_rosetta_distribution"] = ", ".join(osdf_rosetta_distribution_lines)
+    if "{osdf_rosetta_distribution}" in template_str:
+        if osdf_rosetta_distribution is not None:
+            osdf_rosetta_distribution_lines = load_lines(osdf_rosetta_distribution)
+            format_dict["osdf_rosetta_distribution"] = ", ".join(osdf_rosetta_distribution_lines)
+        else:
+            format_dict["osdf_rosetta_distribution"] = ""
 
     if additional_data_files is None:
         # if there are no additional data files, make it an empty list
