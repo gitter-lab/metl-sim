@@ -271,8 +271,13 @@ def prep_energize(args):
     # copy over energize.sub and run.sh and the pass.txt
     # shutil.copy("htcondor/templates/energize.sub", out_dir)
     shutil.copy("htcondor/templates/run.sh", out_dir)
-    check_pass_file("htcondor/templates/pass.txt")
-    shutil.copy("htcondor/templates/pass.txt", out_dir)
+
+    if args.rosetta_decryption_password is not None:
+        with open(join(out_dir, "pass.txt"), "w") as f:
+            f.write(args.rosetta_decryption_password)
+    else:
+        check_pass_file("htcondor/templates/pass.txt")
+        shutil.copy("htcondor/templates/pass.txt", out_dir)
 
     # copy over energize args and rename to standard filename
     shutil.copyfile(args.energize_args_fn, join(out_dir, "energize_args.txt"))
