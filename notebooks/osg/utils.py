@@ -25,41 +25,35 @@ def remove_all_condor_jobs():
         # Run the condor_rm command to remove all jobs
         result = subprocess.run(["condor_rm", "-all"], check=True, capture_output=True, text=True)
 
-        # Success message in green
         print(f"\033[92m✅ Successfully removed {len(count)} jobs.\033[0m")
 
     except subprocess.CalledProcessError as e:
-        # Error message in red
         print(f"\033[91m❌ Failed to remove jobs:\n{e.stderr}\033[0m")
 
 
-
-def check_directory_exists(folder_name,base_dir='condor'):
+def check_directory_exists(folder_name, base_dir='condor'):
     # Construct the full path
     full_path = os.path.join(base_dir, folder_name)
-    
+
     # Check if the directory exists
-    if folder_name=='practice' or folder_name=='rosetta':
+    if folder_name == 'practice' or folder_name == 'rosetta':
         print(f"\033[91m❌ Cannot name job '{folder_name}' it is a special name used for the demo.\nPlease specify a new job name.\033[0m")
-        return False 
-    
+        return False
+
     if os.path.exists(full_path) and os.path.isdir(full_path):
-        # Red highlighting
         print(f"\033[91m❌ A job named '{folder_name}' already exists. Please specify a new job name.\033[0m")
         return False
     else:
-        # Green highlighting
         print(f"\033[92m✅ No job named '{folder_name}' exists'. You can use this job name.\033[0m")
         return True
 
 
 def create_directory_and_copy_items(
-    new_dir, 
-    items_to_copy,
-    basename=True,
-    condor_logs_dir="output/condor_logs"
+        new_dir,
+        items_to_copy,
+        basename=True,
+        condor_logs_dir="output/condor_logs"
 ):
-    
     # Create the new directory if it doesn't exist
     os.makedirs(new_dir, exist_ok=True)
 
@@ -70,11 +64,11 @@ def create_directory_and_copy_items(
 
     # Copy each item (file or directory) into the new directory
     for item in items_to_copy:
-        if basename: 
+        if basename:
             destination = os.path.join(new_dir, os.path.basename(item))
         else:
-            destination=new_dir
-        
+            destination = new_dir
+
         if os.path.isdir(item):
             if os.path.exists(destination):
                 # Merge the contents of the directory if it already exists
@@ -101,10 +95,10 @@ def get_log_files(directory):
 
     # List all files in the directory
     files = os.listdir(directory)
-    
+
     # Filter files that end with .log
     log_files = [f for f in files if f.endswith('.log')]
-    
+
     return log_files
 
 
@@ -226,7 +220,7 @@ def submit_condor_job(job_name, job_type):
 def remove_jobs_with_constraints():
     # Define the constraint to select jobs with status other than 1 or 2
     constraint = "JobStatus =!= 2 && JobStatus =!= 1"
-    
+
     try:
         # Construct the condor_rm command with the constraint
         result = subprocess.run(
@@ -242,19 +236,20 @@ def remove_jobs_with_constraints():
         print(f"\033[31mError:\033[0m Failed to remove jobs.")
         print(e.stderr)
 
+
 def extract_exit_code(job_output):
     # Regular expression to match the exit code part
-    c,r,f=0,0,0
+    c, r, f = 0, 0, 0
     # match = re.search(r'Job terminated.*exit-code (\d+)', job_output, re.DOTALL)
     # exit_code = match.group(1)
-    
+
     if 'exit-code 0' in job_output:
-        c+=1 
-    elif 'Nonzero exit-code' in job_output or 'Job was aborted' in job_output: 
-        f+=1
-    else: 
-        r+=1
-    return r,c,f
+        c += 1
+    elif 'Nonzero exit-code' in job_output or 'Job was aborted' in job_output:
+        f += 1
+    else:
+        r += 1
+    return r, c, f
 
 
 def get_single_job_status(job_name):
@@ -302,7 +297,6 @@ def get_jobs_on_OSG():
     except json.JSONDecodeError as e:
         print(f"Error parsing JSON: {e}")
         return []
-
 
     # condor_rm -constraint 'JobStatus == 1'
 
@@ -355,40 +349,41 @@ def untar_file_with_progress(file_path, extract_dir='.', filetype='gz'):
         # Use current directory if no extract_dir is specified
         if extract_dir == '.':
             extract_dir = os.getcwd()
-        
+
         # Check if the directory already exists
         if os.path.exists(extract_dir):
             # Check if the directory is not empty
             if os.listdir(extract_dir):
                 print(f"\033[93m🔔 Notice: Directory '{extract_dir}' already exists and is not empty. Skipping extraction.\033[0m")
                 return
-        
+
         # Create the directory if it does not exist
         os.makedirs(extract_dir, exist_ok=True)
-        
+
         # Open the tar file
         with tarfile.open(file_path, f"r:{filetype}") as tar:
             # Get the list of files in the tar archive
             members = tar.getmembers()
             total_files = len(members)
-            
+
             # Create a progress bar
             with tqdm(total=total_files, unit='file', desc='Extracting') as pbar:
                 # Extract each member and update the progress bar
                 for member in members:
                     tar.extract(member, path=extract_dir)
                     pbar.update(1)
-            
+
             print(f"\033[92m✅ Success: File untarred to '{extract_dir}'.\033[0m")
-    
+
     except Exception as e:
         # Handle extraction errors
         if os.path.exists(extract_dir):
             # Clean up the directory if extraction fails
             shutil.rmtree(extract_dir)
             print(f"\033[91m❌ Failure: Extraction failed. Directory '{extract_dir}' has been removed.\033[0m")
-        
+
         print(f"\033[91m❌ Failure: {str(e)}\033[0m")
+
 
 # def untar_file_with_progress(file_path, extract_dir,filetype='gz'):
 #     try:
@@ -398,32 +393,32 @@ def untar_file_with_progress(file_path, extract_dir='.', filetype='gz'):
 #             if os.listdir(extract_dir):
 #                 print(f"\033[93m🔔 Notice: Directory '{extract_dir}' already exists and is not empty. Skipping extraction.\033[0m")
 #                 return
-        
+
 #         # Create the directory if it does not exist
 #         os.makedirs(extract_dir, exist_ok=True)
-        
+
 #         # Open the tar file
 #         with tarfile.open(file_path, f"r:{filetype}") as tar:
 #             # Get the list of files in the tar archive
 #             members = tar.getmembers()
 #             total_files = len(members)
-            
+
 #             # Create a progress bar
 #             with tqdm(total=total_files, unit='file', desc='Extracting') as pbar:
 #                 # Extract each member and update the progress bar
 #                 for member in members:
 #                     tar.extract(member, path=extract_dir)
 #                     pbar.update(1)
-            
+
 #             print(f"\033[92m✅ Success: File untarred to '{extract_dir}'.\033[0m")
-    
+
 #     except Exception as e:
 #         # Handle extraction errors
 #         if os.path.exists(extract_dir):
 #             # Clean up the directory if extraction fails
 #             shutil.rmtree(extract_dir)
 #             print(f"\033[91m❌ Failure: Extraction failed. Directory '{extract_dir}' has been removed.\033[0m")
-        
+
 #         print(f"\033[91m❌ Failure: {str(e)}\033[0m")
 
 
@@ -440,7 +435,7 @@ def download_file(url, output_path, method='curl'):
         if os.path.isfile(output_path):
             print(f"\033[93m🔔 Notice: File '{output_path}' already exists. No download needed.\033[0m")
             return
-        
+
         if method == 'curl':
             # Send a GET request to the URL
             response = requests.get(url, stream=True)
@@ -453,9 +448,9 @@ def download_file(url, output_path, method='curl'):
                 # Write the content to the output file with progress bar
                 with open(output_path, 'wb') as file:
                     # Wrap the iter_content with tqdm to show progress
-                    for chunk in tqdm(response.iter_content(chunk_size=8192), 
-                                      total=total_size // 8192, 
-                                      unit='KB', 
+                    for chunk in tqdm(response.iter_content(chunk_size=8192),
+                                      total=total_size // 8192,
+                                      unit='KB',
                                       desc='Downloading'):
                         file.write(chunk)
 
@@ -476,10 +471,11 @@ def download_file(url, output_path, method='curl'):
 
         else:
             print(f"\033[91m❌ Failure: Invalid method '{method}'. Use 'curl' or 'scp'.\033[0m")
-    
+
     except Exception as e:
         # Handle any other exceptions and output failure message in red
         print(f"\033[91m❌ Failure: {str(e)}\033[0m")
+
 
 # def download_file(url, output_path):
 #     try:
@@ -497,7 +493,7 @@ def download_file(url, output_path, method='curl'):
 
 #         # Send a GET request to the URL
 #         response = requests.get(url, stream=True)
-        
+
 #         # Check if the request was successful
 #         if response.status_code == 200:
 #             # Get the total file size from the response headers
@@ -511,13 +507,13 @@ def download_file(url, output_path, method='curl'):
 #                                   unit='KB', 
 #                                   desc='Downloading'):
 #                     file.write(chunk)
-            
+
 #             # Output success message in green
 #             print(f"\033[92m✅ Success: File downloaded to '{output_path}'.\033[0m")
 #         else:
 #             # Output failure message in red if the request was unsuccessful
 #             print(f"\033[91m❌ Failure: HTTP {response.status_code} - Could not download the file.\033[0m")
-    
+
 #     except Exception as e:
 #         # Handle any other exceptions and output failure message in red
 #         print(f"\033[91m❌ Failure: {str(e)}\033[0m")
@@ -526,23 +522,24 @@ def download_file(url, output_path, method='curl'):
 def check_last_two_folders(expected_folder1, expected_folder2):
     # Get the current working directory
     cwd = os.getcwd()
-    
+
     # Split the path into components
     path_components = os.path.normpath(cwd).split(os.sep)
-    
+
     # Check if there are at least two components in the path
     if len(path_components) < 2:
         print("\033[91m❌ Failure: The current working directory does not have enough components.\033[0m")
-    
+
     # Get the last two components
     last_folder = path_components[-1]
     second_last_folder = path_components[-2]
-    
+
     # Compare with the expected folder names
     if last_folder == expected_folder2 and second_last_folder == expected_folder1:
         print(f"\033[92m✅ Success: You are in '{second_last_folder}/{last_folder}'.\033[0m")
     else:
         print(f"\033[91m❌ Failure: Your current working directory is '{second_last_folder}/{last_folder}', not '{expected_folder1}/{expected_folder2}'.\033[0m")
+
 
 def set_permissions(path, permissions):
     """
@@ -555,6 +552,7 @@ def set_permissions(path, permissions):
     Returns:
     None
     """
+
     # Helper function to change permissions for a file
     def change_permissions(file_path):
         command = ['chmod', permissions, file_path]
@@ -563,7 +561,7 @@ def set_permissions(path, permissions):
             # print(f"\033[92m✅ Successfully changed permissions for {file_path} to {permissions}.\033[0m")
         except subprocess.CalledProcessError as e:
             print(f"\033[91m❌ Error occurred while changing permissions for {file_path}: {e}\033[0m")
-    
+
     # If path is a directory, change permissions for all files inside it
     if os.path.isdir(path):
         for root, dirs, files in os.walk(path):
@@ -573,6 +571,7 @@ def set_permissions(path, permissions):
     else:
         # Change permissions for the single file
         change_permissions(path)
+
 
 def decode_rosetta():
     """
@@ -587,13 +586,12 @@ def decode_rosetta():
     # Run the shell script
     script_path = 'bash_scripts/rosetta_download.sh'
     command = ['bash', script_path]
-    
+
     try:
         subprocess.run(command, check=True)
         print("\033[92m✅ Successfully decoded rosetta.\033[0m")
     except subprocess.CalledProcessError as e:
         print(f"\033[91m❌ Error occurred while executing the script: {e}\033[0m")
-
 
 
 # def print_colored(message, color_code):
@@ -609,7 +607,7 @@ def decode_rosetta():
 #         str(relax_nstruct),
 #         out_dir_base
 #     ]
-    
+
 #     # Run the shell script
 #     try:
 #         result = subprocess.run(command, check=True, text=True, capture_output=True)
@@ -623,6 +621,7 @@ def print_colored(message, color_code):
     """Prints the message in the specified color."""
     print(f"\033[{color_code}m{message}\033[0m")
 
+
 def extract_output_directory(output):
     """Extracts the output directory from the given output text."""
     match = re.search(r'output directory is: (.+)', output)
@@ -630,27 +629,29 @@ def extract_output_directory(output):
         return match.group(1)
     return None
 
+
 def transfer_file(src_file, dest_dir, cwd):
     """Transfers a file from source to destination directory."""
     original_cwd = os.getcwd()
     try:
         # Change to the specified directory
         os.chdir(cwd)
-        
+
         # Ensure destination directory exists
         if not os.path.exists(dest_dir):
             os.makedirs(dest_dir)
-        
+
         # Copy the file to the destination directory
         shutil.copy(src_file, dest_dir)
         print_colored(f"✅ File transferred to {dest_dir}!", '32')  # Green color
-    
+
     except Exception as e:
         print_colored(f"❌ Failed to transfer file: {e}", '31')  # Red color
-    
+
     finally:
         # Change back to the original directory
         os.chdir(original_cwd)
+
 
 def run_prepare_script(rosetta_main_dir, pdb_fn, relax_nstruct, out_dir_base, conda_pack_env):
     # Construct the command to run the shell script with parameters
@@ -662,7 +663,7 @@ def run_prepare_script(rosetta_main_dir, pdb_fn, relax_nstruct, out_dir_base, co
         out_dir_base,
         conda_pack_env
     ]
-    
+
     # Run the shell script
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)
@@ -681,12 +682,12 @@ def run_prepare_script(rosetta_main_dir, pdb_fn, relax_nstruct, out_dir_base, co
 
             # print(os.getcwd())
             # Check if the file exists and transfer it
-            
+
             transfer_file(file_to_transfer, target_directory, '../..')
         else:
             print_colored("✅ Script executed successfully, but output directory not found!", '33')  # Yellow color
             print(result.stdout)
-    
+
     except subprocess.CalledProcessError as e:
         print_colored("❌ Script execution failed!", '31')  # Red color
         print(f"Error details:\n{e.stderr}")
@@ -702,40 +703,40 @@ def human_format(num):
     return '{}{}'.format('{:f}'.format(num).rstrip('0').rstrip('.'), ['', 'K', 'M', 'B', 'T'][magnitude])
 
 
-def get_variants_fn(pdb_fn,variants_to_generate,max_subs,min_subs,seed):
+def get_variants_fn(pdb_fn, variants_to_generate, max_subs, min_subs, seed):
     out_fn_template = "{}_subvariants_TN-{}_MAXS-{}_MINS-{}_{}-DB-{}-{}_RS-{}.txt"
-    
+
     out_fn_template_args = [
         basename(pdb_fn).rsplit('.', 1)[0],
         human_format(variants_to_generate),
         max_subs,
         min_subs,
         "filtered",
-        0, # currently the db hash will always be zero 458 of variants.py
+        0,  # currently the db hash will always be zero 458 of variants.py
         basename(pdb_fn).rsplit('.', 1)[0],
         seed
     ]
-    
+
     out_fn = out_fn_template.format(*out_fn_template_args)
     return out_fn
 
-def run_variant_script(
-    pdb_fn,
-    variants_to_generate,
-    max_subs,
-    min_subs,
-    seed=0
-):
 
+def run_variant_script(
+        pdb_fn,
+        variants_to_generate,
+        max_subs,
+        min_subs,
+        seed=0
+):
     out_fn = get_variants_fn(pdb_fn, variants_to_generate, max_subs, min_subs, seed)
     params = f"\t variants to generate: {variants_to_generate}\n\t maximum substitutions: {max_subs} \n\t minimum substitutions: {min_subs} \n\t random seed: {seed} \n\t filename: {out_fn}"
 
     if os.path.isfile(f"../../variant_lists/{out_fn}"):
         print_colored(f"❌ A variant file with these parameters already exist: \n {params} \n -->Either run this function again with new parameters or move onto next step.", '31')  # red color
-        return 
+        return
     else:
         print_colored(f"✅ A variant file with these parameters doesn't exist: \n {params} \n--> Generating variants now ⌛", '32')  # Green color
-        
+
     command = [
         './bash_scripts/run_variants.sh',
         pdb_fn,
@@ -749,26 +750,26 @@ def run_variant_script(
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)
         print_colored("✅ Successfully generate variants!", '32')  # Green color
-        
+
     except subprocess.CalledProcessError as e:
         print_colored("❌ Script execution failed!", '31')  # Red color
         print(f"Error details:\n{e.stderr}")
 
 
-def post_process_rosetta_download(job_name): 
-    untar_file_with_progress(f'condor/{job_name}/output.tar.gz',f'condor/{job_name}/output/rosetta_download')
-    
-    for suffix in ['aa','ab','ac']:
-        file_path=f'condor/{job_name}/output/rosetta_download/output/squid_rosetta/rosetta_min_enc.tar.gz.{suffix}'
-        dest_dir=f'downloads'
+def post_process_rosetta_download(job_name):
+    untar_file_with_progress(f'condor/{job_name}/output.tar.gz', f'condor/{job_name}/output/rosetta_download')
+
+    for suffix in ['aa', 'ab', 'ac']:
+        file_path = f'condor/{job_name}/output/rosetta_download/output/squid_rosetta/rosetta_min_enc.tar.gz.{suffix}'
+        dest_dir = f'downloads'
         if not os.path.isfile(file_path):
             print_colored(f"❌ Could not find all rosetta file:{file_path} for {job_name}", '31')
             print_colored(f"❌ Please redo the Downloading Rosetta section above and wait until the download of rosetta job has completed", '31')
             print_colored(f"💡 Notice: This function could lead to errors if using a different version of Rosetta than the default version", '33')
             print_colored(f"💡 Notice: Feel free to post an issue on github if any problems with downloading rosetta", '33')
-            return 
+            return
         else:
-            print_colored(f"✅ Found Rosetta File: {file_path}", '32') 
+            print_colored(f"✅ Found Rosetta File: {file_path}", '32')
             transfer_file(file_path, dest_dir, cwd='.')
 
     # we also need to decode rosetta 
@@ -788,11 +789,12 @@ def load_lines(fn: str):
             lines.append(line.strip())
     return lines
 
+
 def prepare_rosetta_run(
-    job_name,
-    pdb_file_name,
-    variant_fns,
-    verbose=False
+        job_name,
+        pdb_file_name,
+        variant_fns,
+        verbose=False
 ):
     # the relative path to the repo root
     rel_path_to_root = "../../"
@@ -816,7 +818,7 @@ def prepare_rosetta_run(
     else:
         print_colored(f"✅ Job name {job_name} is available, preparing rosetta job", '32')
     os.makedirs(f"{rel_path_to_run_defs}/{job_name}", exist_ok=True)
-    
+
     pdb_fn = f'{pdb_file_name.split(".")[0]}_p.pdb'
     pdb_fp = f'{prepared_pdb_dir}/{pdb_fn}'
 
@@ -825,11 +827,11 @@ def prepare_rosetta_run(
     for variant_fn in variant_fns:
         variant_fp = f"{rel_path_to_vls}/{variant_fn}"
         if not os.path.isfile(variant_fp):
-            print_colored(f"❌ Variant file does not exist: {variant_fn}\nPlease run the previous section to generate variants.", '31')   
+            print_colored(f"❌ Variant file does not exist: {variant_fn}\nPlease run the previous section to generate variants.", '31')
             return
         else:
             num_variants = len(load_lines(variant_fp))
-            print_colored(f"✅ Variant file exists: {variant_fn}", '32') 
+            print_colored(f"✅ Variant file exists: {variant_fn}", '32')
             total_variants += num_variants
     print_colored(f"✅ Total number of variants: {total_variants}", '32')
 
@@ -845,7 +847,7 @@ def prepare_rosetta_run(
     contents = contents.replace('{variant_file}', "\n".join(variant_fns_full))
 
     param_fn = f"{rel_path_to_run_defs}/{job_name}/htcondor.txt"
-    with open(param_fn,'w') as f:
+    with open(param_fn, 'w') as f:
         f.write(contents)
 
     # run the main condor prep script using the run def we created
@@ -856,8 +858,8 @@ def prepare_rosetta_run(
 
     try:
         result = subprocess.run(command, check=True, text=True, capture_output=True)
-         # Print stdout and stderr from the bash script
-        if verbose: 
+        # Print stdout and stderr from the bash script
+        if verbose:
             print("Standard Output:\n", result.stdout)
             print("Standard Error:\n", result.stderr)
         print_colored("✅ Successfully prepared OSG run!", '32')  # Green color
@@ -867,34 +869,26 @@ def prepare_rosetta_run(
         print(f"Error details:\n{e.stderr}")
 
 
-def run_post_process_script(job_name,verbose=False):
-    
+def run_post_process_script(job_name, verbose=False):
     command = ['./bash_scripts/run_post_process.sh', job_name]
-    final_file=f'condor/{job_name}/processed_run/energies_df.csv'
+    final_file = f'condor/{job_name}/processed_run/energies_df.csv'
     if os.path.exists(final_file):
         print_colored(f"💡 Notice:{job_name} all ready post processed, loading pandas dataframe", '33')  # yellow color
 
     else:
         try:
             result = subprocess.run(command, check=True, text=True, capture_output=True)
-             # Print stdout and stderr from the bash script
-            if verbose: 
+            # Print stdout and stderr from the bash script
+            if verbose:
                 print("Standard Output:\n", result.stdout)
                 print("Standard Error:\n", result.stderr)
             print_colored(f"✅ Successfully post process job name {job_name}", '32')  # Green color
-        
-        
+
+
         except subprocess.CalledProcessError as e:
             print_colored(f"❌ Script execution failed to post process {job_name}!", '31')  # Red color
             print(f"Error details:\n{e.stderr}")
 
-
-    df=pd.read_csv(final_file)
+    df = pd.read_csv(final_file)
 
     return df
-
-    
-
-
-
-
