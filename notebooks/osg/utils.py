@@ -14,13 +14,14 @@ from pathlib import Path
 
 from os.path import basename, join
 
+
 def remove_all_condor_jobs():
     try:
-        count=get_jobs_on_OSG()
-        if len(count)==0: 
+        count = get_jobs_on_OSG()
+        if len(count) == 0:
             print(f"\033[92m No jobs active on Open Science Grid.\033[0m")
             return
-            
+
         # Run the condor_rm command to remove all jobs
         result = subprocess.run(["condor_rm", "-all"], check=True, capture_output=True, text=True)
 
@@ -69,7 +70,6 @@ def create_directory_and_copy_items(
 
     # Copy each item (file or directory) into the new directory
     for item in items_to_copy:
-
         if basename: 
             destination = os.path.join(new_dir, os.path.basename(item))
         else:
@@ -119,65 +119,79 @@ def submit_condor_job(job_name, job_type):
     Returns:
     - str: A message indicating whether the job was submitted successfully or not.
     """
+
+    # validate job type
+    valid_job_types = {'helloworld', 'rosetta_download', 'relax'}
+    if job_type not in valid_job_types:
+        print(f"\033[91m❌ Error: Invalid job type '{job_type}'. Expected one of {valid_job_types}.\033[0m")
+        return False
+
     try:
         # Check if the current submit directory is already in the Iwd values
 
         env_vars = os.environ.copy()
-        
+
         if not check_directory_exists(job_name):
-            return  
-        elif job_type=='helloworld': 
+            return
+
+        elif job_type == 'helloworld':
             ## now construct the directory 
             print(f"\033[92m✅ Setting up job type `helloworld`\033[0m")
 
             # must specify file paths and submit jobs
             submit_file_path = "submit.sub"
             working_directory = f"condor/{job_name}"
-            
+
             create_directory_and_copy_items(working_directory, ['condor/practice/'])
-        elif job_type=='rosetta_download': 
+
+        elif job_type == 'rosetta_download':
             ## now construct the directory 
             print(f"\033[92m✅ Setting up job type `rosetta_download`\033[0m")
 
             # must specify file paths and submit jobs
             submit_file_path = "rosetta_download.sub"
             working_directory = f"condor/{job_name}"
-            
-            create_directory_and_copy_items(working_directory, ['condor/rosetta/', 'downloads/metl-sim_2025-02-13.tar.gz'])
-        elif job_type=='relax':
-            print(f"\033[92m✅ Setting up job type `relax`\033[0m")
-            
-            submit_file_path = "energize.sub"
-            working_directory = f"condor/{job_name}"
-            
-             # 0) make the directory
-            os.makedirs(working_directory, exist_ok=True)
-           
-            # 0.5) get the name of the previous directory based on the endswith function.
-            htcondor_output_dir='../../output/htcondor_runs'
 
-            dir_metl_sim =[x for x in os.listdir(htcondor_output_dir) if x.endswith(job_name)]
-            if len(dir_metl_sim)>1: 
-                print(f"\033[91m❌ Error found multiple prepared runs for job name: {job_name}, please prepare a run (using prepare_rosetta_run() for OSG with a unique job name \033[91m\n")
-                return 
-            elif len(dir_metl_sim)==0:
-                print(f"\033[91m❌ Error no found job name: {job_name}, please prepare a run using prepare_rosetta_run() for OSG with this job name or select from already prepared job names \033[91m\n")
+            create_directory_and_copy_items(working_directory,
+                                            ['condor/rosetta/', 'downloads/metl-sim_2025-02-13.tar.gz'])
+
+        elif job_type == 'relax':
+            print(f"\033[92m✅ Setting up job type `relax`\033[0m")
+
+            submit_file_path = "energize.sub"
+
+            # create the working directory for this job
+            working_directory = f"condor/{job_name}"
+            os.makedirs(working_directory, exist_ok=True)
+
+            # the staging location where condor.py sets up the run
+            htcondor_output_dir = '../../output/htcondor_runs'
+
+            dir_metl_sim = [x for x in os.listdir(htcondor_output_dir) if x.endswith(job_name)]
+            if len(dir_metl_sim) > 1:
+                print(
+                    f"\033[91m❌ Error found multiple prepared runs for job name: {job_name}, please prepare a run (using prepare_rosetta_run() for OSG with a unique job name \033[91m\n")
                 return
-            
+            elif len(dir_metl_sim) == 0:
+                print(
+                    f"\033[91m❌ Error no found job name: {job_name}, please prepare a run using prepare_rosetta_run() for OSG with this job name or select from already prepared job names \033[91m\n")
+                return
+
             # print(filename_metl_sim)
             dir_metl_sim = dir_metl_sim[0]
 
             # 1) untar the args file into the directory in notebooks
-            untar_file_with_progress(f'{htcondor_output_dir}/{dir_metl_sim}/args.tar.gz',working_directory)
+            untar_file_with_progress(f'{htcondor_output_dir}/{dir_metl_sim}/args.tar.gz', working_directory)
 
             # 2) copy over the contents from metl-sim dir into notebooks condor dir
-            create_directory_and_copy_items(working_directory,[f'{htcondor_output_dir}/{dir_metl_sim}'],basename=False)
+            create_directory_and_copy_items(working_directory, [f'{htcondor_output_dir}/{dir_metl_sim}'],
+                                            basename=False)
 
             # 3) export local environment parameters env_vars = os.environ.copy()  # Copy the current environment variables
-                # env_vars["MY_VAR"] = "my_value"  # Add or modify environment variables
-                # env_vars["ANOTHER_VAR"] = "another_value"
+            # env_vars["MY_VAR"] = "my_value"  # Add or modify environment variables
+            # env_vars["ANOTHER_VAR"] = "another_value"
 
-            file_path_env_vars=f'{working_directory}/env_vars.txt'
+            file_path_env_vars = f'{working_directory}/env_vars.txt'
             with open(file_path_env_vars, 'r') as file:
                 for line in file:
                     # Strip leading/trailing whitespace and ignore empty lines or comments
@@ -185,13 +199,8 @@ def submit_condor_job(job_name, job_type):
                     if line.startswith("export"):
                         # Remove 'export' keyword and split into key-value pairs
                         key, value = line.replace("export ", "").split("=", 1)
-                        
-                        env_vars[key.strip()] = value.strip()
 
-        else:
-            print(f"\033[91m❌ Error invalid job type, select from:\033[91m\n"\
-            "\033[91m--->'helloworld'\n--->'rosetta_download'\n--->'relax'\033[91m")
-            return False 
+                        env_vars[key.strip()] = value.strip()
 
         # Run the command with a specified working directory
         result = subprocess.run(
@@ -200,7 +209,7 @@ def submit_condor_job(job_name, job_type):
             stderr=subprocess.PIPE,
             text=True,
             check=True,
-            cwd=working_directory,            # Specify the working directory here
+            cwd=working_directory,  # Specify the working directory here
             env=env_vars
 
         )
@@ -208,7 +217,7 @@ def submit_condor_job(job_name, job_type):
         # give it time to create the log files
         time.sleep(5)
 
-        print(f"\033[92m✅ Job name: '{job_name}' submitted \033[92m")  
+        print(f"\033[92m✅ Job name: '{job_name}' submitted \033[92m")
 
     except subprocess.CalledProcessError as e:
         print(f"\033[91m❌ Error submitting job: {e}\033[91m")

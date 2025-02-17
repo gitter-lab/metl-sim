@@ -36,18 +36,16 @@ export PATH
 
 echo "Launching Rosetta download"
 
-curl https://downloads.rosettacommons.org/downloads/academic/3.14/rosetta_bin_linux_3.14_bundle.tar.bz2 -o rosetta_bin_linux_3.14_bundle.tar.bz2 
-
-# curl --range 0-10485759 https://downloads.rosettacommons.org/downloads/academic/3.14/rosetta_bin_linux_3.14_bundle.tar.bz2 -o rosetta_bin_linux_3.14_bundle_partial.tar.bz2
-
-tar -xvjf rosetta_bin_linux_3.14_bundle.tar.bz2
-
-rm rosetta_bin_linux_3.14_bundle.tar.bz2
+curl -O https://downloads.rosettacommons.org/downloads/academic/3.13/rosetta_bin_linux_3.13_bundle.tgz
+tar -xvzf rosetta_bin_linux_3.13_bundle.tgz
+rm rosetta_bin_linux_3.13_bundle.tgz
 
 chmod 777 encrypt.sh
 
 echo "Generating a minimal Rosetta distribution and compressing it"
 python rosetta_minimal.py --gen_distribution --rosetta_main_dir=rosetta.binary.linux.release-371/main --out_dir=rosetta_minimal
+
+# rosetta_bin_linux_2021.16.61629_bundle/main
 
 echo "Encrypting the minimal Rosetta distribution"
 python rosetta_minimal.py --prep_for_squid --out_dir=rosetta_minimal --squid_dir=output/squid_rosetta --encryption_password=R0S3774123
