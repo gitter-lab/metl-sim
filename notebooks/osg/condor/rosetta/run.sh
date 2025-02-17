@@ -43,9 +43,7 @@ rm rosetta_bin_linux_3.13_bundle.tgz
 chmod 777 encrypt.sh
 
 echo "Generating a minimal Rosetta distribution and compressing it"
-python rosetta_minimal.py --gen_distribution --rosetta_main_dir=rosetta.binary.linux.release-371/main --out_dir=rosetta_minimal
-
-# rosetta_bin_linux_2021.16.61629_bundle/main
+python rosetta_minimal.py --gen_distribution --rosetta_main_dir=rosetta_bin_linux_2021.16.61629_bundle/main --out_dir=rosetta_minimal
 
 echo "Encrypting the minimal Rosetta distribution"
 python rosetta_minimal.py --prep_for_squid --out_dir=rosetta_minimal --squid_dir=output/squid_rosetta --encryption_password=R0S3774123
