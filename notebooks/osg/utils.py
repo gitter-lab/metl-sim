@@ -19,7 +19,7 @@ def remove_all_condor_jobs():
     try:
         count = get_jobs_on_OSG()
         if len(count) == 0:
-            print(f"\033[92m No jobs active on Open Science Grid.\033[0m")
+            print(f"\033[92m No jobs active on OSG.\033[0m")
             return
 
         # Run the condor_rm command to remove all jobs
@@ -883,7 +883,6 @@ def run_post_process_script(job_name, verbose=False):
                 print("Standard Output:\n", result.stdout)
                 print("Standard Error:\n", result.stderr)
             print_colored(f"✅ Successfully post process job name {job_name}", '32')  # Green color
-
 
         except subprocess.CalledProcessError as e:
             print_colored(f"❌ Script execution failed to post process {job_name}!", '31')  # Red color

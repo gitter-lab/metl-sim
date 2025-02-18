@@ -5,7 +5,7 @@ Output = output/condor_logs/helloworld_$(Process).out
 Error = output/condor_logs/helloworld_$(Process).err
 Log = output/condor_logs/helloworld_$(Process).log
 RequestCpus = 1
-RequestMemory = 512 MB
+RequestMemory = 1GB
 
 # set it so jobs that fail will go on hold
 on_exit_hold = (ExitCode =!= 0)

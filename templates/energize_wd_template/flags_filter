@@ -4,3 +4,4 @@
 -jd2:failed_job_exception false
 -out:file:score_only filter.sc
 -out:level 100
+-run:preserve_header true

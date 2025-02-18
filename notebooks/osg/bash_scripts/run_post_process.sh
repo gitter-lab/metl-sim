@@ -5,7 +5,7 @@ set -e
 
 . env/bin/activate
 
-cd ..
+cd ../..
 
 echo ${pwd}
 
@@ -14,7 +14,7 @@ echo ${pwd}
 JOB_MAIN_DIR=$1
 
 # Run the Python script with the specified parameters
-python code/process_run.py stats --main_run_dirs notebooks/condor/"$JOB_MAIN_DIR"
+python code/process_run.py stats --main_run_dirs notebooks/osg/condor/"$JOB_MAIN_DIR"
 
 
 
